@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:record/record.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/services/deepgram_service.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
@@ -33,9 +36,13 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   SpeechSttProvider _sttProvider = SpeechSttProvider.deepgram;
   SpeechTranslationProvider _translationProvider =
       SpeechTranslationProvider.google;
-    String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
-    String _deepgramRecognitionLanguage =
+  String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
+  String _deepgramRecognitionLanguage =
       DeepgramService.defaultRecognitionLanguage;
+  List<InputDevice> _listeningDevices = const [];
+  String? _listeningDeviceId;
+  final StreamController<String> _listeningDeviceUpdatesController =
+      StreamController<String>.broadcast();
 
   void addMessage(ChatMessage msg) {
     _chatMessages.add(msg);
@@ -46,6 +53,12 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
     _isListening = isListening;
     _lastWords = lastWords;
     notifyListeners();
+  }
+
+  void emitListeningDeviceUpdate(String message) {
+    if (!_listeningDeviceUpdatesController.isClosed) {
+      _listeningDeviceUpdatesController.add(message);
+    }
   }
 
   // SpeechController contract -------------------------------------------------
@@ -102,6 +115,17 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
         _deepgramRecognitionModel
       ] ??
       const <String, String>{};
+
+  @override
+  List<InputDevice> get listeningDevices =>
+      List<InputDevice>.unmodifiable(_listeningDevices);
+
+  @override
+  String? get listeningDeviceId => _listeningDeviceId;
+
+  @override
+  Stream<String> get listeningDeviceUpdates =>
+      _listeningDeviceUpdatesController.stream;
 
   @override
   List<ChatMessage> getOptimisticMessages() {
@@ -186,5 +210,25 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   void setDeepgramRecognitionLanguage(String language) {
     _deepgramRecognitionLanguage = language;
     notifyListeners();
+  }
+
+  @override
+  Future<void> refreshListeningDevices() async {
+    _listeningDevices = const [
+      InputDevice(id: 'default', label: 'Built-in Microphone'),
+    ];
+    notifyListeners();
+  }
+
+  @override
+  void setListeningDeviceId(String? deviceId) {
+    _listeningDeviceId = deviceId;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _listeningDeviceUpdatesController.close();
+    super.dispose();
   }
 }

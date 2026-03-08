@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 import 'package:record/record.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../models/playback_device.dart';
 import '../models/queued_chat_message.dart';
 import '../services/audio_playback_queue.dart';
 import '../services/speech_pipeline.dart';
@@ -40,12 +41,17 @@ class SpeechController extends ChangeNotifier {
   double _amplitude = 0.0; // normalized 0.0‑1.0 (mapped from dB-truncated values)
   StreamSubscription<SpeechRecognitionResult>? _recognitionSub;
   StreamSubscription<double>? _ampSub;
+  StreamSubscription<dynamic>? _listeningDeviceChangeSub;
   SpeechRecognitionSession? _recognitionSession;
   Timer? _finalResultTimer;
   // final List<SpeechRecognitionWord> _pendingFinalWords = [];
   List<QueuedChatMessage> _queuedMessages = [];
   final List<SpeechRecognitionWord> _partialWords = [];
   final List<ChatMessage> _chatMessages = [];
+  List<InputDevice> _listeningDevices = const [];
+  List<PlaybackDevice> _playbackDevices = const [];
+  final StreamController<String> _listeningDeviceUpdateController =
+      StreamController<String>.broadcast();
 
   /// ID of speaker whose messages should be right-aligned in the UI.
   /// Null means no preference (all left).
@@ -80,13 +86,21 @@ class SpeechController extends ChangeNotifier {
   SpeechSttProvider get sttProvider => _speechPipeline.sttProvider;
   SpeechTranslationProvider get translationProvider =>
       _speechPipeline.translationProvider;
-    String get deepgramRecognitionModel => _speechPipeline.deepgramRecognitionModel;
-    String get deepgramRecognitionLanguage =>
+  String get deepgramRecognitionModel => _speechPipeline.deepgramRecognitionModel;
+  String get deepgramRecognitionLanguage =>
       _speechPipeline.deepgramRecognitionLanguage;
-    List<String> get deepgramRecognitionModels =>
+  List<String> get deepgramRecognitionModels =>
       _speechPipeline.deepgramRecognitionModels;
-    Map<String, String> get deepgramRecognitionLanguages =>
+  Map<String, String> get deepgramRecognitionLanguages =>
       _speechPipeline.deepgramRecognitionLanguages;
+  List<InputDevice> get listeningDevices =>
+      List<InputDevice>.unmodifiable(_listeningDevices);
+  String? get listeningDeviceId => _speechPipeline.listeningDeviceId;
+  List<PlaybackDevice> get playbackDevices =>
+      List<PlaybackDevice>.unmodifiable(_playbackDevices);
+  String? get playbackDeviceId => _speechPipeline.playbackDeviceId;
+    Stream<String> get listeningDeviceUpdates =>
+      _listeningDeviceUpdateController.stream;
 
   List<ChatMessage> wordsToMessages(List<ChatMessage> oldMessages, Iterable<SpeechRecognitionWord> words, {bool isFinal = false}) {
     final newMessages = (json.decode(json.encode(oldMessages)) as List).map((e) => ChatMessage.fromJson(e)).toList();
@@ -193,6 +207,112 @@ class SpeechController extends ChangeNotifier {
     if (_speechPipeline.deepgramRecognitionLanguage == language) return;
     _speechPipeline.setDeepgramRecognitionLanguage(language);
     notifyListeners();
+  }
+
+  Future<void> refreshListeningDevices() async {
+    try {
+      _listeningDevices = await _recorder.listInputDevices();
+    } catch (_) {
+      _listeningDevices = const [];
+    }
+
+    final selectedId = _speechPipeline.listeningDeviceId;
+    if (selectedId != null &&
+        !_listeningDevices.any((device) => device.id == selectedId)) {
+      _speechPipeline.setListeningDeviceId(null);
+    }
+    notifyListeners();
+  }
+
+  Future<void> refreshPlaybackDevices() async {
+    final devices = await _speechPipeline.listPlaybackDevices();
+    _playbackDevices = devices;
+
+    final selectedId = _speechPipeline.playbackDeviceId;
+    final currentRouteId = await _speechPipeline.getCurrentPlaybackDeviceId();
+
+    if (selectedId == null) {
+      _speechPipeline.setPlaybackDeviceIdLocally(currentRouteId);
+    } else if (!_playbackDevices.any((device) => device.id == selectedId)) {
+      _speechPipeline.setPlaybackDeviceIdLocally(currentRouteId);
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> _handleListeningDeviceRouteChange(dynamic event) async {
+    final eventName = event is Map
+        ? (event['event']?.toString() ?? 'route_changed')
+        : 'route_changed';
+    final previousSignature = _listeningDevices
+        .map((device) => '${device.id}|${device.label}')
+        .join(';');
+    final previousSelectedId = _speechPipeline.listeningDeviceId;
+    final previousPlaybackSignature = _playbackDevices
+      .map((device) => '${device.id}|${device.name}|${device.type}')
+      .join(';');
+    final previousPlaybackSelectedId = _speechPipeline.playbackDeviceId;
+
+    await refreshListeningDevices();
+    await refreshPlaybackDevices();
+
+    final updatedSignature = _listeningDevices
+        .map((device) => '${device.id}|${device.label}')
+        .join(';');
+    final updatedSelectedId = _speechPipeline.listeningDeviceId;
+    final updatedPlaybackSignature = _playbackDevices
+      .map((device) => '${device.id}|${device.name}|${device.type}')
+      .join(';');
+    final updatedPlaybackSelectedId = _speechPipeline.playbackDeviceId;
+
+    if (previousSignature == updatedSignature &&
+      previousSelectedId == updatedSelectedId &&
+      previousPlaybackSignature == updatedPlaybackSignature &&
+      previousPlaybackSelectedId == updatedPlaybackSelectedId) {
+      return;
+    }
+
+    String message;
+    switch (eventName) {
+      case 'devices_added':
+        message = 'Microphone connected';
+        break;
+      case 'devices_removed':
+        message = 'Microphone disconnected';
+        break;
+      case 'route_changed':
+        message = 'Audio route changed';
+        break;
+      default:
+        message = 'Listening device list updated';
+    }
+
+    if (updatedSelectedId != null) {
+      final selected = _listeningDevices
+          .where((device) => device.id == updatedSelectedId)
+          .cast<InputDevice?>()
+          .firstWhere((_) => true, orElse: () => null);
+      if (selected != null) {
+        final label = selected.label.isNotEmpty ? selected.label : selected.id;
+        message = '$message: $label';
+      }
+    }
+
+    if (!_listeningDeviceUpdateController.isClosed) {
+      _listeningDeviceUpdateController.add(message);
+    }
+  }
+
+  void setListeningDeviceId(String? deviceId) {
+    if (_speechPipeline.listeningDeviceId == deviceId) return;
+    _speechPipeline.setListeningDeviceId(deviceId);
+    notifyListeners();
+  }
+
+  Future<bool> setPlaybackDeviceId(String? deviceId) async {
+    final applied = await _speechPipeline.setPlaybackDeviceId(deviceId);
+    await refreshPlaybackDevices();
+    return applied;
   }
 
   // translation + TTS helpers ------------------------------------------------
@@ -376,6 +496,15 @@ class SpeechController extends ChangeNotifier {
       return;
     }
     _speechEnabled = hasPerm && isValid;
+    await refreshListeningDevices();
+    await refreshPlaybackDevices();
+    _listeningDeviceChangeSub ??=
+        _speechPipeline.listeningDeviceRouteChanges().listen(
+          (event) {
+            unawaited(_handleListeningDeviceRouteChange(event));
+          },
+          onError: (_) {},
+        );
     notifyListeners();
   }
 
@@ -592,6 +721,8 @@ class SpeechController extends ChangeNotifier {
     unawaited(_recognitionSession?.stop() ?? Future.value());
     unawaited(_recognitionSub?.cancel() ?? Future.value());
     unawaited(_ampSub?.cancel() ?? Future.value());
+    unawaited(_listeningDeviceChangeSub?.cancel() ?? Future.value());
+    unawaited(_listeningDeviceUpdateController.close());
     _recorder.dispose();
     _audioPlayer?.dispose();
     super.dispose();

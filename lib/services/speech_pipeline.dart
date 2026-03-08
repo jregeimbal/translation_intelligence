@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:record/record.dart';
 
+import '../models/playback_device.dart';
 import 'deepgram_service.dart';
 import 'google_speech_service.dart';
 import 'mlkit_translation_service.dart';
@@ -47,6 +48,9 @@ class SpeechRecognitionSession {
 class SpeechPipeline {
   static const MethodChannel _audioRecordChannel =
       MethodChannel('com.example.translation_intelligence/audio_record');
+  static const EventChannel _audioRouteEventChannel = EventChannel(
+    'com.example.translation_intelligence/audio_route_events',
+  );
 
   static const List<int> _sampleRateFallbackOrder = <int>[
     48000,
@@ -66,6 +70,8 @@ class SpeechPipeline {
   SpeechTranslationProvider _translationProvider;
   String _deepgramRecognitionModel;
   String _deepgramRecognitionLanguage;
+  String? _listeningDeviceId;
+  String? _playbackDeviceId;
 
   SpeechPipeline({
     required String googleApiKey,
@@ -98,14 +104,16 @@ class SpeechPipeline {
   SpeechOutputProvider get outputProvider => _outputProvider;
   SpeechSttProvider get sttProvider => _sttProvider;
   SpeechTranslationProvider get translationProvider => _translationProvider;
-    String get deepgramRecognitionModel => _deepgramRecognitionModel;
-    String get deepgramRecognitionLanguage => _deepgramRecognitionLanguage;
-    List<String> get deepgramRecognitionModels =>
+  String get deepgramRecognitionModel => _deepgramRecognitionModel;
+  String get deepgramRecognitionLanguage => _deepgramRecognitionLanguage;
+  List<String> get deepgramRecognitionModels =>
       DeepgramService.supportedRecognitionModels;
-    Map<String, String> get deepgramRecognitionLanguages =>
-        _recognitionService.supportedRecognitionLanguagesForModel(
-          _deepgramRecognitionModel,
-        );
+  Map<String, String> get deepgramRecognitionLanguages =>
+      _recognitionService.supportedRecognitionLanguagesForModel(
+        _deepgramRecognitionModel,
+      );
+  String? get listeningDeviceId => _listeningDeviceId;
+  String? get playbackDeviceId => _playbackDeviceId;
 
   void setOutputProvider(SpeechOutputProvider provider) {
     _outputProvider = provider;
@@ -127,6 +135,83 @@ class SpeechPipeline {
   void setDeepgramRecognitionLanguage(String language) {
     _recognitionService.setRecognitionLanguage(language);
     _deepgramRecognitionLanguage = _recognitionService.recognitionLanguage;
+  }
+
+  void setListeningDeviceId(String? deviceId) {
+    _listeningDeviceId = deviceId;
+  }
+
+  Future<List<PlaybackDevice>> listPlaybackDevices() async {
+    if (kIsWeb) return const [];
+
+    try {
+      final rawDevices = await _audioRecordChannel
+          .invokeMethod<List<dynamic>>('getPlaybackDevices');
+      if (rawDevices == null) return const [];
+
+      return rawDevices
+          .whereType<Map>()
+          .map((device) {
+            final id = device['id']?.toString() ?? '';
+            if (id.isEmpty) {
+              return null;
+            }
+            final name = device['name']?.toString() ?? '';
+            final type = device['type']?.toString() ?? '';
+            return PlaybackDevice(id: id, name: name, type: type);
+          })
+          .whereType<PlaybackDevice>()
+          .toList(growable: false);
+    } on MissingPluginException {
+      return const [];
+    } on PlatformException {
+      return const [];
+    }
+  }
+
+  Future<String?> getCurrentPlaybackDeviceId() async {
+    if (kIsWeb) return null;
+
+    try {
+      return await _audioRecordChannel.invokeMethod<String>(
+        'getCurrentPlaybackDeviceId',
+      );
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
+  Future<bool> setPlaybackDeviceId(String? deviceId) async {
+    if (kIsWeb) {
+      _playbackDeviceId = deviceId;
+      return false;
+    }
+
+    try {
+      final applied = await _audioRecordChannel.invokeMethod<bool>(
+        'setPlaybackDevice',
+        {'deviceId': deviceId},
+      );
+
+      if (applied == true) {
+        _playbackDeviceId = deviceId;
+      }
+      return applied ?? false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  void setPlaybackDeviceIdLocally(String? deviceId) {
+    _playbackDeviceId = deviceId;
+  }
+
+  Stream<dynamic> listeningDeviceRouteChanges() {
+    return _audioRouteEventChannel.receiveBroadcastStream();
   }
 
   Future<bool> isSpeechApiKeyValid() {
@@ -315,7 +400,9 @@ class SpeechPipeline {
       bitRate: config.bitRate,
       sampleRate: sampleRate,
       numChannels: config.numChannels,
-      device: config.device,
+        device: _listeningDeviceId == null
+          ? config.device
+          : InputDevice(id: _listeningDeviceId!, label: ''),
       autoGain: config.autoGain,
       echoCancel: config.echoCancel,
       noiseSuppress: config.noiseSuppress,
