@@ -13,10 +13,12 @@ import 'package:speech_to_text_platform_interface/speech_to_text_platform_interf
 import 'package:stts_platform_interface/stts_platform_interface.dart';
 import 'package:translation_intelligence/services/deepgram_service.dart';
 import 'package:translation_intelligence/services/google_speech_service.dart';
+import 'package:translation_intelligence/services/mlkit_translation_service.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_to_text_service.dart';
+import 'package:translation_intelligence/services/speech_translation_provider.dart';
 import 'package:translation_intelligence/services/stts_service.dart';
 
 String _resultText(SpeechRecognitionResult result) {
@@ -305,6 +307,26 @@ class _FakeSpeechToTextService extends SpeechToTextService {
   }
 }
 
+class _FakeMlKitTranslationService extends MlKitTranslationService {
+  String? lastText;
+  String? lastTargetLanguage;
+  String? lastSourceLanguage;
+
+  @override
+  Future<String?> translateText({
+    required String text,
+    required String targetLanguage,
+    String? sourceLanguage,
+    bool returnOriginalOnFailure = true,
+    bool nullWhenUnchanged = false,
+  }) async {
+    lastText = text;
+    lastTargetLanguage = targetLanguage;
+    lastSourceLanguage = sourceLanguage;
+    return 'mlkit-$text-$targetLanguage';
+  }
+}
+
 class _FakeSttsService extends SttsService {
   bool initResult = true;
   bool startCalled = false;
@@ -418,6 +440,45 @@ class _FakeDeepgramRecognition {
   final String transcript;
   final bool isFinal;
   final List<_FakeDeepgramWord> words;
+}
+
+class _FakeAudioRecorder extends AudioRecorder {
+  _FakeAudioRecorder({
+    this.failStartAttempts = 0,
+    List<Amplitude>? amplitudes,
+  }) : _amplitudes = amplitudes ?? [Amplitude(current: -25.0, max: 0.0)];
+
+  final int failStartAttempts;
+  final List<Amplitude> _amplitudes;
+  final List<int> sampleRatesTried = <int>[];
+  int _startCalls = 0;
+  int _amplitudeIndex = 0;
+  int stopCalls = 0;
+
+  @override
+  Future<Stream<Uint8List>> startStream(RecordConfig config) async {
+    _startCalls += 1;
+    sampleRatesTried.add(config.sampleRate);
+    if (_startCalls <= failStartAttempts) {
+      throw StateError('start failed for ${config.sampleRate}');
+    }
+    return Stream<Uint8List>.value(Uint8List.fromList(const [1, 2, 3]));
+  }
+
+  @override
+  Future<Amplitude> getAmplitude() async {
+    final index = _amplitudeIndex < _amplitudes.length
+        ? _amplitudeIndex
+        : _amplitudes.length - 1;
+    _amplitudeIndex += 1;
+    return _amplitudes[index];
+  }
+
+  @override
+  Future<String?> stop() async {
+    stopCalls += 1;
+    return null;
+  }
 }
 
 void main() {
@@ -1095,6 +1156,45 @@ void main() {
       expect(pipeline.sttProvider, equals(SpeechSttProvider.google));
     });
 
+    test('deepgram model and language setters track supported values', () {
+      expect(
+        pipeline.translationProvider,
+        equals(SpeechTranslationProvider.google),
+      );
+      expect(
+        pipeline.deepgramRecognitionModel,
+        equals(DeepgramService.defaultRecognitionModel),
+      );
+      expect(
+        pipeline.deepgramRecognitionLanguage,
+        equals(DeepgramService.defaultRecognitionLanguage),
+      );
+      expect(
+        pipeline.deepgramRecognitionModels,
+        contains('nova-3-medical'),
+      );
+
+      pipeline.setTranslationProvider(SpeechTranslationProvider.googleMlKit);
+      expect(
+        pipeline.translationProvider,
+        equals(SpeechTranslationProvider.googleMlKit),
+      );
+
+      pipeline.setDeepgramRecognitionModel('nova-3-medical');
+      expect(pipeline.deepgramRecognitionModel, equals('nova-3-medical'));
+      expect(pipeline.deepgramRecognitionLanguage, equals('multi'));
+
+      pipeline.setDeepgramRecognitionLanguage('en-GB');
+      expect(pipeline.deepgramRecognitionLanguage, equals('en-GB'));
+
+      pipeline.setDeepgramRecognitionLanguage('multi');
+      expect(pipeline.deepgramRecognitionLanguage, equals('en-GB'));
+      expect(
+        pipeline.deepgramRecognitionLanguages.values,
+        contains('en-US'),
+      );
+    });
+
     test('translateText delegates to Google service and uses missing-key fallback', () async {
       final translated = await pipeline.translateText(
         text: 'hello',
@@ -1102,6 +1202,27 @@ void main() {
       );
 
       expect(translated, equals('hello'));
+    });
+
+    test('translateText delegates to ML Kit when translation provider is googleMlKit',
+        () async {
+      final mlKit = _FakeMlKitTranslationService();
+      final routedPipeline = SpeechPipeline(
+        googleApiKey: 'g',
+        deepgramApiKey: 'd',
+        mlKitTranslationService: mlKit,
+      )..setTranslationProvider(SpeechTranslationProvider.googleMlKit);
+
+      final translated = await routedPipeline.translateText(
+        text: 'hello',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+      );
+
+      expect(translated, equals('mlkit-hello-ja'));
+      expect(mlKit.lastText, equals('hello'));
+      expect(mlKit.lastSourceLanguage, equals('en'));
+      expect(mlKit.lastTargetLanguage, equals('ja'));
     });
 
     test('synthesizeSpeech uses active output provider branch', () async {
@@ -1232,6 +1353,90 @@ void main() {
 
       await session.stop();
       expect(routedPipeline.captureStopCalled, isTrue);
+    });
+
+    test('startLiveRecognition delegates to recognition service', () async {
+      final deepgram = _FakeDeepgramService()
+        ..liveRecognitionStream = Stream<SpeechRecognitionResult>.value(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'delegated-stream',
+            isFinal: true,
+          ),
+        );
+      final routedPipeline = SpeechPipeline(
+        googleApiKey: 'g',
+        deepgramApiKey: 'd',
+        recognitionService: deepgram,
+      );
+
+      final result = await routedPipeline
+          .startLiveRecognition(
+            Stream<Uint8List>.value(Uint8List.fromList(const [1])),
+            sourceLanguage: 'en-US',
+          )
+          .first;
+
+      expect(_resultText(result), equals('delegated-stream'));
+      expect(result.isFinal, isTrue);
+    });
+
+    test('startMicrophoneCapture retries sample rates and normalizes amplitude',
+        () async {
+      final recorder = _FakeAudioRecorder(
+        failStartAttempts: 1,
+        amplitudes: [
+          Amplitude(current: -25.0, max: 0.0),
+        ],
+      );
+
+      final session = await pipeline.startMicrophoneCapture(
+        recorder,
+        amplitudeInterval: const Duration(milliseconds: 1),
+      );
+
+      final amplitude = await session.amplitudeStream.first.timeout(
+        const Duration(milliseconds: 250),
+      );
+
+      expect(session.sampleRate, equals(32000));
+      expect(recorder.sampleRatesTried, equals([48000, 32000]));
+      expect(recorder.stopCalls, equals(1));
+      expect(amplitude, closeTo(0.5, 0.0001));
+
+      await session.stop();
+      expect(recorder.stopCalls, equals(2));
+    });
+
+    test('startMicrophoneCapture normalizes positive amplitude values',
+        () async {
+      final recorder = _FakeAudioRecorder(
+        amplitudes: [
+          Amplitude(current: 0.75, max: 1.0),
+        ],
+      );
+
+      final session = await pipeline.startMicrophoneCapture(
+        recorder,
+        amplitudeInterval: const Duration(milliseconds: 1),
+      );
+
+      final amplitude = await session.amplitudeStream.first.timeout(
+        const Duration(milliseconds: 250),
+      );
+
+      expect(amplitude, equals(0.75));
+      await session.stop();
+    });
+
+    test('startMicrophoneCapture throws when all sample rates fail', () async {
+      final recorder = _FakeAudioRecorder(failStartAttempts: 4);
+
+      await expectLater(
+        pipeline.startMicrophoneCapture(recorder),
+        throwsA(isA<StateError>()),
+      );
+      expect(recorder.sampleRatesTried, equals([48000, 32000, 24000, 16000]));
+      expect(recorder.stopCalls, equals(4));
     });
   });
 }
