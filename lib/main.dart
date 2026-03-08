@@ -21,7 +21,7 @@ import 'widgets/two_way_chat.dart';
 void main() async {
   await dotenv.load();
 
-  Logger.root.level = Level.ALL; // This will only show WARNING and SEVERE logs
+  Logger.root.level = Level.FINER; // This will only show WARNING and SEVERE logs
   Logger.root.onRecord.listen((record) {
     // Use developer.log to send logs to the debug console
     //if (kDebugMode) {
