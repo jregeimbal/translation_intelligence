@@ -71,5 +71,17 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is required to capture your speech for live transcription and translation.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Speech recognition is required to convert your spoken audio into text.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Bluetooth access is used to connect and use wireless audio input and output devices.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Bluetooth peripheral access is used for compatible audio recording and playback devices.</string>
 </dict>
 </plist>
