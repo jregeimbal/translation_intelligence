@@ -656,7 +656,7 @@ void main() {
       );
       expect(
         DeepgramService.supportedRecognitionModels,
-        contains('flux-general-en'),
+        contains('nova-3-medical'),
       );
       expect(
         DeepgramService
@@ -665,7 +665,7 @@ void main() {
       );
       expect(
         DeepgramService
-            .supportedRecognitionLanguagesByModel['flux-general-en']?['English'],
+            .supportedRecognitionLanguagesByModel['nova-3-medical']?['English'],
         equals('en'),
       );
       expect(
@@ -675,6 +675,10 @@ void main() {
       expect(
         DeepgramService.defaultRecognitionLanguage,
         equals('multi'),
+      );
+      expect(
+        DeepgramService.defaultRecognitionLanguageForModel('nova-3-medical'),
+        equals('en'),
       );
     });
 
@@ -771,7 +775,7 @@ void main() {
       expect(capturedParams?['language'], equals('multi'));
     });
 
-    test('startLiveRecognition uses configured model and language for multi source',
+    test('startLiveRecognition ignores unsupported model and uses current model params',
         () async {
       Map<String, dynamic>? capturedParams;
       final apiService = DeepgramService(
@@ -782,28 +786,36 @@ void main() {
         },
       );
 
-      apiService.setRecognitionModel('flux-general-en');
+      apiService.setRecognitionModel('unsupported-model');
       apiService.setRecognitionLanguage('es');
 
       await apiService
           .startLiveRecognition(
             const Stream<Uint8List>.empty(),
             sourceLanguage: 'multi',
+            diarize: true,
+            utterances: true,
           )
           .drain<void>();
 
-      expect(capturedParams?['model'], equals('flux-general-en'));
-      expect(capturedParams?['language'], equals('en'));
+      expect(capturedParams?['model'], equals('nova-3'));
+      expect(capturedParams?['language'], equals('es'));
+      expect(capturedParams?['detect_language'], isFalse);
+      expect(capturedParams?['diarize'], isTrue);
+      expect(capturedParams?['utterances'], isTrue);
+      expect(capturedParams?['interim_results'], isTrue);
+      expect(capturedParams?['punctuate'], isTrue);
     });
 
-    test('setRecognitionModel coerces unsupported language to model default',
+    test('setRecognitionModel ignores unsupported model',
         () async {
       final apiService = DeepgramService(apiKey: 'key');
       apiService.setRecognitionLanguage('multi');
 
-      apiService.setRecognitionModel('flux-general-en');
+      apiService.setRecognitionModel('unsupported-model');
 
-      expect(apiService.recognitionLanguage, equals('en'));
+      expect(apiService.recognitionModel, equals('nova-3'));
+      expect(apiService.recognitionLanguage, equals('multi'));
     });
   });
 
