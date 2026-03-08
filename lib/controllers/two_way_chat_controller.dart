@@ -112,6 +112,18 @@ class TwoWayChatController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setListeningDeviceId(String? deviceId) {
+    if (_speechPipeline.listeningDeviceId == deviceId) return;
+    _speechPipeline.setListeningDeviceId(deviceId);
+    notifyListeners();
+  }
+
+  Future<bool> setPlaybackDeviceId(String? deviceId) async {
+    final applied = await _speechPipeline.setPlaybackDeviceId(deviceId);
+    notifyListeners();
+    return applied;
+  }
+
   static const Map<String, String> supportedLanguages = {
     'English': 'en',
     'Spanish': 'es',

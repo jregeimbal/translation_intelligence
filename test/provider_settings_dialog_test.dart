@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:record/record.dart';
 import 'package:translation_intelligence/main.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
+
+import 'speech_controller_stub.dart';
 
 void main() {
   testWidgets('ProviderSettingsDialog shows Settings title, Providers sub-header, and ordered labels', (
@@ -18,13 +21,15 @@ void main() {
             initialOutputProvider: SpeechOutputProvider.google,
             initialDeepgramRecognitionModel: 'nova-3',
             initialDeepgramRecognitionLanguage: 'multi',
+            initialListeningDevices: [],
+            initialListeningDeviceId: null,
           ),
         ),
       ),
     );
 
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Providers'), findsOneWidget);
+    expect(find.text('Providers'), findsWidgets);
 
     final textWidgets = tester.widgetList<Text>(
       find.descendant(
@@ -54,5 +59,90 @@ void main() {
     expect(deepgramModelIndex, lessThan(deepgramLanguageIndex));
     expect(deepgramLanguageIndex, lessThan(translationIndex));
     expect(translationIndex, lessThan(textToSpeechIndex));
+  });
+
+  testWidgets('ProviderSettingsDialog shows current listening device details', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: ProviderSettingsDialog(
+            initialSttProvider: SpeechSttProvider.deepgram,
+            initialTranslationProvider: SpeechTranslationProvider.google,
+            initialOutputProvider: SpeechOutputProvider.google,
+            initialDeepgramRecognitionModel: 'nova-3',
+            initialDeepgramRecognitionLanguage: 'multi',
+            initialListeningDevices: [
+              InputDevice(id: 'builtin', label: 'Built-in Microphone'),
+            ],
+            initialListeningDeviceId: null,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Audio'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Audio'), findsWidgets);
+    expect(find.text('Listening Device'), findsOneWidget);
+    expect(find.text('Current: Auto (Built-in Microphone)'), findsOneWidget);
+    expect(find.text('No input devices detected'), findsNothing);
+  });
+
+  testWidgets('ProviderSettingsDialog shows listening device selector when multiple are available', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: ProviderSettingsDialog(
+            initialSttProvider: SpeechSttProvider.deepgram,
+            initialTranslationProvider: SpeechTranslationProvider.google,
+            initialOutputProvider: SpeechOutputProvider.google,
+            initialDeepgramRecognitionModel: 'nova-3',
+            initialDeepgramRecognitionLanguage: 'multi',
+            initialListeningDevices: [
+              InputDevice(id: 'builtin', label: 'Built-in Microphone'),
+              InputDevice(id: 'usb-1', label: 'USB Microphone'),
+            ],
+            initialListeningDeviceId: 'usb-1',
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Audio'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Current: USB Microphone'), findsOneWidget);
+
+    final deviceDropdown = find.byWidgetPredicate((widget) {
+      return widget is DropdownButtonFormField<String> &&
+          widget.initialValue == 'usb-1';
+    });
+    expect(deviceDropdown, findsOneWidget);
+
+    await tester.ensureVisible(deviceDropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(deviceDropdown);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Auto'), findsOneWidget);
+  });
+
+  test('TestSpeechController emits listening device update messages', () async {
+    final controller = TestSpeechController();
+    final received = <String>[];
+    final sub = controller.listeningDeviceUpdates.listen(received.add);
+
+    controller.emitListeningDeviceUpdate('Microphone connected: USB Mic');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(received, contains('Microphone connected: USB Mic'));
+
+    await sub.cancel();
+    controller.dispose();
   });
 }
