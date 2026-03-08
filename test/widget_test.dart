@@ -12,7 +12,7 @@ import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/widgets/chat_control_bar.dart';
 import 'package:translation_intelligence/widgets/chat_message.dart';
 
-import 'test_speech_controller.dart';
+import 'speech_controller_stub.dart';
 
 void main() {
   testWidgets('ChatControlBar shows speakers and clears', (tester) async {
