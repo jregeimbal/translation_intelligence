@@ -64,6 +64,8 @@ class SpeechPipeline {
   SpeechOutputProvider _outputProvider;
   SpeechSttProvider _sttProvider;
   SpeechTranslationProvider _translationProvider;
+  String _deepgramRecognitionModel;
+  String _deepgramRecognitionLanguage;
 
   SpeechPipeline({
     required String googleApiKey,
@@ -89,11 +91,21 @@ class SpeechPipeline {
         _mlKitTranslationService = mlKitTranslationService ?? MlKitTranslationService(),
         _outputProvider = initialOutputProvider,
         _sttProvider = initialSttProvider,
-        _translationProvider = initialTranslationProvider;
+        _translationProvider = initialTranslationProvider,
+        _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel,
+        _deepgramRecognitionLanguage = DeepgramService.defaultRecognitionLanguage;
 
   SpeechOutputProvider get outputProvider => _outputProvider;
   SpeechSttProvider get sttProvider => _sttProvider;
   SpeechTranslationProvider get translationProvider => _translationProvider;
+    String get deepgramRecognitionModel => _deepgramRecognitionModel;
+    String get deepgramRecognitionLanguage => _deepgramRecognitionLanguage;
+    List<String> get deepgramRecognitionModels =>
+      DeepgramService.supportedRecognitionModels;
+    Map<String, String> get deepgramRecognitionLanguages =>
+        _recognitionService.supportedRecognitionLanguagesForModel(
+          _deepgramRecognitionModel,
+        );
 
   void setOutputProvider(SpeechOutputProvider provider) {
     _outputProvider = provider;
@@ -105,6 +117,16 @@ class SpeechPipeline {
 
   void setTranslationProvider(SpeechTranslationProvider provider) {
     _translationProvider = provider;
+  }
+
+  void setDeepgramRecognitionModel(String model) {
+    _recognitionService.setRecognitionModel(model);
+    _deepgramRecognitionModel = _recognitionService.recognitionModel;
+  }
+
+  void setDeepgramRecognitionLanguage(String language) {
+    _recognitionService.setRecognitionLanguage(language);
+    _deepgramRecognitionLanguage = _recognitionService.recognitionLanguage;
   }
 
   Future<bool> isSpeechApiKeyValid() {
@@ -326,6 +348,8 @@ class SpeechPipeline {
   Stream<SpeechRecognitionResult> startLiveRecognition(
     Stream<Uint8List> audioStream, {
     required String sourceLanguage,
+    String? model,
+    String? language,
     bool diarize = false,
     bool utterances = false,
     String sampleRate = '16000',
@@ -333,6 +357,8 @@ class SpeechPipeline {
     return _recognitionService.startLiveRecognition(
       audioStream,
       sourceLanguage: sourceLanguage,
+      model: model,
+      language: language,
       diarize: diarize,
       utterances: utterances,
       sampleRate: sampleRate,

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'controllers/speech_controller.dart';
 import 'controllers/two_way_chat_controller.dart';
+import 'services/deepgram_service.dart';
 import 'services/speech_output_provider.dart';
 import 'services/speech_stt_provider.dart';
 import 'services/speech_translation_provider.dart';
@@ -108,6 +109,227 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
+class ProviderSettingsSelection {
+  final SpeechSttProvider sttProvider;
+  final SpeechTranslationProvider translationProvider;
+  final SpeechOutputProvider outputProvider;
+  final String deepgramRecognitionModel;
+  final String deepgramRecognitionLanguage;
+
+  const ProviderSettingsSelection({
+    required this.sttProvider,
+    required this.translationProvider,
+    required this.outputProvider,
+    required this.deepgramRecognitionModel,
+    required this.deepgramRecognitionLanguage,
+  });
+}
+
+class ProviderSettingsDialog extends StatefulWidget {
+  final SpeechSttProvider initialSttProvider;
+  final SpeechTranslationProvider initialTranslationProvider;
+  final SpeechOutputProvider initialOutputProvider;
+  final String initialDeepgramRecognitionModel;
+  final String initialDeepgramRecognitionLanguage;
+
+  const ProviderSettingsDialog({
+    super.key,
+    required this.initialSttProvider,
+    required this.initialTranslationProvider,
+    required this.initialOutputProvider,
+    required this.initialDeepgramRecognitionModel,
+    required this.initialDeepgramRecognitionLanguage,
+  });
+
+  @override
+  State<ProviderSettingsDialog> createState() => _ProviderSettingsDialogState();
+}
+
+class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
+  late SpeechSttProvider _selectedSttProvider;
+  late SpeechTranslationProvider _selectedTranslationProvider;
+  late SpeechOutputProvider _selectedOutputProvider;
+  late String _selectedDeepgramRecognitionModel;
+  late String _selectedDeepgramRecognitionLanguage;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedSttProvider = widget.initialSttProvider;
+    _selectedTranslationProvider = widget.initialTranslationProvider;
+    _selectedOutputProvider = widget.initialOutputProvider;
+    _selectedDeepgramRecognitionModel = widget.initialDeepgramRecognitionModel;
+    _selectedDeepgramRecognitionLanguage =
+      widget.initialDeepgramRecognitionLanguage;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final deepgramLanguages =
+      DeepgramService.supportedRecognitionLanguagesByModel[
+        _selectedDeepgramRecognitionModel] ??
+      DeepgramService.supportedRecognitionLanguagesByModel[
+        DeepgramService.defaultRecognitionModel]!;
+
+    return AlertDialog(
+      title: const Text('Settings'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Providers'),
+            const SizedBox(height: 12),
+            const Text('Speech to Text'),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<SpeechSttProvider>(
+              initialValue: _selectedSttProvider,
+              isExpanded: true,
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() {
+                  _selectedSttProvider = value;
+                });
+              },
+              items: SpeechSttProvider.values
+                  .map(
+                    (provider) => DropdownMenuItem<SpeechSttProvider>(
+                      value: provider,
+                      child: Text(provider.label),
+                    ),
+                  )
+                  .toList(),
+            ),
+            if (_selectedSttProvider == SpeechSttProvider.deepgram) ...[
+              const SizedBox(height: 16),
+              const Text('Deepgram Model'),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedDeepgramRecognitionModel,
+                isExpanded: true,
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    _selectedDeepgramRecognitionModel = value;
+                    final supportedValues =
+                        (DeepgramService.supportedRecognitionLanguagesByModel[
+                                    value] ??
+                                const <String, String>{})
+                            .values
+                            .toSet();
+                    if (!supportedValues.contains(
+                      _selectedDeepgramRecognitionLanguage,
+                    )) {
+                      _selectedDeepgramRecognitionLanguage =
+                          DeepgramService.defaultRecognitionLanguageForModel(
+                        value,
+                      );
+                    }
+                  });
+                },
+                items: DeepgramService.supportedRecognitionModels
+                    .map(
+                      (model) => DropdownMenuItem<String>(
+                        value: model,
+                        child: Text(model),
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 16),
+              const Text('Deepgram Language'),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedDeepgramRecognitionLanguage,
+                isExpanded: true,
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    _selectedDeepgramRecognitionLanguage = value;
+                  });
+                },
+                items: deepgramLanguages.entries
+                    .map(
+                      (entry) => DropdownMenuItem<String>(
+                        value: entry.value,
+                        child: Text(entry.key),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+            const SizedBox(height: 16),
+            const Text('Translation'),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<SpeechTranslationProvider>(
+              initialValue: _selectedTranslationProvider,
+              isExpanded: true,
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() {
+                  _selectedTranslationProvider = value;
+                });
+              },
+              items: SpeechTranslationProvider.values
+                  .map(
+                    (provider) => DropdownMenuItem<SpeechTranslationProvider>(
+                      value: provider,
+                      child: Text(provider.label),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+            const Text('Text to Speech'),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<SpeechOutputProvider>(
+              initialValue: _selectedOutputProvider,
+              isExpanded: true,
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() {
+                  _selectedOutputProvider = value;
+                });
+              },
+              items: SpeechOutputProvider.values
+                  .map(
+                    (provider) => DropdownMenuItem<SpeechOutputProvider>(
+                      value: provider,
+                      child: Text(provider.label),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(
+              ProviderSettingsSelection(
+                sttProvider: _selectedSttProvider,
+                translationProvider: _selectedTranslationProvider,
+                outputProvider: _selectedOutputProvider,
+                deepgramRecognitionModel: _selectedDeepgramRecognitionModel,
+                deepgramRecognitionLanguage:
+                    _selectedDeepgramRecognitionLanguage,
+              ),
+            );
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   late SpeechController _controller;
   late TwoWayChatController _twoWayController;
@@ -120,6 +342,9 @@ class _MyHomePageState extends State<MyHomePage> {
   SpeechSttProvider _sttProvider = SpeechSttProvider.deepgram;
   SpeechTranslationProvider _translationProvider =
       SpeechTranslationProvider.google;
+    String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
+    String _deepgramRecognitionLanguage =
+      DeepgramService.defaultRecognitionLanguage;
 
   bool get _isGroupSection => _selectedSection == 0;
 
@@ -157,6 +382,62 @@ class _MyHomePageState extends State<MyHomePage> {
       _controller.setTranslationProvider(provider);
       _twoWayController.setTranslationProvider(provider);
     });
+  }
+
+  void _setDeepgramRecognitionModel(String model) {
+    if (_deepgramRecognitionModel == model || _initializing) return;
+    setState(() {
+      _deepgramRecognitionModel = model;
+      _controller.setDeepgramRecognitionModel(model);
+      _twoWayController.setDeepgramRecognitionModel(model);
+    });
+  }
+
+  void _setDeepgramRecognitionLanguage(String language) {
+    if (_deepgramRecognitionLanguage == language || _initializing) return;
+    setState(() {
+      _deepgramRecognitionLanguage = language;
+      _controller.setDeepgramRecognitionLanguage(language);
+      _twoWayController.setDeepgramRecognitionLanguage(language);
+    });
+  }
+
+  Future<void> _showProviderSettingsDialog() async {
+    if (_initializing) return;
+
+    final selection = await showDialog<ProviderSettingsSelection>(
+      context: context,
+      builder: (context) {
+        return ProviderSettingsDialog(
+          initialSttProvider: _sttProvider,
+          initialTranslationProvider: _translationProvider,
+          initialOutputProvider: _outputProvider,
+          initialDeepgramRecognitionModel: _deepgramRecognitionModel,
+          initialDeepgramRecognitionLanguage: _deepgramRecognitionLanguage,
+        );
+      },
+    );
+
+    if (selection == null) {
+      return;
+    }
+
+    if (selection.sttProvider != _sttProvider) {
+      await _setSttProvider(selection.sttProvider);
+    }
+    if (!mounted) return;
+    if (selection.translationProvider != _translationProvider) {
+      _setTranslationProvider(selection.translationProvider);
+    }
+    if (selection.outputProvider != _outputProvider) {
+      _setOutputProvider(selection.outputProvider);
+    }
+    if (selection.deepgramRecognitionModel != _deepgramRecognitionModel) {
+      _setDeepgramRecognitionModel(selection.deepgramRecognitionModel);
+    }
+    if (selection.deepgramRecognitionLanguage != _deepgramRecognitionLanguage) {
+      _setDeepgramRecognitionLanguage(selection.deepgramRecognitionLanguage);
+    }
   }
 
   Future<void> _onSectionSelected(int index) async {
@@ -203,12 +484,18 @@ class _MyHomePageState extends State<MyHomePage> {
       );
       _controller.setSttProvider(_sttProvider);
       _controller.setTranslationProvider(_translationProvider);
+      _controller.setDeepgramRecognitionModel(_deepgramRecognitionModel);
+      _controller.setDeepgramRecognitionLanguage(_deepgramRecognitionLanguage);
       _twoWayController = TwoWayChatController(
         googleApiKey: _googleApiKey,
         deepgramApiKey: _deepgramApiKey,
       );
       _twoWayController.setSttProvider(_sttProvider);
       _twoWayController.setTranslationProvider(_translationProvider);
+      _twoWayController.setDeepgramRecognitionModel(_deepgramRecognitionModel);
+      _twoWayController.setDeepgramRecognitionLanguage(
+        _deepgramRecognitionLanguage,
+      );
       Future.wait([_controller.init(), _twoWayController.init()]).whenComplete(() {
         setState(() {
           _initializing = false;
@@ -345,57 +632,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
               ),
             if (!_initializing)
-              PopupMenuButton<SpeechTranslationProvider>(
-                icon: const Icon(Icons.g_translate_rounded),
-                tooltip: 'Translation provider',
-                initialValue: _translationProvider,
-                onSelected: _setTranslationProvider,
-                itemBuilder: (context) {
-                  return SpeechTranslationProvider.values
-                      .map(
-                        (provider) => PopupMenuItem<SpeechTranslationProvider>(
-                          value: provider,
-                          child: Text(provider.label),
-                        ),
-                      )
-                      .toList();
-                },
-              ),
-            if (!_initializing)
-              PopupMenuButton<SpeechSttProvider>(
-                icon: const Icon(Icons.mic_external_on_outlined),
-                tooltip: 'STT provider',
-                initialValue: _sttProvider,
-                onSelected: (provider) {
-                  _setSttProvider(provider);
-                },
-                itemBuilder: (context) {
-                  return SpeechSttProvider.values
-                      .map(
-                        (provider) => PopupMenuItem<SpeechSttProvider>(
-                          value: provider,
-                          child: Text(provider.label),
-                        ),
-                      )
-                      .toList();
-                },
-              ),
-            if (!_initializing)
-              PopupMenuButton<SpeechOutputProvider>(
-                icon: const Icon(Icons.record_voice_over_outlined),
-                tooltip: 'TTS provider',
-                initialValue: _outputProvider,
-                onSelected: _setOutputProvider,
-                itemBuilder: (context) {
-                  return SpeechOutputProvider.values
-                      .map(
-                        (provider) => PopupMenuItem<SpeechOutputProvider>(
-                          value: provider,
-                          child: Text(provider.label),
-                        ),
-                      )
-                      .toList();
-                },
+              IconButton(
+                icon: const Icon(Icons.settings_outlined),
+                tooltip: 'Settings',
+                onPressed: _showProviderSettingsDialog,
               ),
             IconButton(
               icon: Icon(

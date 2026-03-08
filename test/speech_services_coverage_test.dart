@@ -239,6 +239,8 @@ class _FakeDeepgramService extends DeepgramService {
   Stream<SpeechRecognitionResult> startLiveRecognition(
     Stream<Uint8List> audioStream, {
     required String sourceLanguage,
+    String? model,
+    String? language,
     bool diarize = false,
     bool utterances = false,
     String sampleRate = '16000',
@@ -389,6 +391,8 @@ class _TestableSpeechPipeline extends SpeechPipeline {
   Stream<SpeechRecognitionResult> startLiveRecognition(
     Stream<Uint8List> audioStream, {
     required String sourceLanguage,
+    String? model,
+    String? language,
     bool diarize = false,
     bool utterances = false,
     String sampleRate = '16000',
@@ -645,6 +649,35 @@ void main() {
       expect(service.normalizeLanguage('en-US'), equals('en'));
     });
 
+    test('supported recognition options expose defaults and choices', () {
+      expect(
+        DeepgramService.supportedRecognitionModels,
+        contains('nova-3'),
+      );
+      expect(
+        DeepgramService.supportedRecognitionModels,
+        contains('flux-general-en'),
+      );
+      expect(
+        DeepgramService
+            .supportedRecognitionLanguagesByModel['nova-3']?['Multi'],
+        equals('multi'),
+      );
+      expect(
+        DeepgramService
+            .supportedRecognitionLanguagesByModel['flux-general-en']?['English'],
+        equals('en'),
+      );
+      expect(
+        DeepgramService.defaultRecognitionModel,
+        equals('nova-3'),
+      );
+      expect(
+        DeepgramService.defaultRecognitionLanguage,
+        equals('multi'),
+      );
+    });
+
     test('synthesizeSpeech returns response bytes on successful API call', () async {
       final client = MockClient((request) async {
         expect(request.headers['Authorization'], equals('Token key'));
@@ -736,6 +769,41 @@ void main() {
           .drain<void>();
 
       expect(capturedParams?['language'], equals('multi'));
+    });
+
+    test('startLiveRecognition uses configured model and language for multi source',
+        () async {
+      Map<String, dynamic>? capturedParams;
+      final apiService = DeepgramService(
+        apiKey: 'key',
+        liveRecognizer: (audioStream, queryParams) {
+          capturedParams = queryParams;
+          return const Stream<dynamic>.empty();
+        },
+      );
+
+      apiService.setRecognitionModel('flux-general-en');
+      apiService.setRecognitionLanguage('es');
+
+      await apiService
+          .startLiveRecognition(
+            const Stream<Uint8List>.empty(),
+            sourceLanguage: 'multi',
+          )
+          .drain<void>();
+
+      expect(capturedParams?['model'], equals('flux-general-en'));
+      expect(capturedParams?['language'], equals('en'));
+    });
+
+    test('setRecognitionModel coerces unsupported language to model default',
+        () async {
+      final apiService = DeepgramService(apiKey: 'key');
+      apiService.setRecognitionLanguage('multi');
+
+      apiService.setRecognitionModel('flux-general-en');
+
+      expect(apiService.recognitionLanguage, equals('en'));
     });
   });
 

@@ -82,10 +82,7 @@ class _FakeTtsSpeechPipeline extends SpeechPipeline {
 }
 
 void main() {
-  Logger.root.level = Level.ALL; // Set to ALL to see all logs during testing
-  Logger.root.onRecord.listen((LogRecord rec) {
-    debugPrint('${rec.level}: ${rec.message}');
-  });
+  Logger.root.level = Level.WARNING;
 
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -166,8 +163,6 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      debugPrint('Chat messages: ${controller.chatMessages.map((m) => m.original).toList()}');
-      debugPrint('Optimistic messages: ${controller.getOptimisticMessages().map((m) => m.original).toList()}');
       expect(controller.chatMessages.length, equals(1));
       expect(controller.chatMessages.first.translation, equals('hello final-translated'));
       expect(pipeline.translateCallCount, equals(1));
