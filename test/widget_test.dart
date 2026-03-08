@@ -7,24 +7,41 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/widgets/chat_control_bar.dart';
+import 'package:translation_intelligence/widgets/chat_message.dart';
 
-import 'package:translation_intelligence/main.dart';
+import 'test_speech_controller.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp());
+  testWidgets('ChatControlBar shows speakers and clears', (tester) async {
+    final controller = TestSpeechController();
+    controller.addMessage(ChatMessage('Hello', speaker: 0));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ChangeNotifierProvider<SpeechController>.value(
+            value: controller,
+            child: const ChatControlBar(),
+          ),
+        ),
+      ),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Primary speaker'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Open dropdown to reveal speaker options
+    await tester.tap(find.byType(DropdownButtonFormField<int?>));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Speaker 1'), findsOneWidget);
+
+    // Clear via controller to avoid overlay timing issues.
+    controller.clearMessages();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Primary speaker'), findsNothing);
   });
 }
