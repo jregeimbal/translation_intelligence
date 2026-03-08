@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/services/deepgram_service.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_recognition_models.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
@@ -32,6 +33,9 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   SpeechSttProvider _sttProvider = SpeechSttProvider.deepgram;
   SpeechTranslationProvider _translationProvider =
       SpeechTranslationProvider.google;
+    String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
+    String _deepgramRecognitionLanguage =
+      DeepgramService.defaultRecognitionLanguage;
 
   void addMessage(ChatMessage msg) {
     _chatMessages.add(msg);
@@ -81,6 +85,23 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
 
   @override
   SpeechTranslationProvider get translationProvider => _translationProvider;
+
+  @override
+  String get deepgramRecognitionModel => _deepgramRecognitionModel;
+
+  @override
+  String get deepgramRecognitionLanguage => _deepgramRecognitionLanguage;
+
+  @override
+  List<String> get deepgramRecognitionModels =>
+      DeepgramService.supportedRecognitionModels;
+
+  @override
+  Map<String, String> get deepgramRecognitionLanguages =>
+      DeepgramService.supportedRecognitionLanguagesByModel[
+        _deepgramRecognitionModel
+      ] ??
+      const <String, String>{};
 
   @override
   List<ChatMessage> getOptimisticMessages() {
@@ -152,6 +173,18 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   @override
   void setTranslationProvider(SpeechTranslationProvider provider) {
     _translationProvider = provider;
+    notifyListeners();
+  }
+
+  @override
+  void setDeepgramRecognitionModel(String model) {
+    _deepgramRecognitionModel = model;
+    notifyListeners();
+  }
+
+  @override
+  void setDeepgramRecognitionLanguage(String language) {
+    _deepgramRecognitionLanguage = language;
     notifyListeners();
   }
 }

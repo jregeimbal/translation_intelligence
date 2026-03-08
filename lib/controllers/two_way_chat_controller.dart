@@ -67,6 +67,13 @@ class TwoWayChatController extends ChangeNotifier {
   SpeechSttProvider get sttProvider => _speechPipeline.sttProvider;
   SpeechTranslationProvider get translationProvider =>
       _speechPipeline.translationProvider;
+    String get deepgramRecognitionModel => _speechPipeline.deepgramRecognitionModel;
+    String get deepgramRecognitionLanguage =>
+      _speechPipeline.deepgramRecognitionLanguage;
+    List<String> get deepgramRecognitionModels =>
+      _speechPipeline.deepgramRecognitionModels;
+    Map<String, String> get deepgramRecognitionLanguages =>
+      _speechPipeline.deepgramRecognitionLanguages;
 
   String get primaryLanguage => _primaryLanguage;
   String get guestLanguage => _guestLanguage;
@@ -90,6 +97,18 @@ class TwoWayChatController extends ChangeNotifier {
   void setTranslationProvider(SpeechTranslationProvider provider) {
     if (_speechPipeline.translationProvider == provider) return;
     _speechPipeline.setTranslationProvider(provider);
+    notifyListeners();
+  }
+
+  void setDeepgramRecognitionModel(String model) {
+    if (_speechPipeline.deepgramRecognitionModel == model) return;
+    _speechPipeline.setDeepgramRecognitionModel(model);
+    notifyListeners();
+  }
+
+  void setDeepgramRecognitionLanguage(String language) {
+    if (_speechPipeline.deepgramRecognitionLanguage == language) return;
+    _speechPipeline.setDeepgramRecognitionLanguage(language);
     notifyListeners();
   }
 

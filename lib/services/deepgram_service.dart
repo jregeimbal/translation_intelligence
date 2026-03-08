@@ -13,23 +13,96 @@ typedef DeepgramLiveRecognizer = Stream<dynamic> Function(
 );
 
 class DeepgramService {
+  static const String defaultRecognitionModel = 'nova-3';
+  static const String defaultRecognitionLanguage = 'multi';
+
+  static const List<String> supportedRecognitionModels = [
+    'nova-3',
+    'flux-general-en',
+  ];
+
+  static const Map<String, Map<String, String>> supportedRecognitionLanguagesByModel = {
+    'nova-3': {
+      'Multi': 'multi',
+      'English': 'en',
+      'Spanish': 'es',
+      'French': 'fr',
+      'German': 'de',
+      'Portuguese': 'pt',
+      'Russian': 'ru',
+      'Japanese': 'ja',
+      'Italian': 'it',
+      'Dutch': 'nl',
+      'Hindi': 'hi',
+      'Arabic': 'ar',
+    },
+    'flux-general-en': {
+      'English': 'en',
+    },
+  };
+
   final Deepgram _deepgram;
   final String _apiKey;
   final http.Client _httpClient;
   final DeepgramApiKeyValidator? _apiKeyValidator;
   final DeepgramLiveRecognizer? _liveRecognizer;
+  String _recognitionModel;
+  String _recognitionLanguage;
 
   DeepgramService({
     required String apiKey,
     http.Client? httpClient,
     DeepgramApiKeyValidator? apiKeyValidator,
     DeepgramLiveRecognizer? liveRecognizer,
+    String initialRecognitionModel = defaultRecognitionModel,
+    String initialRecognitionLanguage = defaultRecognitionLanguage,
   })
       : _apiKey = apiKey,
         _deepgram = Deepgram(apiKey),
         _httpClient = httpClient ?? http.Client(),
         _apiKeyValidator = apiKeyValidator,
-        _liveRecognizer = liveRecognizer;
+        _liveRecognizer = liveRecognizer,
+        _recognitionModel = initialRecognitionModel,
+        _recognitionLanguage = initialRecognitionLanguage;
+
+  String get recognitionModel => _recognitionModel;
+  String get recognitionLanguage => _recognitionLanguage;
+
+  Map<String, String> supportedRecognitionLanguagesForModel(String model) {
+    return supportedRecognitionLanguagesByModel[model] ??
+        supportedRecognitionLanguagesByModel[defaultRecognitionModel]!;
+  }
+
+  bool isRecognitionLanguageSupportedForModel(
+    String model,
+    String language,
+  ) {
+    return supportedRecognitionLanguagesForModel(model).containsValue(language);
+  }
+
+  static String defaultRecognitionLanguageForModel(String model) {
+    if (model == 'flux-general-en') {
+      return 'en';
+    }
+    return defaultRecognitionLanguage;
+  }
+
+  void setRecognitionModel(String model) {
+    if (!supportedRecognitionModels.contains(model)) {
+      return;
+    }
+    _recognitionModel = model;
+    if (!isRecognitionLanguageSupportedForModel(model, _recognitionLanguage)) {
+      _recognitionLanguage = defaultRecognitionLanguageForModel(model);
+    }
+  }
+
+  void setRecognitionLanguage(String language) {
+    if (!isRecognitionLanguageSupportedForModel(_recognitionModel, language)) {
+      return;
+    }
+    _recognitionLanguage = language;
+  }
 
   Future<bool> isApiKeyValid() {
     return (_apiKeyValidator ?? _deepgram.isApiKeyValid)();
@@ -38,16 +111,22 @@ class DeepgramService {
   Stream<SpeechRecognitionResult> startLiveRecognition(
     Stream<Uint8List> audioStream, {
     required String sourceLanguage,
+    String? model,
+    String? language,
     bool diarize = false,
     bool utterances = false,
     String sampleRate = '16000',
   }) {
+    final selectedModel = model ?? _recognitionModel;
+    final selectedLanguage =
+        sourceLanguage == 'multi' ? (language ?? _recognitionLanguage) : sourceLanguage;
+
     final params = <String, dynamic>{
       'detect_language': false,
-      'language': sourceLanguage == 'multi'
+      'language': selectedLanguage == 'multi'
           ? 'multi'
-          : normalizeLanguage(sourceLanguage),
-      'model': 'nova-3',
+          : normalizeLanguage(selectedLanguage),
+      'model': selectedModel,
       'encoding': 'linear16',
       'sample_rate': sampleRate,
       'interim_results': true,
