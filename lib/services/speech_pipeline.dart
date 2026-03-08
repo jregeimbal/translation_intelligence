@@ -218,6 +218,7 @@ class SpeechPipeline {
       numChannels: 1,
       autoGain: true,
       noiseSuppress: true,
+      audioInterruption: AudioInterruptionMode.none,
     ),
     Duration amplitudeInterval = const Duration(milliseconds: 100),
   }) async {

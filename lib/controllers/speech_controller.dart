@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:record/record.dart';
@@ -301,7 +302,13 @@ class SpeechController extends ChangeNotifier {
         logger.finest(
           '${DateTime.now().toUtc()} Playing audio of length ${bytes.length} bytes',
         );
-        await player.play(BytesSource(bytes));
+        final playbackContext = !kIsWeb &&
+                defaultTargetPlatform == TargetPlatform.android
+            ? AudioContextConfig(
+                focus: AudioContextConfigFocus.mixWithOthers,
+              ).build()
+            : null;
+        await player.play(BytesSource(bytes), ctx: playbackContext);
         await Future.any<void>([
           player.onPlayerComplete.first,
           Future<void>.delayed(_audioPlaybackCompletionTimeout),
@@ -311,7 +318,7 @@ class SpeechController extends ChangeNotifier {
         );
       } catch (e) {
         logger.severe(
-          'audio playback error ${e}',
+          'audio playback error $e',
           e,
         );
       }
