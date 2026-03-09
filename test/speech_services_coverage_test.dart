@@ -1279,6 +1279,12 @@ void main() {
       expect(await routedPipeline.isSpeechApiKeyValid(), isTrue);
     });
 
+    test('listeningDeviceRouteChanges is safe when platform channel is unavailable', () async {
+      final stream = pipeline.listeningDeviceRouteChanges();
+
+      expect(stream, emitsDone);
+    });
+
     test('startRecognitionSession routes to Google STT service', () async {
       final speechToText = _FakeSpeechToTextService(initResult: true);
       final routedPipeline = SpeechPipeline(
