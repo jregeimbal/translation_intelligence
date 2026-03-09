@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/services/deepgram_service.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_recognition_models.dart';
@@ -41,6 +42,8 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
       DeepgramService.defaultRecognitionLanguage;
   List<InputDevice> _listeningDevices = const [];
   String? _listeningDeviceId;
+    List<PlaybackDevice> _playbackDevices = const [];
+    String? _playbackDeviceId;
   final StreamController<String> _listeningDeviceUpdatesController =
       StreamController<String>.broadcast();
 
@@ -126,6 +129,13 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   @override
   Stream<String> get listeningDeviceUpdates =>
       _listeningDeviceUpdatesController.stream;
+
+    @override
+    List<PlaybackDevice> get playbackDevices =>
+      List<PlaybackDevice>.unmodifiable(_playbackDevices);
+
+    @override
+    String? get playbackDeviceId => _playbackDeviceId;
 
   @override
   List<ChatMessage> getOptimisticMessages() {
@@ -221,9 +231,28 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   }
 
   @override
+  Future<void> refreshPlaybackDevices() async {
+    _playbackDevices = const [
+      PlaybackDevice(
+        id: 'speaker',
+        name: 'Built-in',
+        type: 'Built-in Speaker',
+      ),
+    ];
+    notifyListeners();
+  }
+
+  @override
   void setListeningDeviceId(String? deviceId) {
     _listeningDeviceId = deviceId;
     notifyListeners();
+  }
+
+  @override
+  Future<bool> setPlaybackDeviceId(String? deviceId) async {
+    _playbackDeviceId = deviceId;
+    notifyListeners();
+    return true;
   }
 
   @override

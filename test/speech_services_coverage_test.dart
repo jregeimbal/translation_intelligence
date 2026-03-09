@@ -246,6 +246,10 @@ class _FakeDeepgramService extends DeepgramService {
     bool diarize = false,
     bool utterances = false,
     String sampleRate = '16000',
+    bool smartFormat = true,
+    bool interimResults = true,
+    bool detectLanguage = true,
+    bool punctuate = true,
   }) {
     return liveRecognitionStream ??
         const Stream<SpeechRecognitionResult>.empty();
@@ -415,9 +419,12 @@ class _TestableSpeechPipeline extends SpeechPipeline {
     required String sourceLanguage,
     String? model,
     String? language,
+    String sampleRate = '16000',
     bool diarize = false,
     bool utterances = false,
-    String sampleRate = '16000',
+    bool punctuate = false,
+    bool smartFormat = false,
+    bool detectLanguage = false,
   }) {
     return recognitionResults;
   }

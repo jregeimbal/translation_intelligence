@@ -35,6 +35,9 @@ class _FakeTtsSpeechPipeline extends SpeechPipeline {
     required String sourceLanguage,
     bool diarize = false,
     bool utterances = false,
+    bool punctuate = false,
+    bool smartFormat = false,
+    bool detectLanguage = false,
   }) async {
     return SpeechRecognitionSession(
       resultStream: resultController.stream,

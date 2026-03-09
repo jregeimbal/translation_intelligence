@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
 import 'package:translation_intelligence/main.dart';
+import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
@@ -23,6 +24,8 @@ void main() {
             initialDeepgramRecognitionLanguage: 'multi',
             initialListeningDevices: [],
             initialListeningDeviceId: null,
+            initialPlaybackDevices: [],
+            initialPlaybackDeviceId: null,
           ),
         ),
       ),
@@ -77,6 +80,14 @@ void main() {
               InputDevice(id: 'builtin', label: 'Built-in Microphone'),
             ],
             initialListeningDeviceId: null,
+            initialPlaybackDevices: [
+              PlaybackDevice(
+                id: 'speaker',
+                name: 'iPhone',
+                type: 'Built-in Speaker',
+              ),
+            ],
+            initialPlaybackDeviceId: null,
           ),
         ),
       ),
@@ -108,6 +119,19 @@ void main() {
               InputDevice(id: 'usb-1', label: 'USB Microphone'),
             ],
             initialListeningDeviceId: 'usb-1',
+            initialPlaybackDevices: [
+              PlaybackDevice(
+                id: 'speaker',
+                name: 'iPhone',
+                type: 'Built-in Speaker',
+              ),
+              PlaybackDevice(
+                id: 'bt-1',
+                name: 'AirPods Pro',
+                type: 'Bluetooth A2DP',
+              ),
+            ],
+            initialPlaybackDeviceId: 'bt-1',
           ),
         ),
       ),
