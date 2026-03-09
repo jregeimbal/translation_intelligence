@@ -741,5 +741,102 @@ void main() {
       expect(pipeline.synthesizeCallCount, equals(2));
       expect(controller.getOptimisticMessages(), isEmpty);
     });
+
+    test('interleaved speakers flush independently when one continues speaking', () async {
+      final groupedPipeline = _FakeSpeechPipeline();
+      final groupedController = SpeechController(
+        googleApiKey: 'test-google',
+        deepgramApiKey: 'test-deepgram',
+        speechPipeline: groupedPipeline,
+        finalResultGroupingWindow: const Duration(milliseconds: 100),
+      );
+
+      await groupedController.init();
+      await groupedController.startListening();
+
+      groupedPipeline.resultController.add(
+        SpeechRecognitionResult(
+          isFinal: true,
+          words: [
+            SpeechRecognitionWord(word: 'alpha', speaker: 0),
+          ],
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+
+      groupedPipeline.resultController.add(
+        SpeechRecognitionResult(
+          isFinal: true,
+          words: [
+            SpeechRecognitionWord(word: 'bravo', speaker: 1),
+          ],
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+
+      expect(groupedController.chatMessages.length, equals(1));
+      expect(groupedController.chatMessages.first.speaker, equals(0));
+      expect(groupedController.chatMessages.first.original, equals('alpha.'));
+
+      final optimisticMid = groupedController.getOptimisticMessages();
+      expect(optimisticMid.length, equals(1));
+      expect(optimisticMid.first.speaker, equals(1));
+      expect(optimisticMid.first.original, equals('bravo'));
+
+      await Future<void>.delayed(const Duration(milliseconds: 70));
+
+      expect(groupedController.chatMessages.length, equals(2));
+      expect(groupedController.chatMessages[1].speaker, equals(1));
+      expect(groupedController.chatMessages[1].original, equals('bravo.'));
+
+      await groupedController.stopListening();
+      groupedController.dispose();
+      await groupedPipeline.disposeFake();
+    });
+
+    test('partial from another speaker does not delay pending final flush', () async {
+      final groupedPipeline = _FakeSpeechPipeline();
+      final groupedController = SpeechController(
+        googleApiKey: 'test-google',
+        deepgramApiKey: 'test-deepgram',
+        speechPipeline: groupedPipeline,
+        finalResultGroupingWindow: const Duration(milliseconds: 100),
+      );
+
+      await groupedController.init();
+      await groupedController.startListening();
+
+      groupedPipeline.resultController.add(
+        SpeechRecognitionResult(
+          isFinal: true,
+          words: [
+            SpeechRecognitionWord(word: 'first', speaker: 0),
+          ],
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      groupedPipeline.resultController.add(
+        SpeechRecognitionResult(
+          isFinal: false,
+          words: [
+            SpeechRecognitionWord(word: 'second', speaker: 1),
+          ],
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 70));
+
+      expect(groupedController.chatMessages.length, equals(1));
+      expect(groupedController.chatMessages.first.speaker, equals(0));
+      expect(groupedController.chatMessages.first.original, equals('first.'));
+
+      await groupedController.stopListening();
+      groupedController.dispose();
+      await groupedPipeline.disposeFake();
+    });
   });
 }
