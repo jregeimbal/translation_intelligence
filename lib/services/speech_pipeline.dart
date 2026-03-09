@@ -230,6 +230,9 @@ class SpeechPipeline {
     required String sourceLanguage,
     bool diarize = false,
     bool utterances = false,
+    bool punctuate = false,
+    bool smartFormat = false,
+    bool detectLanguage = false,
   }) async {
     switch (_sttProvider) {
       case SpeechSttProvider.deepgram:
@@ -237,9 +240,12 @@ class SpeechPipeline {
         final resultStream = startLiveRecognition(
           capture.audioStream,
           sourceLanguage: sourceLanguage,
+          sampleRate: capture.sampleRate.toString(),
           diarize: diarize,
           utterances: utterances,
-          sampleRate: capture.sampleRate.toString(),
+          punctuate: punctuate,
+          smartFormat: smartFormat,
+          detectLanguage: detectLanguage,
         );
 
         return SpeechRecognitionSession(
@@ -437,18 +443,24 @@ class SpeechPipeline {
     required String sourceLanguage,
     String? model,
     String? language,
+    String sampleRate = '16000',
     bool diarize = false,
     bool utterances = false,
-    String sampleRate = '16000',
+    bool punctuate = false,
+    bool smartFormat = false,
+    bool detectLanguage = false,
   }) {
     return _recognitionService.startLiveRecognition(
       audioStream,
       sourceLanguage: sourceLanguage,
       model: model,
       language: language,
+      sampleRate: sampleRate,
       diarize: diarize,
       utterances: utterances,
-      sampleRate: sampleRate,
+      punctuate: punctuate,
+      smartFormat: smartFormat,
+      detectLanguage: detectLanguage,
     );
   }
 

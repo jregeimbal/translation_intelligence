@@ -193,23 +193,28 @@ class DeepgramService {
     bool diarize = false,
     bool utterances = false,
     String sampleRate = '16000',
+    bool interimResults = true,
+    bool punctuate = true,
+    bool smartFormat = false,
+    bool detectLanguage = false,
   }) {
     final selectedModel = model ?? _recognitionModel;
     final selectedLanguage =
         sourceLanguage == 'multi' ? (language ?? _recognitionLanguage) : sourceLanguage;
 
     final params = <String, dynamic>{
-      'detect_language': false,
+      'detect_language': detectLanguage,
       'language': selectedLanguage == 'multi'
           ? 'multi'
           : normalizeLanguage(selectedLanguage),
       'model': selectedModel,
       'encoding': 'linear16',
       'sample_rate': sampleRate,
-      'interim_results': true,
+      'interim_results': interimResults,
       'punctuate': true,
       'diarize': diarize,
       'utterances': utterances,
+      'smart_format': smartFormat,
     };
 
     logger.fine('Starting Deepgram live recognition with params: $params');
