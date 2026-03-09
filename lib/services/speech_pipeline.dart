@@ -211,7 +211,28 @@ class SpeechPipeline {
   }
 
   Stream<dynamic> listeningDeviceRouteChanges() {
-    return _audioRouteEventChannel.receiveBroadcastStream();
+    if (kIsWeb) {
+      return const Stream<dynamic>.empty();
+    }
+
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      return const Stream<dynamic>.empty();
+    }
+
+    return _audioRouteEventChannel.receiveBroadcastStream().handleError(
+      (Object error, StackTrace stackTrace) {
+        if (error is MissingPluginException || error is PlatformException) {
+          developer.log(
+            'Audio route event channel unavailable on this platform: $error',
+            name: 'SpeechPipeline',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          return;
+        }
+        throw error;
+      },
+    );
   }
 
   Future<bool> isSpeechApiKeyValid() {
