@@ -46,69 +46,48 @@ class _SpeechFabState extends State<SpeechFab> {
     final enabled = controller.speechEnabled;
     final isNotListening = !controller.isListening;
     final theme = Theme.of(context);
-    final onPrimary = theme.colorScheme.onPrimary;
+    final activeColor = theme.colorScheme.onPrimary;
     Widget child;
     if (_processing) {
       child = SizedBox(
         width: 24,
         height: 24,
-        child: CircularProgressIndicator(strokeWidth: 2, color: onPrimary),
+        child: CircularProgressIndicator(strokeWidth: 2, color: activeColor),
       );
     } else if (!isNotListening) {
-      child = _buildCircularWaveform(theme, onPrimary, controller);
+      child = _buildCircularWaveform(theme, activeColor, controller);
     } else {
       child = Icon(
         Icons.mic,
-        color: enabled ? onPrimary : theme.colorScheme.onSurfaceVariant,
+        color: enabled ? activeColor : theme.colorScheme.onSurfaceVariant,
       );
     }
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: enabled
-            ? LinearGradient(
-                colors: [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.primary.withValues(alpha: 0.82),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-        color: enabled ? null : theme.colorScheme.surfaceContainerHigh,
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.18),
-            blurRadius: 16,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: FloatingActionButton(
-        heroTag: 'speech-fab',
-        elevation: 0,
-        highlightElevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: enabled
-            ? onPrimary
-            : theme.colorScheme.onSurfaceVariant,
-        shape: const CircleBorder(),
-        onPressed: enabled
-            ? (isNotListening
-                  ? () async {
-                      setState(() => _processing = true);
-                      try {
-                        await context.read<SpeechController>().startListening();
-                      } finally {
-                        setState(() => _processing = false);
-                      }
+    return FloatingActionButton.large(
+      heroTag: 'speech-fab',
+      elevation: 0,
+      highlightElevation: 0,
+      backgroundColor: enabled
+          ? theme.colorScheme.primary
+          : theme.colorScheme.surfaceContainerHigh,
+      foregroundColor: enabled
+          ? theme.colorScheme.onPrimary
+          : theme.colorScheme.onSurfaceVariant,
+      shape: const CircleBorder(),
+      onPressed: enabled
+          ? (isNotListening
+                ? () async {
+                    setState(() => _processing = true);
+                    try {
+                      await context.read<SpeechController>().startListening();
+                    } finally {
+                      setState(() => _processing = false);
                     }
-                  : context.read<SpeechController>().stopListening)
-            : null,
-        tooltip: enabled ? 'Listen' : 'Speech unavailable',
-        child: child,
-      ),
+                  }
+                : context.read<SpeechController>().stopListening)
+          : null,
+      tooltip: enabled ? 'Listen' : 'Speech unavailable',
+      child: child,
     );
   }
 }

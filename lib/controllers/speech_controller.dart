@@ -37,6 +37,7 @@ class SpeechController extends ChangeNotifier {
 
   bool _speechEnabled = false; // speech service + permission
   bool _isListening = false;
+  bool _audioPlaybackEnabled = true;
   String _speechError = '';
   double _amplitude = 0.0; // normalized 0.0‑1.0 (mapped from dB-truncated values)
   StreamSubscription<SpeechRecognitionResult>? _recognitionSub;
@@ -79,6 +80,7 @@ class SpeechController extends ChangeNotifier {
   }
   bool get speechEnabled => _speechEnabled;
   bool get isListening => _isListening;
+  bool get audioPlaybackEnabled => _audioPlaybackEnabled;
   String get speechError => _speechError;
   double get amplitude => _amplitude;
   List<ChatMessage> get chatMessages => List.unmodifiable(_chatMessages);
@@ -194,6 +196,12 @@ class SpeechController extends ChangeNotifier {
   void setTranslationProvider(SpeechTranslationProvider provider) {
     if (_speechPipeline.translationProvider == provider) return;
     _speechPipeline.setTranslationProvider(provider);
+    notifyListeners();
+  }
+
+  void setAudioPlaybackEnabled(bool enabled) {
+    if (_audioPlaybackEnabled == enabled) return;
+    _audioPlaybackEnabled = enabled;
     notifyListeners();
   }
 
@@ -365,6 +373,9 @@ class SpeechController extends ChangeNotifier {
       if (msg.speaker != null && msg.speaker == preferredSpeaker) {
         return; // skip TTS for the highlighted speaker
       }
+      if (!_audioPlaybackEnabled) {
+        return;
+      }
       final audio = await _synthesizeSpeech(translated, _targetLanguage);
       await _playAudio(audio);
     } catch (e) {
@@ -383,6 +394,9 @@ class SpeechController extends ChangeNotifier {
       _applyQueuedTranslationToCommittedMessage(msg, translated);
       notifyListeners();
       if (msg.speaker != null && msg.speaker == preferredSpeaker) {
+        return;
+      }
+      if (!_audioPlaybackEnabled) {
         return;
       }
       final audio = await _synthesizeSpeech(translated, _targetLanguage);
