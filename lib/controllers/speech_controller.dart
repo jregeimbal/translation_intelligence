@@ -43,7 +43,7 @@ class SpeechController extends ChangeNotifier {
   StreamSubscription<double>? _ampSub;
   StreamSubscription<dynamic>? _listeningDeviceChangeSub;
   SpeechRecognitionSession? _recognitionSession;
-  Timer? _finalResultTimer;
+  final Map<int, Timer> _finalResultTimersBySpeaker = <int, Timer>{};
   // final List<SpeechRecognitionWord> _pendingFinalWords = [];
   List<QueuedChatMessage> _queuedMessages = [];
   final List<SpeechRecognitionWord> _partialWords = [];
@@ -574,6 +574,8 @@ class SpeechController extends ChangeNotifier {
   bool get _hasPendingFinalResults =>
       _queuedMessages.isNotEmpty;
 
+  int _speakerFlushKey(int? speaker) => speaker ?? -1;
+
   String _pendingPreviewText() {
     return _queuedMessages.map((msg) => msg.original).join(' ').trim();
   }
@@ -627,23 +629,74 @@ class SpeechController extends ChangeNotifier {
     }
   }
 
-  void _schedulePendingFinalFlush() {
-    _finalResultTimer?.cancel();
-
-    if (_finalResultGroupingWindow == Duration.zero) {
-      _flushPendingFinalResults();
+  void _schedulePendingFinalFlush(Iterable<int?> speakers) {
+    final speakerKeys = speakers.map(_speakerFlushKey).toSet();
+    if (speakerKeys.isEmpty) {
       return;
     }
 
-    _finalResultTimer = Timer(_finalResultGroupingWindow, () {
-      _flushPendingFinalResults();
+    if (_finalResultGroupingWindow == Duration.zero) {
+      for (final speakerKey in speakerKeys) {
+        _flushPendingFinalResultsForSpeaker(speakerKey);
+      }
       notifyListeners();
-    });
+      return;
+    }
+
+    for (final speakerKey in speakerKeys) {
+      _finalResultTimersBySpeaker[speakerKey]?.cancel();
+      _finalResultTimersBySpeaker[speakerKey] = Timer(
+        _finalResultGroupingWindow,
+        () {
+          _flushPendingFinalResultsForSpeaker(speakerKey);
+          notifyListeners();
+        },
+      );
+    }
+  }
+
+  void _flushPendingFinalResultsForSpeaker(int speakerKey) {
+    _finalResultTimersBySpeaker.remove(speakerKey)?.cancel();
+
+    final speaker = speakerKey == -1 ? null : speakerKey;
+    final queuedBySpeaker = _queuedMessages
+        .where((queued) => queued.speaker == speaker)
+        .toList(growable: false);
+
+    if (queuedBySpeaker.isEmpty) {
+      return;
+    }
+
+    _queuedMessages.removeWhere((queued) => queued.speaker == speaker);
+
+    logger.info(
+      '${DateTime.now().toUtc()} COMMITING FINAL RESULT FOR SPEAKER $speaker: '
+      '"${queuedBySpeaker.map((msg) => msg.original).join(' ')}" '
+      'with ${queuedBySpeaker.length} messages',
+    );
+
+    final nonWordOrSpace = RegExp(r'[\w]$', unicode: true);
+
+    for (final queued in queuedBySpeaker) {
+      final message = queued.toChatMessage(isFinal: true);
+      if (nonWordOrSpace.hasMatch(message.original)) {
+        message.original = '${message.original}.';
+      }
+
+      _chatMessages.add(message);
+      _maybeDefaultPreferred(message.speaker);
+
+      if (message.translation == null && !queued.processingStarted) {
+        unawaited(_translateAndSpeak(message));
+      }
+    }
   }
 
   void _flushPendingFinalResults() {
-    _finalResultTimer?.cancel();
-    _finalResultTimer = null;
+    for (final timer in _finalResultTimersBySpeaker.values) {
+      timer.cancel();
+    }
+    _finalResultTimersBySpeaker.clear();
 
     if (!_hasPendingFinalResults) {
       return;
@@ -653,42 +706,12 @@ class SpeechController extends ChangeNotifier {
       '${DateTime.now().toUtc()} COMMITING FINAL RESULT: "${_pendingPreviewText()}" with ${_queuedMessages.length} messages',
     );
 
-    // Could there be any pending messages that need to be flused?
-    final messages = wordsToMessages(
-      _queuedMessagesAsChatMessages(),
-      [],
-      isFinal: true,
-    );
+    final speakersInQueue = _queuedMessages
+        .map((queued) => _speakerFlushKey(queued.speaker))
+        .toSet();
 
-    if (messages.isEmpty) {
-      return;
-    }
-
-    final queuedBySpeaker = {
-      for (final queued in _queuedMessages) queued.speaker: queued,
-    };
-
-    _queuedMessages.clear();
-    final nonWordOrSpace = RegExp(r'[\w]$', unicode: true);
-
-    for (final message in messages) {
-      logger.finer('Processing final message: "${message.original}" from speaker ${message.speaker}');
-      final queued = queuedBySpeaker[message.speaker];
-      if (queued != null) {
-        message.translation = queued.translation;
-      }
-      if (nonWordOrSpace.hasMatch(message.original)) {
-        logger.finest('Adding period to end of message: "${message.original}"');
-        message.original = '${message.original}.';
-      } else {
-        logger.finest('No punctuation needed for message: "${message.original}"');
-      }
-      _chatMessages.add(message);
-      _maybeDefaultPreferred(message.speaker);
-
-      if (message.translation == null && (queued == null || !queued.processingStarted)) {
-        unawaited(_translateAndSpeak(message));
-      }
+    for (final speakerKey in speakersInQueue) {
+      _flushPendingFinalResultsForSpeaker(speakerKey);
     }
   }
 
@@ -700,11 +723,16 @@ class SpeechController extends ChangeNotifier {
       if (result.isFinal) {
         _queueFinalResult(result);
         _partialWords.clear();
+        _schedulePendingFinalFlush(
+          result.words.map((word) => word.speaker),
+        );
       } else {
         _partialWords.clear();
         _partialWords.addAll(result.words); // add to partialWords
+        _schedulePendingFinalFlush(
+          result.words.map((word) => word.speaker),
+        );
       }
-      _schedulePendingFinalFlush();
     } else {
       logger.finest(
         '${DateTime.now().toUtc()} RECOGNIZED RESULT WITH NO WORDS - FINAL: ${result.isFinal}',
@@ -717,7 +745,10 @@ class SpeechController extends ChangeNotifier {
   void dispose() {
     // make sure wakelock is turned off
     unawaited(WakelockPlus.disable().catchError((_) {}));
-    _finalResultTimer?.cancel();
+    for (final timer in _finalResultTimersBySpeaker.values) {
+      timer.cancel();
+    }
+    _finalResultTimersBySpeaker.clear();
     unawaited(_recognitionSession?.stop() ?? Future.value());
     unawaited(_recognitionSub?.cancel() ?? Future.value());
     unawaited(_ampSub?.cancel() ?? Future.value());
