@@ -27,6 +27,7 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   final List<ChatMessage> _chatMessages = [];
   bool _isListening;
   final bool _speechEnabled;
+  bool _audioPlaybackEnabled = true;
   final String _speechError = '';
   String _lastWords = '';
   final double _amplitude;
@@ -85,6 +86,9 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
 
   @override
   bool get speechEnabled => _speechEnabled;
+
+  @override
+  bool get audioPlaybackEnabled => _audioPlaybackEnabled;
 
   @override
   Set<int> get speakers =>
@@ -207,6 +211,12 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   @override
   void setTranslationProvider(SpeechTranslationProvider provider) {
     _translationProvider = provider;
+    notifyListeners();
+  }
+
+  @override
+  void setAudioPlaybackEnabled(bool enabled) {
+    _audioPlaybackEnabled = enabled;
     notifyListeners();
   }
 

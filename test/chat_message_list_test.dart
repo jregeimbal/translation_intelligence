@@ -47,7 +47,7 @@ void main() {
       expect(find.textContaining('Listening...'), findsNothing);
     });
 
-    testWidgets('shows language preference panel when empty and idle', (tester) async {
+    testWidgets('shows idle prompt when empty and idle', (tester) async {
       final controller = TestSpeechController(isListening: false, speechEnabled: true);
 
       await tester.pumpWidget(
@@ -64,15 +64,9 @@ void main() {
       expect(find.text('Tap the mic to start listening...'), findsOneWidget);
       expect(
         find.text('If needed, please adjust your language preference'),
-        findsOneWidget,
+        findsNothing,
       );
-
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Spanish').last);
-      await tester.pumpAndSettle();
-
-      expect(controller.targetLanguage, equals('es'));
+      expect(find.byType(DropdownButtonFormField<String>), findsNothing);
     });
 
     testWidgets('renders speaker bubble with translation', (tester) async {

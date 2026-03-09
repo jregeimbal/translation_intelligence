@@ -21,63 +21,125 @@ class SpeechFooter extends StatefulWidget {
 }
 
 class _SpeechFooterState extends State<SpeechFooter> {
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SpeechController>();
     final speechEnabled = controller.speechEnabled;
     final speechError = controller.speechError;
+    final hasMessages = controller.chatMessages.isNotEmpty;
+    final speakers = controller.speakers;
+    final preferred = controller.preferredSpeaker;
     final theme = Theme.of(context);
     final textRoles = resolveAppThemeTextRoles(theme);
-    final tokens = resolveAppThemeTokens(theme);
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: tokens.footerSurface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      // use a stack so the mic button can float centered regardless of
-      // other widgets' widths.
-      child: SizedBox(
-        height: 64,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Row(
-              children: [
-                if (!speechEnabled)
-                  Flexible(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: Text(
-                        speechError.isNotEmpty
-                            ? speechError
-                            : 'Speech not available',
-                        style: textRoles.errorText,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+      height: 64,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'Clear chat',
+                onPressed: hasMessages
+                    ? context.read<SpeechController>().clearMessages
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              if (!speechEnabled)
+                Flexible(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Text(
+                      speechError.isNotEmpty
+                          ? speechError
+                          : 'Speech not available',
+                      style: textRoles.errorText,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                const Spacer(),
+                ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasMessages) ...[
+                  SizedBox(
+                    width: 140,
+                    child: DropdownButtonFormField<int?>(
+                      initialValue: preferred,
+                      icon: const SizedBox.shrink(),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        labelText: 'Primary Speaker',
+                        labelStyle: const TextStyle(fontSize: 12),
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.55),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: -1,
+                          child: Text('None'),
+                        ),
+                        ...speakers.map(
+                          (s) => DropdownMenuItem<int?>(
+                            value: s,
+                            child: Text('Speaker ${s + 1}'),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        context.read<SpeechController>().setPreferredSpeaker(value);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                IconButton(
+                  icon: Icon(
+                    controller.audioPlaybackEnabled
+                        ? Icons.volume_up_rounded
+                        : Icons.volume_off_rounded,
+                  ),
+                  tooltip: controller.audioPlaybackEnabled
+                      ? 'Disable audio playback'
+                      : 'Enable audio playback',
+                  onPressed: () {
+                    context.read<SpeechController>().setAudioPlaybackEnabled(
+                      !controller.audioPlaybackEnabled,
+                    );
+                  },
+                ),
               ],
             ),
-            // floating microphone control
-            Align(
-              alignment: Alignment.center,
-              child: const SpeechFab(),
-            ),
-          ],
-        ),
+          ),
+          const Align(
+            alignment: Alignment.center,
+            child: SpeechFab(),
+          ),
+        ],
       ),
     );
   }

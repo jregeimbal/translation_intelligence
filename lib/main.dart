@@ -18,7 +18,6 @@ import 'services/speech_translation_provider.dart';
 import 'theme/app_theme_resolver.dart';
 import 'theme/hyper_linguist_theme.dart';
 import 'theme/hyper_listen_theme.dart';
-import 'widgets/chat_control_bar.dart';
 import 'widgets/chat_message.dart';
 import 'widgets/footer.dart';
 import 'widgets/two_way_chat.dart';
@@ -54,7 +53,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  ThemeMode _themeMode = ThemeMode.dark;
+  ThemeMode _themeMode = ThemeMode.system;
   late final String _configuredTheme;
 
   @override
@@ -68,11 +67,9 @@ class _MyAppState extends State<MyApp> {
     return normalized == 'hyperlinguisttheme' || normalized == 'hyperlinguist';
   }
 
-  void _toggleTheme() {
+  void _setThemeMode(ThemeMode mode) {
     setState(() {
-      _themeMode = _themeMode == ThemeMode.dark
-          ? ThemeMode.light
-          : ThemeMode.dark;
+      _themeMode = mode;
     });
   }
 
@@ -91,21 +88,21 @@ class _MyAppState extends State<MyApp> {
       darkTheme: selectedDarkTheme,
       themeMode: _themeMode,
       home: MyHomePage(
-        onToggleTheme: _toggleTheme,
-        isDarkMode: _themeMode == ThemeMode.dark,
+        themeMode: _themeMode,
+        onThemeModeChanged: _setThemeMode,
       ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  final VoidCallback onToggleTheme;
-  final bool isDarkMode;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
 
   const MyHomePage({
     super.key,
-    required this.onToggleTheme,
-    required this.isDarkMode,
+    required this.themeMode,
+    required this.onThemeModeChanged,
   });
 
   @override
@@ -149,6 +146,7 @@ class ProviderSettingsSelection {
   final String deepgramRecognitionLanguage;
   final String? listeningDeviceId;
   final String? playbackDeviceId;
+  final ThemeMode themeMode;
 
   const ProviderSettingsSelection({
     required this.sttProvider,
@@ -158,6 +156,7 @@ class ProviderSettingsSelection {
     required this.deepgramRecognitionLanguage,
     required this.listeningDeviceId,
     required this.playbackDeviceId,
+    required this.themeMode,
   });
 }
 
@@ -171,6 +170,7 @@ class ProviderSettingsDialog extends StatefulWidget {
   final String? initialListeningDeviceId;
   final List<PlaybackDevice> initialPlaybackDevices;
   final String? initialPlaybackDeviceId;
+  final ThemeMode initialThemeMode;
 
   const ProviderSettingsDialog({
     super.key,
@@ -183,6 +183,7 @@ class ProviderSettingsDialog extends StatefulWidget {
     required this.initialListeningDeviceId,
     required this.initialPlaybackDevices,
     required this.initialPlaybackDeviceId,
+    required this.initialThemeMode,
   });
 
   @override
@@ -199,6 +200,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
   late List<InputDevice> _listeningDevices;
   late String? _selectedPlaybackDeviceId;
   late List<PlaybackDevice> _playbackDevices;
+  late ThemeMode _selectedThemeMode;
 
   @override
   void initState() {
@@ -213,6 +215,18 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
     _listeningDevices = List<InputDevice>.from(widget.initialListeningDevices);
     _selectedPlaybackDeviceId = widget.initialPlaybackDeviceId;
     _playbackDevices = List<PlaybackDevice>.from(widget.initialPlaybackDevices);
+    _selectedThemeMode = widget.initialThemeMode;
+  }
+
+  String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system:
+        return 'System';
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.dark:
+        return 'Dark';
+    }
   }
 
   @override
@@ -224,7 +238,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
         DeepgramService.defaultRecognitionModel]!;
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: AlertDialog(
         title: const Text('Settings'),
         content: SizedBox(
@@ -236,6 +250,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                 tabs: [
                   Tab(text: 'Providers'),
                   Tab(text: 'Audio'),
+                  Tab(text: 'Display'),
                 ],
               ),
               const SizedBox(height: 12),
@@ -492,6 +507,35 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                         ],
                       ),
                     ),
+                    SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Display'),
+                          const SizedBox(height: 12),
+                          const Text('Theme Mode'),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<ThemeMode>(
+                            initialValue: _selectedThemeMode,
+                            isExpanded: true,
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setState(() {
+                                _selectedThemeMode = value;
+                              });
+                            },
+                            items: ThemeMode.values
+                                .map(
+                                  (mode) => DropdownMenuItem<ThemeMode>(
+                                    value: mode,
+                                    child: Text(_themeModeLabel(mode)),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -517,6 +561,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                     _selectedDeepgramRecognitionLanguage,
                 listeningDeviceId: _selectedListeningDeviceId,
                 playbackDeviceId: _selectedPlaybackDeviceId,
+                themeMode: _selectedThemeMode,
               ),
             );
           },
@@ -677,6 +722,7 @@ class _MyHomePageState extends State<MyHomePage> {
           initialListeningDeviceId: _listeningDeviceId,
           initialPlaybackDevices: _playbackDevices,
           initialPlaybackDeviceId: _playbackDeviceId,
+          initialThemeMode: widget.themeMode,
         );
       },
     );
@@ -707,6 +753,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (selection.playbackDeviceId != _playbackDeviceId) {
       await _setPlaybackDeviceId(selection.playbackDeviceId);
     }
+    if (selection.themeMode != widget.themeMode) {
+      widget.onThemeModeChanged(selection.themeMode);
+    }
   }
 
   Future<void> _onSectionSelected(int index) async {
@@ -726,6 +775,167 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _selectedSection = index;
     });
+  }
+
+  bool _canSwapGroupLanguages(Map<String, String> sourceLanguages) {
+    if (_initializing || !_isGroupSection) return false;
+
+    final source = _controller.deepgramRecognitionLanguage;
+    final target = _controller.targetLanguage;
+
+    if (source == 'multi' || target == 'multi') {
+      return false;
+    }
+
+    final targetLanguages = SpeechController.supportedLanguages.values.toSet();
+    final sourceValues = sourceLanguages.values.toSet();
+
+    final supportsCurrentDirection =
+        sourceValues.contains(source) && targetLanguages.contains(target);
+    final supportsSwappedDirection =
+        sourceValues.contains(target) && targetLanguages.contains(source);
+
+    return supportsCurrentDirection && supportsSwappedDirection;
+  }
+
+  void _swapGroupLanguages(Map<String, String> sourceLanguages) {
+    if (!_canSwapGroupLanguages(sourceLanguages)) return;
+
+    final source = _controller.deepgramRecognitionLanguage;
+    final target = _controller.targetLanguage;
+
+    if (source == target) return;
+
+    setState(() {
+      _deepgramRecognitionLanguage = target;
+      _controller.setDeepgramRecognitionLanguage(target);
+      _twoWayController.setDeepgramRecognitionLanguage(target);
+      _controller.setTargetLanguage(source);
+    });
+  }
+
+  Widget _buildGroupLanguageBar(ThemeData theme) {
+    final tokens = resolveAppThemeTokens(theme);
+    final sourceLanguages = _controller.deepgramRecognitionLanguages;
+    final targetLanguages = SpeechController.supportedLanguages;
+    final canSwap = _canSwapGroupLanguages(sourceLanguages);
+
+    final sourceCode = _controller.deepgramRecognitionLanguage;
+    final targetCode = _controller.targetLanguage;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: tokens.glassSurface,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              initialValue: sourceCode,
+              icon: const SizedBox.shrink(),
+              decoration: InputDecoration(
+                labelText: 'Source',
+                labelStyle: const TextStyle(fontSize: 12),
+                floatingLabelStyle: const TextStyle(fontSize: 12),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.55,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              items: sourceLanguages.entries
+                  .map(
+                    (entry) => DropdownMenuItem<String>(
+                      value: entry.value,
+                      child: Text(entry.key),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value == null || value == sourceCode) return;
+                _setDeepgramRecognitionLanguage(value);
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: canSwap
+                ? 'Swap source and target language'
+                : (sourceCode == 'multi' || targetCode == 'multi'
+                    ? 'Swap unavailable when source or target is multi'
+                    : 'Swap unavailable for selected language pair'),
+            onPressed: canSwap ? () => _swapGroupLanguages(sourceLanguages) : null,
+            icon: const Icon(Icons.swap_horiz_rounded),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              initialValue: targetCode,
+              icon: const SizedBox.shrink(),
+              decoration: InputDecoration(
+                labelText: 'Target',
+                labelStyle: const TextStyle(fontSize: 12),
+                floatingLabelStyle: const TextStyle(fontSize: 12),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.55,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              items: targetLanguages.entries
+                  .map(
+                    (entry) => DropdownMenuItem<String>(
+                      value: entry.value,
+                      child: Text(entry.key),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value == null || value == targetCode) return;
+                setState(() {
+                  _controller.setTargetLanguage(value);
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -902,39 +1112,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           actions: [
-            if (_isGroupSection && !_initializing)
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.language_outlined),
-                tooltip: 'Translation language',
-                onSelected: (code) {
-                  setState(() {
-                    _controller.setTargetLanguage(code);
-                  });
-                },
-                itemBuilder: (context) {
-                  return SpeechController.supportedLanguages.entries
-                      .map(
-                        (entry) => PopupMenuItem<String>(
-                          value: entry.value,
-                          child: Text(entry.key),
-                        ),
-                      )
-                      .toList();
-                },
-              ),
             if (!_initializing)
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
                 tooltip: 'Settings',
                 onPressed: _showProviderSettingsDialog,
               ),
-            IconButton(
-              icon: Icon(
-                widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-              ),
-              tooltip: 'Toggle theme',
-              onPressed: widget.onToggleTheme,
-            ),
             const SizedBox(width: 8),
           ],
         ),
@@ -955,9 +1138,11 @@ class _MyHomePageState extends State<MyHomePage> {
                             horizontal: 16.0,
                             vertical: 12,
                           ),
-                          child: const Column(
+                          child: Column(
                             children: [
-                              Expanded(
+                              _buildGroupLanguageBar(theme),
+                              const SizedBox(height: 10),
+                              const Expanded(
                                 child: ChatMessageList(),
                               ),
                             ],
@@ -989,11 +1174,6 @@ class _MyHomePageState extends State<MyHomePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (!_initializing && _isGroupSection) ...[
-                  ChangeNotifierProvider<SpeechController>.value(
-                    value: _controller,
-                    child: const ChatControlBar(),
-                  ),
-                  const SizedBox(height: 8),
                   ChangeNotifierProvider<SpeechController>.value(
                     value: _controller,
                     child: const SpeechFooter(),

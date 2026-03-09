@@ -197,9 +197,6 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
       decoration: BoxDecoration(
         color: tokens.glassSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,11 +218,28 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               initialValue: activeLanguage,
-              decoration: const InputDecoration(
+              icon: const SizedBox.shrink(),
+              decoration: InputDecoration(
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(
+                contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 10,
+                ),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.55,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
                 ),
               ),
               items: TwoWayChatController.supportedLanguages.entries

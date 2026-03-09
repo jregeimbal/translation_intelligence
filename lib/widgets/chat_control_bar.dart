@@ -34,30 +34,33 @@ class _ChatControlBarState extends State<ChatControlBar> {
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
         child: Row(
           children: [
-            IconButton.filledTonal(
-              icon: const Icon(Icons.refresh_rounded),
-              tooltip: 'Clear chat',
-              style: IconButton.styleFrom(
-                backgroundColor: theme.colorScheme.primaryContainer.withValues(
-                  alpha: 0.7,
-                ),
-              ),
-              onPressed: context.read<SpeechController>().clearMessages,
-            ),
-            const SizedBox(width: 12),
             Text('Primary speaker', style: theme.textTheme.bodyMedium),
             const SizedBox(width: 8),
             Expanded(
               child: DropdownButtonFormField<int?>(
                 initialValue: preferred,
-                icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                icon: const SizedBox.shrink(),
                 decoration: InputDecoration(
+                  isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 10,
                   ),
-                  fillColor: theme.colorScheme.surfaceContainerHigh.withValues(
-                    alpha: 0.4,
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.55,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
                   ),
                 ),
                 items: [

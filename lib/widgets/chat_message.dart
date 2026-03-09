@@ -210,58 +210,6 @@ class _ChatMessageListState extends State<ChatMessageList> {
                   ],
                 ),
               ),
-              if (speechEnabled && !isListening) ...[
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withValues(alpha: 0.88),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.45,
-                      ),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'If needed, please adjust your language preference',
-                        style: textRoles.helperText,
-                      ),
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<String>(
-                        initialValue: controller.targetLanguage,
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          fillColor: theme.colorScheme.surfaceContainerHigh
-                              .withValues(alpha: 0.5),
-                        ),
-                        items: SpeechController.supportedLanguages.entries
-                            .map(
-                              (entry) => DropdownMenuItem<String>(
-                                value: entry.value,
-                                child: Text(entry.key),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            context.read<SpeechController>().setTargetLanguage(value);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
         ),
