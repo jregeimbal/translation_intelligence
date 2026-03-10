@@ -17,7 +17,8 @@ import 'speech_recognition_models.dart';
 import 'speech_stt_provider.dart';
 import 'speech_translation_provider.dart';
 
-export 'speech_recognition_models.dart' show SpeechRecognitionResult, SpeechRecognitionWord;
+export 'speech_recognition_models.dart'
+    show SpeechRecognitionResult, SpeechRecognitionWord;
 
 class MicrophoneCaptureSession {
   final Stream<Uint8List> audioStream;
@@ -46,8 +47,9 @@ class SpeechRecognitionSession {
 }
 
 class SpeechPipeline {
-  static const MethodChannel _audioRecordChannel =
-      MethodChannel('com.example.translation_intelligence/audio_record');
+  static const MethodChannel _audioRecordChannel = MethodChannel(
+    'com.example.translation_intelligence/audio_record',
+  );
   static const EventChannel _audioRouteEventChannel = EventChannel(
     'com.example.translation_intelligence/audio_route_events',
   );
@@ -70,6 +72,8 @@ class SpeechPipeline {
   SpeechTranslationProvider _translationProvider;
   String _deepgramRecognitionModel;
   String _deepgramRecognitionLanguage;
+  String _sttsRecognitionLocale;
+  Map<String, String> _sttsRecognitionLocales;
   String? _listeningDeviceId;
   String? _playbackDeviceId;
 
@@ -79,39 +83,46 @@ class SpeechPipeline {
     SpeechOutputProvider initialOutputProvider = SpeechOutputProvider.google,
     SpeechSttProvider initialSttProvider = SpeechSttProvider.deepgram,
     SpeechTranslationProvider initialTranslationProvider =
-      SpeechTranslationProvider.google,
+        SpeechTranslationProvider.google,
     DeepgramService? recognitionService,
     DeepgramService? deepgramSpeechService,
     GoogleSpeechService? googleSpeechService,
     SpeechToTextService? speechToTextService,
     SttsService? sttsService,
     MlKitTranslationService? mlKitTranslationService,
-  })  : _recognitionService =
-            recognitionService ?? DeepgramService(apiKey: deepgramApiKey),
-        _deepgramSpeechService =
-            deepgramSpeechService ?? DeepgramService(apiKey: deepgramApiKey),
-        _googleSpeechService =
-            googleSpeechService ?? GoogleSpeechService(googleApiKey: googleApiKey),
-        _speechToTextService = speechToTextService ?? SpeechToTextService(),
-        _sttsService = sttsService ?? SttsService(),
-        _mlKitTranslationService = mlKitTranslationService ?? MlKitTranslationService(),
-        _outputProvider = initialOutputProvider,
-        _sttProvider = initialSttProvider,
-        _translationProvider = initialTranslationProvider,
-        _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel,
-        _deepgramRecognitionLanguage = DeepgramService.defaultRecognitionLanguage;
+  }) : _recognitionService =
+           recognitionService ?? DeepgramService(apiKey: deepgramApiKey),
+       _deepgramSpeechService =
+           deepgramSpeechService ?? DeepgramService(apiKey: deepgramApiKey),
+       _googleSpeechService =
+           googleSpeechService ??
+           GoogleSpeechService(googleApiKey: googleApiKey),
+       _speechToTextService = speechToTextService ?? SpeechToTextService(),
+       _sttsService = sttsService ?? SttsService(),
+       _mlKitTranslationService =
+           mlKitTranslationService ?? MlKitTranslationService(),
+       _outputProvider = initialOutputProvider,
+       _sttProvider = initialSttProvider,
+       _translationProvider = initialTranslationProvider,
+       _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel,
+       _deepgramRecognitionLanguage =
+           DeepgramService.defaultRecognitionLanguage,
+       _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage,
+       _sttsRecognitionLocales = const {
+         'Multi (Auto)': SttsService.defaultRecognitionLanguage,
+       };
 
   SpeechOutputProvider get outputProvider => _outputProvider;
   SpeechSttProvider get sttProvider => _sttProvider;
   SpeechTranslationProvider get translationProvider => _translationProvider;
   String get deepgramRecognitionModel => _deepgramRecognitionModel;
   String get deepgramRecognitionLanguage => _deepgramRecognitionLanguage;
+  String get sttsRecognitionLocale => _sttsRecognitionLocale;
   List<String> get deepgramRecognitionModels =>
       DeepgramService.supportedRecognitionModels;
-  Map<String, String> get deepgramRecognitionLanguages =>
-      _recognitionService.supportedRecognitionLanguagesForModel(
-        _deepgramRecognitionModel,
-      );
+  Map<String, String> get deepgramRecognitionLanguages => _recognitionService
+      .supportedRecognitionLanguagesForModel(_deepgramRecognitionModel);
+  Map<String, String> get sttsRecognitionLocales => _sttsRecognitionLocales;
   String? get listeningDeviceId => _listeningDeviceId;
   String? get playbackDeviceId => _playbackDeviceId;
 
@@ -137,6 +148,22 @@ class SpeechPipeline {
     _deepgramRecognitionLanguage = _recognitionService.recognitionLanguage;
   }
 
+  Future<void> refreshSttsRecognitionLocales() async {
+    final locales = await _sttsService.supportedRecognitionLocales();
+    _sttsRecognitionLocales = locales;
+    if (!_sttsRecognitionLocales.containsValue(_sttsRecognitionLocale)) {
+      _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage;
+    }
+  }
+
+  void setSttsRecognitionLocale(String locale) {
+    if (_sttsRecognitionLocales.containsValue(locale)) {
+      _sttsRecognitionLocale = locale;
+      return;
+    }
+    _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage;
+  }
+
   void setListeningDeviceId(String? deviceId) {
     _listeningDeviceId = deviceId;
   }
@@ -145,8 +172,9 @@ class SpeechPipeline {
     if (kIsWeb) return const [];
 
     try {
-      final rawDevices = await _audioRecordChannel
-          .invokeMethod<List<dynamic>>('getPlaybackDevices');
+      final rawDevices = await _audioRecordChannel.invokeMethod<List<dynamic>>(
+        'getPlaybackDevices',
+      );
       if (rawDevices == null) return const [];
 
       return rawDevices
@@ -219,30 +247,37 @@ class SpeechPipeline {
       return const Stream<dynamic>.empty();
     }
 
-    return _audioRouteEventChannel.receiveBroadcastStream().handleError(
-      (Object error, StackTrace stackTrace) {
-        if (error is MissingPluginException || error is PlatformException) {
-          developer.log(
-            'Audio route event channel unavailable on this platform: $error',
-            name: 'SpeechPipeline',
-            error: error,
-            stackTrace: stackTrace,
-          );
-          return;
-        }
-        throw error;
-      },
-    );
+    return _audioRouteEventChannel.receiveBroadcastStream().handleError((
+      Object error,
+      StackTrace stackTrace,
+    ) {
+      if (error is MissingPluginException || error is PlatformException) {
+        developer.log(
+          'Audio route event channel unavailable on this platform: $error',
+          name: 'SpeechPipeline',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return;
+      }
+      throw error;
+    });
   }
 
-  Future<bool> isSpeechApiKeyValid() {
+  Future<bool> isSpeechApiKeyValid() async {
     switch (_sttProvider) {
       case SpeechSttProvider.deepgram:
         return _recognitionService.isApiKeyValid();
       case SpeechSttProvider.google:
         return _speechToTextService.initialize();
       case SpeechSttProvider.stts:
-        return _sttsService.initialize();
+        await refreshSttsRecognitionLocales();
+        return _sttsService.initialize(
+          languageCode:
+              _sttsRecognitionLocale == SttsService.defaultRecognitionLanguage
+              ? null
+              : _sttsRecognitionLocale,
+        );
     }
   }
 
@@ -275,12 +310,14 @@ class SpeechPipeline {
           stop: capture.stop,
         );
       case SpeechSttProvider.google:
-        final resultController = StreamController<SpeechRecognitionResult>.broadcast();
+        final resultController =
+            StreamController<SpeechRecognitionResult>.broadcast();
         final amplitudeController = StreamController<double>.broadcast();
 
         await _speechToTextService.startListening(
           languageCode: _speechToTextService.languageCodeForAppLanguage(
-              sourceLanguage),
+            sourceLanguage,
+          ),
           onResult: (result) {
             if (!resultController.isClosed) {
               resultController.add(result);
@@ -309,11 +346,18 @@ class SpeechPipeline {
           stop: stop,
         );
       case SpeechSttProvider.stts:
-        final resultController = StreamController<SpeechRecognitionResult>.broadcast();
+        final resultController =
+            StreamController<SpeechRecognitionResult>.broadcast();
         final amplitudeController = StreamController<double>.broadcast();
 
+        final sttsLanguageCode = sourceLanguage == 'multi'
+            ? (_sttsRecognitionLocale == SttsService.defaultRecognitionLanguage
+                  ? null
+                  : _sttsRecognitionLocale)
+            : _sttsService.languageCodeForAppLanguage(sourceLanguage);
+
         await _sttsService.startListening(
-          languageCode: _sttsService.languageCodeForAppLanguage(sourceLanguage),
+          languageCode: sttsLanguageCode,
           onResult: (result) {
             if (!resultController.isClosed) {
               resultController.add(result);
@@ -386,7 +430,10 @@ class SpeechPipeline {
         'Last error: $lastStartError',
       );
     } else {
-      developer.log('Microphone capture started (sample rate: ${rateConfig?.sampleRate})...', name: 'SpeechPipeline');
+      developer.log(
+        'Microphone capture started (sample rate: ${rateConfig?.sampleRate})...',
+        name: 'SpeechPipeline',
+      );
     }
 
     final amplitudeController = StreamController<double>.broadcast();
@@ -427,7 +474,7 @@ class SpeechPipeline {
       bitRate: config.bitRate,
       sampleRate: sampleRate,
       numChannels: config.numChannels,
-        device: _listeningDeviceId == null
+      device: _listeningDeviceId == null
           ? config.device
           : InputDevice(id: _listeningDeviceId!, label: ''),
       autoGain: config.autoGain,
@@ -441,7 +488,6 @@ class SpeechPipeline {
   }
 
   Future<bool> _isSampleRateSupported(int sampleRate) async {
-    
     if (kIsWeb) {
       return true; // Platform API not available on web
     } else if (!Platform.isAndroid) {
@@ -449,10 +495,10 @@ class SpeechPipeline {
     }
 
     try {
-      final minBufferSize =
-          await _audioRecordChannel.invokeMethod<int>('getMinBufferSize', {
-        'sampleRate': sampleRate,
-      });
+      final minBufferSize = await _audioRecordChannel.invokeMethod<int>(
+        'getMinBufferSize',
+        {'sampleRate': sampleRate},
+      );
       return (minBufferSize ?? 0) > 0;
     } catch (_) {
       return true;
@@ -548,5 +594,4 @@ class SpeechPipeline {
         return appLang;
     }
   }
-
 }

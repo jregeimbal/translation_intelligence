@@ -175,6 +175,97 @@ void main() {
       expect(pipeline.synthesizeCallCount, equals(1));
     });
 
+    test('speechFinal advances non-final words to queue and commits', () async {
+      await controller.init();
+      await controller.startListening();
+
+      pipeline.resultController.add(
+        SpeechRecognitionResult.fromTranscript(
+          transcript: 'hello speech final',
+          isFinal: false,
+          speechFinal: true,
+        ),
+      );
+
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.chatMessages.length, equals(1));
+      expect(controller.chatMessages.first.original, equals('hello speech final.'));
+      expect(controller.getOptimisticMessages(), isEmpty);
+      expect(pipeline.synthesizeCallCount, equals(1));
+    });
+
+    test('speechFinal with no words commits buffered partial words', () async {
+      await controller.init();
+      await controller.startListening();
+
+      pipeline.resultController.add(
+        SpeechRecognitionResult.fromTranscript(
+          transcript: 'buffered partial',
+          isFinal: false,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      pipeline.resultController.add(
+        const SpeechRecognitionResult(
+          isFinal: false,
+          speechFinal: true,
+          words: <SpeechRecognitionWord>[],
+        ),
+      );
+
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.chatMessages.length, equals(1));
+      expect(controller.chatMessages.first.original, equals('buffered partial.'));
+      expect(controller.getOptimisticMessages(), isEmpty);
+      expect(pipeline.synthesizeCallCount, equals(1));
+    });
+
+    test('speechFinal result is committed after grouping window', () async {
+      final groupedPipeline = _FakeSpeechPipeline();
+      final groupedController = SpeechController(
+        googleApiKey: 'test-google',
+        deepgramApiKey: 'test-deepgram',
+        speechPipeline: groupedPipeline,
+        finalResultGroupingWindow: const Duration(milliseconds: 30),
+      );
+
+      await groupedController.init();
+      await groupedController.startListening();
+
+      groupedPipeline.resultController.add(
+        SpeechRecognitionResult.fromTranscript(
+          transcript: 'hello final',
+          isFinal: false,
+          speechFinal: true,
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+
+      expect(groupedController.chatMessages.length, equals(1));
+      expect(groupedController.chatMessages.first.original, equals('hello final.'));
+      expect(groupedController.getOptimisticMessages(), isEmpty);
+      expect(groupedPipeline.synthesizeCallCount, equals(1));
+
+      // final optimistic = groupedController.getOptimisticMessages();
+      // expect(groupedController.chatMessages, isEmpty);
+      // expect(optimistic.length, equals(2));
+      // expect(optimistic[0].original, equals('hello there'));
+      // expect(optimistic[0].speaker, equals(0));
+      // expect(optimistic[1].original, equals('general'));
+      // expect(optimistic[1].speaker, equals(1));
+
+      await groupedController.stopListening();
+      groupedController.dispose();
+      await groupedPipeline.disposeFake();
+    });
+
     test('stopping with partial transcript commits pending STT words', () async {
       await controller.init();
       await controller.startListening();

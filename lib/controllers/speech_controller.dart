@@ -39,7 +39,8 @@ class SpeechController extends ChangeNotifier {
   bool _isListening = false;
   bool _audioPlaybackEnabled = true;
   String _speechError = '';
-  double _amplitude = 0.0; // normalized 0.0‑1.0 (mapped from dB-truncated values)
+  double _amplitude =
+      0.0; // normalized 0.0‑1.0 (mapped from dB-truncated values)
   StreamSubscription<SpeechRecognitionResult>? _recognitionSub;
   StreamSubscription<double>? _ampSub;
   StreamSubscription<dynamic>? _listeningDeviceChangeSub;
@@ -78,6 +79,7 @@ class SpeechController extends ChangeNotifier {
       _finalResultGroupingWindow = value;
     }
   }
+
   bool get speechEnabled => _speechEnabled;
   bool get isListening => _isListening;
   bool get audioPlaybackEnabled => _audioPlaybackEnabled;
@@ -88,36 +90,43 @@ class SpeechController extends ChangeNotifier {
   SpeechSttProvider get sttProvider => _speechPipeline.sttProvider;
   SpeechTranslationProvider get translationProvider =>
       _speechPipeline.translationProvider;
-  String get deepgramRecognitionModel => _speechPipeline.deepgramRecognitionModel;
+  String get deepgramRecognitionModel =>
+      _speechPipeline.deepgramRecognitionModel;
   String get deepgramRecognitionLanguage =>
       _speechPipeline.deepgramRecognitionLanguage;
+  String get sttsRecognitionLocale => _speechPipeline.sttsRecognitionLocale;
   List<String> get deepgramRecognitionModels =>
       _speechPipeline.deepgramRecognitionModels;
   Map<String, String> get deepgramRecognitionLanguages =>
       _speechPipeline.deepgramRecognitionLanguages;
+  Map<String, String> get sttsRecognitionLocales =>
+      _speechPipeline.sttsRecognitionLocales;
   List<InputDevice> get listeningDevices =>
       List<InputDevice>.unmodifiable(_listeningDevices);
   String? get listeningDeviceId => _speechPipeline.listeningDeviceId;
   List<PlaybackDevice> get playbackDevices =>
       List<PlaybackDevice>.unmodifiable(_playbackDevices);
   String? get playbackDeviceId => _speechPipeline.playbackDeviceId;
-    Stream<String> get listeningDeviceUpdates =>
+  Stream<String> get listeningDeviceUpdates =>
       _listeningDeviceUpdateController.stream;
 
-  List<ChatMessage> wordsToMessages(List<ChatMessage> oldMessages, Iterable<SpeechRecognitionWord> words, {bool isFinal = false}) {
-    final newMessages = (json.decode(json.encode(oldMessages)) as List).map((e) => ChatMessage.fromJson(e)).toList();
+  List<ChatMessage> wordsToMessages(
+    List<ChatMessage> oldMessages,
+    Iterable<SpeechRecognitionWord> words, {
+    bool isFinal = false,
+  }) {
+    final newMessages = (json.decode(json.encode(oldMessages)) as List)
+        .map((e) => ChatMessage.fromJson(e))
+        .toList();
 
     Map<int, List<SpeechRecognitionWord>> mergedBySpeaker = {};
 
     // Group words by speaker, using -1 for unknown speakers
     for (var word in words) {
       final key = word.speaker ?? -1; // Use -1 as the key for unknown speakers
-      mergedBySpeaker[key] =  [
-        ...?mergedBySpeaker[key],
-        word,
-      ];
+      mergedBySpeaker[key] = [...?mergedBySpeaker[key], word];
     }
-    
+
     // Add a comma to the end of existing messages if the same speaker continues speaking in a new message
     for (var newMsg in newMessages) {
       if (mergedBySpeaker.containsKey(newMsg.speaker ?? -1)) {
@@ -131,20 +140,19 @@ class SpeechController extends ChangeNotifier {
       for (var word in words) {
         if (newMessages.any((m) => m.speaker == word.speaker)) {
           // If there's already a message for this speaker, append the new word to it
-          final existingMsg = newMessages.firstWhere((m) => m.speaker == word.speaker);
+          final existingMsg = newMessages.firstWhere(
+            (m) => m.speaker == word.speaker,
+          );
           existingMsg.original = '${existingMsg.original} ${word.word}';
         } else {
           // If there's no existing message for this speaker, create a new one
-          newMessages.add(ChatMessage(
-            word.word,
-            speaker: word.speaker,
-            isFinal: isFinal,
-          ));
+          newMessages.add(
+            ChatMessage(word.word, speaker: word.speaker, isFinal: isFinal),
+          );
         }
       }
-        
-      logger.info('wordsToMessages newMessages: ${newMessages.toString()}');
 
+      logger.info('wordsToMessages newMessages: ${newMessages.toString()}');
     }
     return newMessages;
   }
@@ -217,6 +225,17 @@ class SpeechController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSttsRecognitionLocale(String locale) {
+    if (_speechPipeline.sttsRecognitionLocale == locale) return;
+    _speechPipeline.setSttsRecognitionLocale(locale);
+    notifyListeners();
+  }
+
+  Future<void> refreshSttsRecognitionLocales() async {
+    await _speechPipeline.refreshSttsRecognitionLocales();
+    notifyListeners();
+  }
+
   Future<void> refreshListeningDevices() async {
     try {
       _listeningDevices = await _recorder.listInputDevices();
@@ -257,8 +276,8 @@ class SpeechController extends ChangeNotifier {
         .join(';');
     final previousSelectedId = _speechPipeline.listeningDeviceId;
     final previousPlaybackSignature = _playbackDevices
-      .map((device) => '${device.id}|${device.name}|${device.type}')
-      .join(';');
+        .map((device) => '${device.id}|${device.name}|${device.type}')
+        .join(';');
     final previousPlaybackSelectedId = _speechPipeline.playbackDeviceId;
 
     await refreshListeningDevices();
@@ -269,14 +288,14 @@ class SpeechController extends ChangeNotifier {
         .join(';');
     final updatedSelectedId = _speechPipeline.listeningDeviceId;
     final updatedPlaybackSignature = _playbackDevices
-      .map((device) => '${device.id}|${device.name}|${device.type}')
-      .join(';');
+        .map((device) => '${device.id}|${device.name}|${device.type}')
+        .join(';');
     final updatedPlaybackSelectedId = _speechPipeline.playbackDeviceId;
 
     if (previousSignature == updatedSignature &&
-      previousSelectedId == updatedSelectedId &&
-      previousPlaybackSignature == updatedPlaybackSignature &&
-      previousPlaybackSelectedId == updatedPlaybackSelectedId) {
+        previousSelectedId == updatedSelectedId &&
+        previousPlaybackSignature == updatedPlaybackSignature &&
+        previousPlaybackSelectedId == updatedPlaybackSelectedId) {
       return;
     }
 
@@ -329,12 +348,14 @@ class SpeechController extends ChangeNotifier {
   // Defaults to English; the UI allows the user to override this.
   String _targetLanguage = 'en';
   String get targetLanguage => _targetLanguage;
+
   /// Friendly name for the current translation language, falling back to
   /// the raw code if not found in the map.
   String get targetLanguageName {
-    final entry = supportedLanguages.entries
-        .firstWhere((e) => e.value == _targetLanguage,
-            orElse: () => MapEntry(_targetLanguage, _targetLanguage));
+    final entry = supportedLanguages.entries.firstWhere(
+      (e) => e.value == _targetLanguage,
+      orElse: () => MapEntry(_targetLanguage, _targetLanguage),
+    );
     return entry.key;
   }
 
@@ -379,10 +400,7 @@ class SpeechController extends ChangeNotifier {
       final audio = await _synthesizeSpeech(translated, _targetLanguage);
       await _playAudio(audio);
     } catch (e) {
-      logger.severe(
-        'translation/tts error',
-        e,
-      );
+      logger.severe('translation/tts error', e);
     }
   }
 
@@ -402,10 +420,7 @@ class SpeechController extends ChangeNotifier {
       final audio = await _synthesizeSpeech(translated, _targetLanguage);
       await _playAudio(audio);
     } catch (e) {
-      logger.severe(
-        'queued translation/tts error',
-        e,
-      );
+      logger.severe('queued translation/tts error', e);
     }
   }
 
@@ -431,7 +446,8 @@ class SpeechController extends ChangeNotifier {
     return _speechPipeline.translateText(
       text: text,
       targetLanguage: _targetLanguage,
-      sourceLanguage: 'es', // for testing, we can hardcode Spanish as the source to verify translation is working https://developers.google.com/ml-kit/language/translation/translation-language-support
+      sourceLanguage:
+          'es', // for testing, we can hardcode Spanish as the source to verify translation is working https://developers.google.com/ml-kit/language/translation/translation-language-support
       returnOriginalOnFailure: false,
       throwOnMissingApiKey: true,
       nullWhenUnchanged: true,
@@ -454,16 +470,15 @@ class SpeechController extends ChangeNotifier {
         logger.finest(
           '${DateTime.now().toUtc()} Playing audio of length ${bytes.length} bytes',
         );
-        final playbackContext = !kIsWeb &&
-                defaultTargetPlatform == TargetPlatform.android
+        final playbackContext =
+            !kIsWeb && defaultTargetPlatform == TargetPlatform.android
             ? AudioContextConfig(
                 focus: AudioContextConfigFocus.mixWithOthers,
               ).build()
             : null;
         await player.play(BytesSource(bytes), ctx: playbackContext);
 
-        final completionFuture = player.onPlayerComplete
-            .first
+        final completionFuture = player.onPlayerComplete.first
             .then((_) {})
             .catchError((_) {});
 
@@ -471,14 +486,9 @@ class SpeechController extends ChangeNotifier {
           completionFuture,
           Future<void>.delayed(_audioPlaybackCompletionTimeout),
         ]);
-        logger.finest(
-          '${DateTime.now().toUtc()} Audio playback started',
-        );
+        logger.finest('${DateTime.now().toUtc()} Audio playback started');
       } catch (e) {
-        logger.severe(
-          'audio playback error $e',
-          e,
-        );
+        logger.severe('audio playback error $e', e);
       }
     });
   }
@@ -491,9 +501,7 @@ class SpeechController extends ChangeNotifier {
   Future<void> init() async {
     final hasPerm = await _recorder.hasPermission();
     if (!hasPerm) {
-      logger.warning(
-        '${DateTime.now().toUtc()} Microphone permission denied',
-      );
+      logger.warning('${DateTime.now().toUtc()} Microphone permission denied');
       _speechError = 'Microphone permission denied';
       _speechEnabled = false;
       notifyListeners();
@@ -501,9 +509,7 @@ class SpeechController extends ChangeNotifier {
     }
     final isValid = await _speechPipeline.isSpeechApiKeyValid();
     if (!isValid) {
-      logger.warning(
-        '${DateTime.now().toUtc()} Invalid speech API key'
-      );
+      logger.warning('${DateTime.now().toUtc()} Invalid speech API key');
       _speechError = 'Invalid speech API key';
       _speechEnabled = false;
       notifyListeners();
@@ -512,13 +518,11 @@ class SpeechController extends ChangeNotifier {
     _speechEnabled = hasPerm && isValid;
     await refreshListeningDevices();
     await refreshPlaybackDevices();
-    _listeningDeviceChangeSub ??=
-        _speechPipeline.listeningDeviceRouteChanges().listen(
-          (event) {
-            unawaited(_handleListeningDeviceRouteChange(event));
-          },
-          onError: (_) {},
-        );
+    _listeningDeviceChangeSub ??= _speechPipeline
+        .listeningDeviceRouteChanges()
+        .listen((event) {
+          unawaited(_handleListeningDeviceRouteChange(event));
+        }, onError: (_) {});
     notifyListeners();
   }
 
@@ -571,10 +575,9 @@ class SpeechController extends ChangeNotifier {
 
     if (_partialWords.isNotEmpty) {
       // if there are any uncommitted words, add them as a final message
-      _queueFinalResult(SpeechRecognitionResult(
-        words: List.from(_partialWords),
-        isFinal: true,
-      ));
+      _queueFinalResult(
+        SpeechRecognitionResult(words: List.from(_partialWords), isFinal: true),
+      );
       _partialWords.clear();
     }
 
@@ -585,13 +588,48 @@ class SpeechController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get _hasPendingFinalResults =>
-      _queuedMessages.isNotEmpty;
+  bool get _hasPendingFinalResults => _queuedMessages.isNotEmpty;
 
   int _speakerFlushKey(int? speaker) => speaker ?? -1;
 
   String _pendingPreviewText() {
     return _queuedMessages.map((msg) => msg.original).join(' ').trim();
+  }
+
+  void _onRecognitionResult(SpeechRecognitionResult result) {
+    final shouldAdvanceToQueue = result.isFinal || result.speechFinal;
+
+    if (result.words.isNotEmpty) {
+      logger.info(
+        '${DateTime.now().toUtc()} RECOGNIZED: ${result.wordsToText()} - FINAL: ${result.isFinal} - SPEECH_FINAL: ${result.speechFinal}',
+      );
+      if (shouldAdvanceToQueue) {
+        _queueFinalResult(result);
+        _partialWords.clear();
+        _schedulePendingFinalFlush(result.words.map((word) => word.speaker));
+      } else {
+        _partialWords.clear();
+        _partialWords.addAll(result.words); // add to partialWords
+        _schedulePendingFinalFlush(result.words.map((word) => word.speaker));
+      }
+    } else {
+      logger.finest(
+        '${DateTime.now().toUtc()} RECOGNIZED RESULT WITH NO WORDS - FINAL: ${result.isFinal} - SPEECH_FINAL: ${result.speechFinal}',
+      );
+      if (result.speechFinal && _partialWords.isNotEmpty) {
+        final bufferedResult = SpeechRecognitionResult(
+          isFinal: false,
+          speechFinal: true,
+          words: List<SpeechRecognitionWord>.from(_partialWords),
+        );
+        _queueFinalResult(bufferedResult);
+        _partialWords.clear();
+        _schedulePendingFinalFlush(
+          bufferedResult.words.map((word) => word.speaker),
+        );
+      }
+    }
+    notifyListeners();
   }
 
   void _queueFinalResult(SpeechRecognitionResult result) {
@@ -610,26 +648,24 @@ class SpeechController extends ChangeNotifier {
         result.words,
       );
 
-      _queuedMessages = queuedAsMessages
-          .map((queuedMsg) {
-            final previous = previousBySpeaker[queuedMsg.speaker];
-            final previousTranslation =
-                previous != null && previous.original == queuedMsg.original
-                    ? previous.translation
-                    : null;
-            final processingStarted =
-                previous != null && previous.original == queuedMsg.original
-                    ? previous.processingStarted
-                    : false;
+      _queuedMessages = queuedAsMessages.map((queuedMsg) {
+        final previous = previousBySpeaker[queuedMsg.speaker];
+        final previousTranslation =
+            previous != null && previous.original == queuedMsg.original
+            ? previous.translation
+            : null;
+        final processingStarted =
+            previous != null && previous.original == queuedMsg.original
+            ? previous.processingStarted
+            : false;
 
-            return QueuedChatMessage(
-              original: queuedMsg.original,
-              speaker: queuedMsg.speaker,
-              translation: previousTranslation,
-              processingStarted: processingStarted,
-            );
-          })
-          .toList();
+        return QueuedChatMessage(
+          original: queuedMsg.original,
+          speaker: queuedMsg.speaker,
+          translation: previousTranslation,
+          processingStarted: processingStarted,
+        );
+      }).toList();
 
       for (final queued in _queuedMessages) {
         final previous = previousBySpeaker[queued.speaker];
@@ -727,32 +763,6 @@ class SpeechController extends ChangeNotifier {
     for (final speakerKey in speakersInQueue) {
       _flushPendingFinalResultsForSpeaker(speakerKey);
     }
-  }
-
-  void _onRecognitionResult(SpeechRecognitionResult result) {
-    if (result.words.isNotEmpty) {
-      logger.info(
-        '${DateTime.now().toUtc()} RECOGNIZED: ${result.wordsToText()} - FINAL: ${result.isFinal}',
-      );
-      if (result.isFinal) {
-        _queueFinalResult(result);
-        _partialWords.clear();
-        _schedulePendingFinalFlush(
-          result.words.map((word) => word.speaker),
-        );
-      } else {
-        _partialWords.clear();
-        _partialWords.addAll(result.words); // add to partialWords
-        _schedulePendingFinalFlush(
-          result.words.map((word) => word.speaker),
-        );
-      }
-    } else {
-      logger.finest(
-        '${DateTime.now().toUtc()} RECOGNIZED RESULT WITH NO WORDS - FINAL: ${result.isFinal}',
-      );
-    }
-    notifyListeners();
   }
 
   @override

@@ -67,13 +67,17 @@ class TwoWayChatController extends ChangeNotifier {
   SpeechSttProvider get sttProvider => _speechPipeline.sttProvider;
   SpeechTranslationProvider get translationProvider =>
       _speechPipeline.translationProvider;
-    String get deepgramRecognitionModel => _speechPipeline.deepgramRecognitionModel;
-    String get deepgramRecognitionLanguage =>
+  String get deepgramRecognitionModel =>
+      _speechPipeline.deepgramRecognitionModel;
+  String get deepgramRecognitionLanguage =>
       _speechPipeline.deepgramRecognitionLanguage;
-    List<String> get deepgramRecognitionModels =>
+  String get sttsRecognitionLocale => _speechPipeline.sttsRecognitionLocale;
+  List<String> get deepgramRecognitionModels =>
       _speechPipeline.deepgramRecognitionModels;
-    Map<String, String> get deepgramRecognitionLanguages =>
+  Map<String, String> get deepgramRecognitionLanguages =>
       _speechPipeline.deepgramRecognitionLanguages;
+  Map<String, String> get sttsRecognitionLocales =>
+      _speechPipeline.sttsRecognitionLocales;
 
   String get primaryLanguage => _primaryLanguage;
   String get guestLanguage => _guestLanguage;
@@ -109,6 +113,17 @@ class TwoWayChatController extends ChangeNotifier {
   void setDeepgramRecognitionLanguage(String language) {
     if (_speechPipeline.deepgramRecognitionLanguage == language) return;
     _speechPipeline.setDeepgramRecognitionLanguage(language);
+    notifyListeners();
+  }
+
+  void setSttsRecognitionLocale(String locale) {
+    if (_speechPipeline.sttsRecognitionLocale == locale) return;
+    _speechPipeline.setSttsRecognitionLocale(locale);
+    notifyListeners();
+  }
+
+  Future<void> refreshSttsRecognitionLocales() async {
+    await _speechPipeline.refreshSttsRecognitionLocales();
     notifyListeners();
   }
 
@@ -245,10 +260,14 @@ class TwoWayChatController extends ChangeNotifier {
 
     if (result.isFinal && _lastWords.trim().isNotEmpty) {
       final sourceText = _lastWords.trim();
-        final sourceLang = sourceSpeaker == TwoWaySpeaker.primary
+      final sourceLang = sourceSpeaker == TwoWaySpeaker.primary
           ? _primaryLanguage
           : _guestLanguage;
-        final translated = await _translateText(sourceText, sourceLang, targetLang);
+      final translated = await _translateText(
+        sourceText,
+        sourceLang,
+        targetLang,
+      );
       if (sessionId != _listenSessionId) return;
 
       final primaryText = sourceSpeaker == TwoWaySpeaker.primary

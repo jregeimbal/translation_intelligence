@@ -38,7 +38,10 @@ class _FakeSpeechToTextPlatform extends SpeechToTextPlatform
   Future<bool> hasPermission() async => hasPermissionResult;
 
   @override
-  Future<bool> initialize({debugLogging = false, List<SpeechConfigOption>? options}) async {
+  Future<bool> initialize({
+    debugLogging = false,
+    List<SpeechConfigOption>? options,
+  }) async {
     return initializeResult;
   }
 
@@ -172,7 +175,10 @@ class _FakeTtsPlatform implements TtsPlatformInterface {
   Future<bool> isSupported() async => supported;
 
   @override
-  Future<void> start(String text, {TtsOptions options = const TtsOptions()}) async {
+  Future<void> start(
+    String text, {
+    TtsOptions options = const TtsOptions(),
+  }) async {
     startCalled = true;
     lastText = text;
   }
@@ -266,7 +272,7 @@ class _FakeDeepgramService extends DeepgramService {
 
 class _FakeSpeechToTextService extends SpeechToTextService {
   _FakeSpeechToTextService({this.initResult = true})
-      : super(speechToText: SpeechToText.withMethodChannel());
+    : super(speechToText: SpeechToText.withMethodChannel());
 
   bool initResult;
   bool startCalled = false;
@@ -340,7 +346,7 @@ class _FakeSttsService extends SttsService {
   void Function(double value)? _onAmplitude;
 
   @override
-  Future<bool> initialize({String languageCode = 'en-US'}) async => initResult;
+  Future<bool> initialize({String? languageCode}) async => initResult;
 
   @override
   Future<void> startListening({
@@ -409,7 +415,7 @@ class _TestableSpeechPipeline extends SpeechPipeline {
       stop: () async {
         captureStopCalled = true;
       },
-      sampleRate: config.sampleRate
+      sampleRate: config.sampleRate,
     );
   }
 
@@ -450,10 +456,8 @@ class _FakeDeepgramRecognition {
 }
 
 class _FakeAudioRecorder extends AudioRecorder {
-  _FakeAudioRecorder({
-    this.failStartAttempts = 0,
-    List<Amplitude>? amplitudes,
-  }) : _amplitudes = amplitudes ?? [Amplitude(current: -25.0, max: 0.0)];
+  _FakeAudioRecorder({this.failStartAttempts = 0, List<Amplitude>? amplitudes})
+    : _amplitudes = amplitudes ?? [Amplitude(current: -25.0, max: 0.0)];
 
   final int failStartAttempts;
   final List<Amplitude> _amplitudes;
@@ -496,14 +500,14 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(recordChannel, (call) async {
-      if (call.method == 'create') {
-        return 1;
-      }
-      if (call.method == 'hasPermission') {
-        return true;
-      }
-      return null;
-    });
+          if (call.method == 'create') {
+            return 1;
+          }
+          if (call.method == 'hasPermission') {
+            return true;
+          }
+          return null;
+        });
   });
 
   tearDownAll(() {
@@ -532,134 +536,158 @@ void main() {
       service = GoogleSpeechService(googleApiKey: '');
     });
 
-    test('translateText returns original text when key is missing by default', () async {
-      final translated = await service.translateText(
-        text: 'hello',
-        targetLanguage: 'es',
-      );
-
-      expect(translated, equals('hello'));
-    });
-
-    test('translateText returns null when key is missing and fallback is disabled', () async {
-      final translated = await service.translateText(
-        text: 'hello',
-        targetLanguage: 'es',
-        returnOriginalOnFailure: false,
-      );
-
-      expect(translated, isNull);
-    });
-
-    test('translateText throws when missing key and throwOnMissingApiKey is true', () async {
-      expect(
-        () => service.translateText(
+    test(
+      'translateText returns original text when key is missing by default',
+      () async {
+        final translated = await service.translateText(
           text: 'hello',
           targetLanguage: 'es',
-          throwOnMissingApiKey: true,
-        ),
-        throwsException,
-      );
-    });
+        );
+
+        expect(translated, equals('hello'));
+      },
+    );
+
+    test(
+      'translateText returns null when key is missing and fallback is disabled',
+      () async {
+        final translated = await service.translateText(
+          text: 'hello',
+          targetLanguage: 'es',
+          returnOriginalOnFailure: false,
+        );
+
+        expect(translated, isNull);
+      },
+    );
+
+    test(
+      'translateText throws when missing key and throwOnMissingApiKey is true',
+      () async {
+        expect(
+          () => service.translateText(
+            text: 'hello',
+            targetLanguage: 'es',
+            throwOnMissingApiKey: true,
+          ),
+          throwsException,
+        );
+      },
+    );
 
     test('synthesizeSpeech returns empty bytes when key is missing', () async {
       final bytes = await service.synthesizeSpeech(text: 'hello');
       expect(bytes, isEmpty);
     });
 
-    test('ttsLanguageCodeForAppLanguage maps known values and fallback rules', () {
-      expect(service.ttsLanguageCodeForAppLanguage('es'), equals('es-ES'));
-      expect(service.ttsLanguageCodeForAppLanguage('zh'), equals('cmn-CN'));
-      expect(service.ttsLanguageCodeForAppLanguage('xx'), equals('xx-US'));
-      expect(service.ttsLanguageCodeForAppLanguage('en-GB'), equals('en-GB'));
-    });
+    test(
+      'ttsLanguageCodeForAppLanguage maps known values and fallback rules',
+      () {
+        expect(service.ttsLanguageCodeForAppLanguage('es'), equals('es-ES'));
+        expect(service.ttsLanguageCodeForAppLanguage('zh'), equals('cmn-CN'));
+        expect(service.ttsLanguageCodeForAppLanguage('xx'), equals('xx-US'));
+        expect(service.ttsLanguageCodeForAppLanguage('en-GB'), equals('en-GB'));
+      },
+    );
 
-    test('translateText returns translated value on successful API response', () async {
-      final client = MockClient((request) async {
-        return http.Response(
-          jsonEncode({
-            'data': {
-              'translations': [
-                {'translatedText': 'hola'}
-              ],
-            }
-          }),
-          200,
+    test(
+      'translateText returns translated value on successful API response',
+      () async {
+        final client = MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'data': {
+                'translations': [
+                  {'translatedText': 'hola'},
+                ],
+              },
+            }),
+            200,
+          );
+        });
+        final apiService = GoogleSpeechService(
+          googleApiKey: 'key',
+          httpClient: client,
         );
-      });
-      final apiService = GoogleSpeechService(
-        googleApiKey: 'key',
-        httpClient: client,
-      );
 
-      final translated = await apiService.translateText(
-        text: 'hello',
-        targetLanguage: 'es',
-      );
-
-      expect(translated, equals('hola'));
-    });
-
-    test('translateText throws when API status is non-200 and fallback disabled', () async {
-      final client = MockClient((request) async => http.Response('bad', 500));
-      final apiService = GoogleSpeechService(
-        googleApiKey: 'key',
-        httpClient: client,
-      );
-
-      expect(
-        () => apiService.translateText(
+        final translated = await apiService.translateText(
           text: 'hello',
           targetLanguage: 'es',
-          returnOriginalOnFailure: false,
-        ),
-        throwsException,
-      );
-    });
-
-    test('translateText throws on invalid response shape when fallback disabled', () async {
-      final client = MockClient((request) async => http.Response('{}', 200));
-      final apiService = GoogleSpeechService(
-        googleApiKey: 'key',
-        httpClient: client,
-      );
-
-      expect(
-        () => apiService.translateText(
-          text: 'hello',
-          targetLanguage: 'es',
-          returnOriginalOnFailure: false,
-        ),
-        throwsException,
-      );
-    });
-
-    test('translateText returns null when unchanged and nullWhenUnchanged is true', () async {
-      final client = MockClient((request) async {
-        return http.Response(
-          jsonEncode({
-            'data': {
-              'translations': [
-                {'translatedText': 'hello'}
-              ],
-            }
-          }),
-          200,
         );
-      });
-      final apiService = GoogleSpeechService(
-        googleApiKey: 'key',
-        httpClient: client,
-      );
 
-      final translated = await apiService.translateText(
-        text: 'hello',
-        targetLanguage: 'en',
-        nullWhenUnchanged: true,
-      );
+        expect(translated, equals('hola'));
+      },
+    );
 
-      expect(translated, isNull);
-    });
+    test(
+      'translateText throws when API status is non-200 and fallback disabled',
+      () async {
+        final client = MockClient((request) async => http.Response('bad', 500));
+        final apiService = GoogleSpeechService(
+          googleApiKey: 'key',
+          httpClient: client,
+        );
+
+        expect(
+          () => apiService.translateText(
+            text: 'hello',
+            targetLanguage: 'es',
+            returnOriginalOnFailure: false,
+          ),
+          throwsException,
+        );
+      },
+    );
+
+    test(
+      'translateText throws on invalid response shape when fallback disabled',
+      () async {
+        final client = MockClient((request) async => http.Response('{}', 200));
+        final apiService = GoogleSpeechService(
+          googleApiKey: 'key',
+          httpClient: client,
+        );
+
+        expect(
+          () => apiService.translateText(
+            text: 'hello',
+            targetLanguage: 'es',
+            returnOriginalOnFailure: false,
+          ),
+          throwsException,
+        );
+      },
+    );
+
+    test(
+      'translateText returns null when unchanged and nullWhenUnchanged is true',
+      () async {
+        final client = MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'data': {
+                'translations': [
+                  {'translatedText': 'hello'},
+                ],
+              },
+            }),
+            200,
+          );
+        });
+        final apiService = GoogleSpeechService(
+          googleApiKey: 'key',
+          httpClient: client,
+        );
+
+        final translated = await apiService.translateText(
+          text: 'hello',
+          targetLanguage: 'en',
+          nullWhenUnchanged: true,
+        );
+
+        expect(translated, isNull);
+      },
+    );
 
     test('synthesizeSpeech decodes audioContent when API succeeds', () async {
       final bytes = Uint8List.fromList(const [1, 2, 3]);
@@ -685,10 +713,7 @@ void main() {
         httpClient: client,
       );
 
-      expect(
-        () => apiService.synthesizeSpeech(text: 'hello'),
-        throwsException,
-      );
+      expect(() => apiService.synthesizeSpeech(text: 'hello'), throwsException);
     });
   });
 
@@ -700,7 +725,10 @@ void main() {
     });
 
     test('synthesizeSpeech returns empty bytes when key is missing', () async {
-      final bytes = await service.synthesizeSpeech(text: 'hello', languageCode: 'en-US');
+      final bytes = await service.synthesizeSpeech(
+        text: 'hello',
+        languageCode: 'en-US',
+      );
       expect(bytes, isEmpty);
     });
 
@@ -708,7 +736,10 @@ void main() {
       expect(service.ttsModelForLanguage('es-ES'), equals('aura-2-carina-es'));
       expect(service.ttsModelForLanguage('fr-FR'), equals('aura-2-agathe-fr'));
       expect(service.ttsModelForLanguage('de-DE'), equals('aura-2-julius-de'));
-      expect(service.ttsModelForLanguage('en-US'), equals('aura-2-odysseus-en'));
+      expect(
+        service.ttsModelForLanguage('en-US'),
+        equals('aura-2-odysseus-en'),
+      );
     });
 
     test('normalizeLanguage handles locale variants', () {
@@ -718,10 +749,7 @@ void main() {
     });
 
     test('supported recognition options expose defaults and choices', () {
-      expect(
-        DeepgramService.supportedRecognitionModels,
-        contains('nova-3'),
-      );
+      expect(DeepgramService.supportedRecognitionModels, contains('nova-3'));
       expect(
         DeepgramService.supportedRecognitionModels,
         contains('nova-3-medical'),
@@ -736,33 +764,30 @@ void main() {
             .supportedRecognitionLanguagesByModel['nova-3-medical']?['English'],
         equals('en'),
       );
-      expect(
-        DeepgramService.defaultRecognitionModel,
-        equals('nova-3'),
-      );
-      expect(
-        DeepgramService.defaultRecognitionLanguage,
-        equals('multi'),
-      );
+      expect(DeepgramService.defaultRecognitionModel, equals('nova-3'));
+      expect(DeepgramService.defaultRecognitionLanguage, equals('multi'));
       expect(
         DeepgramService.defaultRecognitionLanguageForModel('nova-3-medical'),
         equals('en'),
       );
     });
 
-    test('synthesizeSpeech returns response bytes on successful API call', () async {
-      final client = MockClient((request) async {
-        expect(request.headers['Authorization'], equals('Token key'));
-        return http.Response.bytes(const [7, 8, 9], 200);
-      });
-      final apiService = DeepgramService(apiKey: 'key', httpClient: client);
+    test(
+      'synthesizeSpeech returns response bytes on successful API call',
+      () async {
+        final client = MockClient((request) async {
+          expect(request.headers['Authorization'], equals('Token key'));
+          return http.Response.bytes(const [7, 8, 9], 200);
+        });
+        final apiService = DeepgramService(apiKey: 'key', httpClient: client);
 
-      final bytes = await apiService.synthesizeSpeech(
-        text: 'hello',
-        languageCode: 'en-US',
-      );
-      expect(bytes, equals(Uint8List.fromList(const [7, 8, 9])));
-    });
+        final bytes = await apiService.synthesizeSpeech(
+          text: 'hello',
+          languageCode: 'en-US',
+        );
+        expect(bytes, equals(Uint8List.fromList(const [7, 8, 9])));
+      },
+    );
 
     test('synthesizeSpeech throws on API error status', () async {
       final client = MockClient((request) async => http.Response('fail', 500));
@@ -783,45 +808,48 @@ void main() {
       expect(await apiService.isApiKeyValid(), isTrue);
     });
 
-    test('startLiveRecognition maps transcript, final flag, and speaker words', () async {
-      Map<String, dynamic>? capturedParams;
-      final apiService = DeepgramService(
-        apiKey: 'key',
-        liveRecognizer: (audioStream, queryParams) {
-          capturedParams = queryParams;
-          return Stream<dynamic>.value(
-            const _FakeDeepgramRecognition(
-              transcript: 'hello mapped',
-              isFinal: true,
-              words: [
-                _FakeDeepgramWord(word: 'hello', speaker: 0),
-                _FakeDeepgramWord(word: 'mapped', speaker: 1),
-              ],
-            ),
-          );
-        },
-      );
+    test(
+      'startLiveRecognition maps transcript, final flag, and speaker words',
+      () async {
+        Map<String, dynamic>? capturedParams;
+        final apiService = DeepgramService(
+          apiKey: 'key',
+          liveRecognizer: (audioStream, queryParams) {
+            capturedParams = queryParams;
+            return Stream<dynamic>.value(
+              const _FakeDeepgramRecognition(
+                transcript: 'hello mapped',
+                isFinal: true,
+                words: [
+                  _FakeDeepgramWord(word: 'hello', speaker: 0),
+                  _FakeDeepgramWord(word: 'mapped', speaker: 1),
+                ],
+              ),
+            );
+          },
+        );
 
-      final result = await apiService
-          .startLiveRecognition(
-            Stream<Uint8List>.value(Uint8List.fromList(const [1, 2])),
-            sourceLanguage: 'en-US',
-            diarize: true,
-            utterances: true,
-          )
-          .first;
+        final result = await apiService
+            .startLiveRecognition(
+              Stream<Uint8List>.value(Uint8List.fromList(const [1, 2])),
+              sourceLanguage: 'en-US',
+              diarize: true,
+              utterances: true,
+            )
+            .first;
 
-      expect(capturedParams?['language'], equals('en'));
-      expect(capturedParams?['diarize'], isTrue);
-      expect(capturedParams?['utterances'], isTrue);
-      expect(_resultText(result), equals('hello mapped'));
-      expect(result.isFinal, isTrue);
-      expect(result.words.length, equals(2));
-      expect(result.words.first.word, equals('hello'));
-      expect(result.words.first.speaker, equals(0));
-      expect(result.words.last.word, equals('mapped'));
-      expect(result.words.last.speaker, equals(1));
-    });
+        expect(capturedParams?['language'], equals('en'));
+        expect(capturedParams?['diarize'], isTrue);
+        expect(capturedParams?['utterances'], isTrue);
+        expect(_resultText(result), equals('hello mapped'));
+        expect(result.isFinal, isTrue);
+        expect(result.words.length, equals(2));
+        expect(result.words.first.word, equals('hello'));
+        expect(result.words.first.speaker, equals(0));
+        expect(result.words.last.word, equals('mapped'));
+        expect(result.words.last.speaker, equals(1));
+      },
+    );
 
     test('startLiveRecognition preserves multi language flag', () async {
       Map<String, dynamic>? capturedParams;
@@ -843,40 +871,41 @@ void main() {
       expect(capturedParams?['language'], equals('multi'));
     });
 
-    test('startLiveRecognition ignores unsupported model and uses current model params',
-        () async {
-      Map<String, dynamic>? capturedParams;
-      final apiService = DeepgramService(
-        apiKey: 'key',
-        liveRecognizer: (audioStream, queryParams) {
-          capturedParams = queryParams;
-          return const Stream<dynamic>.empty();
-        },
-      );
+    test(
+      'startLiveRecognition ignores unsupported model and uses current model params',
+      () async {
+        Map<String, dynamic>? capturedParams;
+        final apiService = DeepgramService(
+          apiKey: 'key',
+          liveRecognizer: (audioStream, queryParams) {
+            capturedParams = queryParams;
+            return const Stream<dynamic>.empty();
+          },
+        );
 
-      apiService.setRecognitionModel('unsupported-model');
-      apiService.setRecognitionLanguage('es');
+        apiService.setRecognitionModel('unsupported-model');
+        apiService.setRecognitionLanguage('es');
 
-      await apiService
-          .startLiveRecognition(
-            const Stream<Uint8List>.empty(),
-            sourceLanguage: 'multi',
-            diarize: true,
-            utterances: true,
-          )
-          .drain<void>();
+        await apiService
+            .startLiveRecognition(
+              const Stream<Uint8List>.empty(),
+              sourceLanguage: 'multi',
+              diarize: true,
+              utterances: true,
+            )
+            .drain<void>();
 
-      expect(capturedParams?['model'], equals('nova-3'));
-      expect(capturedParams?['language'], equals('es'));
-      expect(capturedParams?['detect_language'], isFalse);
-      expect(capturedParams?['diarize'], isTrue);
-      expect(capturedParams?['utterances'], isTrue);
-      expect(capturedParams?['interim_results'], isTrue);
-      expect(capturedParams?['punctuate'], isTrue);
-    });
+        expect(capturedParams?['model'], equals('nova-3'));
+        expect(capturedParams?['language'], equals('es'));
+        expect(capturedParams?['detect_language'], isFalse);
+        expect(capturedParams?['diarize'], isTrue);
+        expect(capturedParams?['utterances'], isTrue);
+        expect(capturedParams?['interim_results'], isTrue);
+        expect(capturedParams?['punctuate'], isTrue);
+      },
+    );
 
-    test('setRecognitionModel ignores unsupported model',
-        () async {
+    test('setRecognitionModel ignores unsupported model', () async {
       final apiService = DeepgramService(apiKey: 'key');
       apiService.setRecognitionLanguage('multi');
 
@@ -1029,7 +1058,7 @@ void main() {
     });
 
     test('languageCodeForAppLanguage maps known values', () {
-      expect(service.languageCodeForAppLanguage('multi'), equals('en-US'));
+      expect(service.languageCodeForAppLanguage('multi'), isNull);
       expect(service.languageCodeForAppLanguage('ko'), equals('ko-KR'));
       expect(service.languageCodeForAppLanguage('zh-CN'), equals('zh-CN'));
     });
@@ -1128,14 +1157,20 @@ void main() {
 
     test('synthesizeSpeech returns empty when unsupported', () async {
       fakeTts.supported = false;
-      final bytes = await service.synthesizeSpeech(text: 'hello', languageCode: 'en-US');
+      final bytes = await service.synthesizeSpeech(
+        text: 'hello',
+        languageCode: 'en-US',
+      );
       expect(bytes, isEmpty);
       expect(fakeTts.startCalled, isFalse);
     });
 
     test('synthesizeSpeech starts TTS even when setLanguage throws', () async {
       fakeTts.setLanguageThrows = true;
-      final bytes = await service.synthesizeSpeech(text: 'hello', languageCode: 'es-ES');
+      final bytes = await service.synthesizeSpeech(
+        text: 'hello',
+        languageCode: 'es-ES',
+      );
       expect(bytes, isEmpty);
       expect(fakeTts.startCalled, isTrue);
       expect(fakeTts.lastText, equals('hello'));
@@ -1146,10 +1181,7 @@ void main() {
     late SpeechPipeline pipeline;
 
     setUp(() {
-      pipeline = SpeechPipeline(
-        googleApiKey: '',
-        deepgramApiKey: '',
-      );
+      pipeline = SpeechPipeline(googleApiKey: '', deepgramApiKey: '');
     });
 
     test('provider setters update selected providers', () {
@@ -1176,10 +1208,7 @@ void main() {
         pipeline.deepgramRecognitionLanguage,
         equals(DeepgramService.defaultRecognitionLanguage),
       );
-      expect(
-        pipeline.deepgramRecognitionModels,
-        contains('nova-3-medical'),
-      );
+      expect(pipeline.deepgramRecognitionModels, contains('nova-3-medical'));
 
       pipeline.setTranslationProvider(SpeechTranslationProvider.googleMlKit);
       expect(
@@ -1196,41 +1225,43 @@ void main() {
 
       pipeline.setDeepgramRecognitionLanguage('multi');
       expect(pipeline.deepgramRecognitionLanguage, equals('en-GB'));
-      expect(
-        pipeline.deepgramRecognitionLanguages.values,
-        contains('en-US'),
-      );
+      expect(pipeline.deepgramRecognitionLanguages.values, contains('en-US'));
     });
 
-    test('translateText delegates to Google service and uses missing-key fallback', () async {
-      final translated = await pipeline.translateText(
-        text: 'hello',
-        targetLanguage: 'es',
-      );
+    test(
+      'translateText delegates to Google service and uses missing-key fallback',
+      () async {
+        final translated = await pipeline.translateText(
+          text: 'hello',
+          targetLanguage: 'es',
+        );
 
-      expect(translated, equals('hello'));
-    });
+        expect(translated, equals('hello'));
+      },
+    );
 
-    test('translateText delegates to ML Kit when translation provider is googleMlKit',
-        () async {
-      final mlKit = _FakeMlKitTranslationService();
-      final routedPipeline = SpeechPipeline(
-        googleApiKey: 'g',
-        deepgramApiKey: 'd',
-        mlKitTranslationService: mlKit,
-      )..setTranslationProvider(SpeechTranslationProvider.googleMlKit);
+    test(
+      'translateText delegates to ML Kit when translation provider is googleMlKit',
+      () async {
+        final mlKit = _FakeMlKitTranslationService();
+        final routedPipeline = SpeechPipeline(
+          googleApiKey: 'g',
+          deepgramApiKey: 'd',
+          mlKitTranslationService: mlKit,
+        )..setTranslationProvider(SpeechTranslationProvider.googleMlKit);
 
-      final translated = await routedPipeline.translateText(
-        text: 'hello',
-        sourceLanguage: 'en',
-        targetLanguage: 'ja',
-      );
+        final translated = await routedPipeline.translateText(
+          text: 'hello',
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+        );
 
-      expect(translated, equals('mlkit-hello-ja'));
-      expect(mlKit.lastText, equals('hello'));
-      expect(mlKit.lastSourceLanguage, equals('en'));
-      expect(mlKit.lastTargetLanguage, equals('ja'));
-    });
+        expect(translated, equals('mlkit-hello-ja'));
+        expect(mlKit.lastText, equals('hello'));
+        expect(mlKit.lastSourceLanguage, equals('en'));
+        expect(mlKit.lastTargetLanguage, equals('ja'));
+      },
+    );
 
     test('synthesizeSpeech uses active output provider branch', () async {
       pipeline.setOutputProvider(SpeechOutputProvider.google);
@@ -1279,11 +1310,14 @@ void main() {
       expect(await routedPipeline.isSpeechApiKeyValid(), isTrue);
     });
 
-    test('listeningDeviceRouteChanges is safe when platform channel is unavailable', () async {
-      final stream = pipeline.listeningDeviceRouteChanges();
+    test(
+      'listeningDeviceRouteChanges is safe when platform channel is unavailable',
+      () async {
+        final stream = pipeline.listeningDeviceRouteChanges();
 
-      expect(stream, emitsDone);
-    });
+        expect(stream, emitsDone);
+      },
+    );
 
     test('startRecognitionSession routes to Google STT service', () async {
       final speechToText = _FakeSpeechToTextService(initResult: true);
@@ -1393,53 +1427,53 @@ void main() {
       expect(result.isFinal, isTrue);
     });
 
-    test('startMicrophoneCapture retries sample rates and normalizes amplitude',
-        () async {
-      final recorder = _FakeAudioRecorder(
-        failStartAttempts: 1,
-        amplitudes: [
-          Amplitude(current: -25.0, max: 0.0),
-        ],
-      );
+    test(
+      'startMicrophoneCapture retries sample rates and normalizes amplitude',
+      () async {
+        final recorder = _FakeAudioRecorder(
+          failStartAttempts: 1,
+          amplitudes: [Amplitude(current: -25.0, max: 0.0)],
+        );
 
-      final session = await pipeline.startMicrophoneCapture(
-        recorder,
-        amplitudeInterval: const Duration(milliseconds: 1),
-      );
+        final session = await pipeline.startMicrophoneCapture(
+          recorder,
+          amplitudeInterval: const Duration(milliseconds: 1),
+        );
 
-      final amplitude = await session.amplitudeStream.first.timeout(
-        const Duration(milliseconds: 250),
-      );
+        final amplitude = await session.amplitudeStream.first.timeout(
+          const Duration(milliseconds: 250),
+        );
 
-      expect(session.sampleRate, equals(32000));
-      expect(recorder.sampleRatesTried, equals([48000, 32000]));
-      expect(recorder.stopCalls, equals(1));
-      expect(amplitude, closeTo(0.5, 0.0001));
+        expect(session.sampleRate, equals(32000));
+        expect(recorder.sampleRatesTried, equals([48000, 32000]));
+        expect(recorder.stopCalls, equals(1));
+        expect(amplitude, closeTo(0.5, 0.0001));
 
-      await session.stop();
-      expect(recorder.stopCalls, equals(2));
-    });
+        await session.stop();
+        expect(recorder.stopCalls, equals(2));
+      },
+    );
 
-    test('startMicrophoneCapture normalizes positive amplitude values',
-        () async {
-      final recorder = _FakeAudioRecorder(
-        amplitudes: [
-          Amplitude(current: 0.75, max: 1.0),
-        ],
-      );
+    test(
+      'startMicrophoneCapture normalizes positive amplitude values',
+      () async {
+        final recorder = _FakeAudioRecorder(
+          amplitudes: [Amplitude(current: 0.75, max: 1.0)],
+        );
 
-      final session = await pipeline.startMicrophoneCapture(
-        recorder,
-        amplitudeInterval: const Duration(milliseconds: 1),
-      );
+        final session = await pipeline.startMicrophoneCapture(
+          recorder,
+          amplitudeInterval: const Duration(milliseconds: 1),
+        );
 
-      final amplitude = await session.amplitudeStream.first.timeout(
-        const Duration(milliseconds: 250),
-      );
+        final amplitude = await session.amplitudeStream.first.timeout(
+          const Duration(milliseconds: 250),
+        );
 
-      expect(amplitude, equals(0.75));
-      await session.stop();
-    });
+        expect(amplitude, equals(0.75));
+        await session.stop();
+      },
+    );
 
     test('startMicrophoneCapture throws when all sample rates fail', () async {
       final recorder = _FakeAudioRecorder(failStartAttempts: 4);

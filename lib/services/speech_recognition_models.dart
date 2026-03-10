@@ -7,10 +7,12 @@ class SpeechRecognitionWord {
 
 class SpeechRecognitionResult {
   final bool isFinal;
+  final bool speechFinal;
   final List<SpeechRecognitionWord> words;
 
   const SpeechRecognitionResult({
     required this.isFinal,
+    this.speechFinal = false,
     required this.words,
   });
 
@@ -21,11 +23,16 @@ class SpeechRecognitionResult {
   factory SpeechRecognitionResult.fromTranscript({
     required String? transcript,
     required bool isFinal,
+    bool speechFinal = false,
     int? speaker,
   }) {
     final normalizedTranscript = (transcript ?? '').trim();
     if (normalizedTranscript.isEmpty) {
-      return SpeechRecognitionResult(isFinal: isFinal, words: const []);
+      return SpeechRecognitionResult(
+        isFinal: isFinal,
+        speechFinal: speechFinal,
+        words: const [],
+      );
     }
 
     final words = normalizedTranscript
@@ -39,6 +46,10 @@ class SpeechRecognitionResult {
         )
         .toList(growable: false);
 
-    return SpeechRecognitionResult(isFinal: isFinal, words: words);
+    return SpeechRecognitionResult(
+      isFinal: isFinal,
+      speechFinal: speechFinal,
+      words: words,
+    );
   }
 }
