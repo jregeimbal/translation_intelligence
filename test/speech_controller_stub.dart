@@ -9,6 +9,7 @@ import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_recognition_models.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
+import 'package:translation_intelligence/services/stts_service.dart';
 import 'package:translation_intelligence/widgets/chat_message.dart';
 
 /// Lightweight stub of SpeechController for widget tests. Avoids plugins
@@ -19,10 +20,10 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
     bool speechEnabled = true,
     double amplitude = 0.0,
     String targetLanguage = 'en',
-  })  : _isListening = isListening,
-        _speechEnabled = speechEnabled,
-        _amplitude = amplitude,
-        _targetLanguage = targetLanguage;
+  }) : _isListening = isListening,
+       _speechEnabled = speechEnabled,
+       _amplitude = amplitude,
+       _targetLanguage = targetLanguage;
 
   final List<ChatMessage> _chatMessages = [];
   bool _isListening;
@@ -41,10 +42,15 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
   String _deepgramRecognitionLanguage =
       DeepgramService.defaultRecognitionLanguage;
+  String _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage;
+  Map<String, String> _sttsRecognitionLocales = const {
+    'Multi (Auto)': SttsService.defaultRecognitionLanguage,
+    'English (US)': 'en-US',
+  };
   List<InputDevice> _listeningDevices = const [];
   String? _listeningDeviceId;
-    List<PlaybackDevice> _playbackDevices = const [];
-    String? _playbackDeviceId;
+  List<PlaybackDevice> _playbackDevices = const [];
+  String? _playbackDeviceId;
   final StreamController<String> _listeningDeviceUpdatesController =
       StreamController<String>.broadcast();
 
@@ -118,10 +124,15 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
 
   @override
   Map<String, String> get deepgramRecognitionLanguages =>
-      DeepgramService.supportedRecognitionLanguagesByModel[
-        _deepgramRecognitionModel
-      ] ??
+      DeepgramService
+          .supportedRecognitionLanguagesByModel[_deepgramRecognitionModel] ??
       const <String, String>{};
+
+  @override
+  String get sttsRecognitionLocale => _sttsRecognitionLocale;
+
+  @override
+  Map<String, String> get sttsRecognitionLocales => _sttsRecognitionLocales;
 
   @override
   List<InputDevice> get listeningDevices =>
@@ -134,12 +145,12 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   Stream<String> get listeningDeviceUpdates =>
       _listeningDeviceUpdatesController.stream;
 
-    @override
-    List<PlaybackDevice> get playbackDevices =>
+  @override
+  List<PlaybackDevice> get playbackDevices =>
       List<PlaybackDevice>.unmodifiable(_playbackDevices);
 
-    @override
-    String? get playbackDeviceId => _playbackDeviceId;
+  @override
+  String? get playbackDeviceId => _playbackDeviceId;
 
   @override
   List<ChatMessage> getOptimisticMessages() {
@@ -148,7 +159,11 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   }
 
   @override
-  List<ChatMessage> wordsToMessages(List<ChatMessage> oldMessages, Iterable<SpeechRecognitionWord> words, {bool isFinal = false}) {
+  List<ChatMessage> wordsToMessages(
+    List<ChatMessage> oldMessages,
+    Iterable<SpeechRecognitionWord> words, {
+    bool isFinal = false,
+  }) {
     if (_lastWords.trim().isEmpty) return const [];
     return [ChatMessage(_lastWords.trim(), isFinal: isFinal)];
   }
@@ -233,6 +248,22 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   }
 
   @override
+  void setSttsRecognitionLocale(String locale) {
+    _sttsRecognitionLocale = locale;
+    notifyListeners();
+  }
+
+  @override
+  Future<void> refreshSttsRecognitionLocales() async {
+    _sttsRecognitionLocales = const {
+      'Multi (Auto)': SttsService.defaultRecognitionLanguage,
+      'English (US)': 'en-US',
+      'Spanish (Spain)': 'es-ES',
+    };
+    notifyListeners();
+  }
+
+  @override
   Future<void> refreshListeningDevices() async {
     _listeningDevices = const [
       InputDevice(id: 'default', label: 'Built-in Microphone'),
@@ -243,11 +274,7 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   @override
   Future<void> refreshPlaybackDevices() async {
     _playbackDevices = const [
-      PlaybackDevice(
-        id: 'speaker',
-        name: 'Built-in',
-        type: 'Built-in Speaker',
-      ),
+      PlaybackDevice(id: 'speaker', name: 'Built-in', type: 'Built-in Speaker'),
     ];
     notifyListeners();
   }

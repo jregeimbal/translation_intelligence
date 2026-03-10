@@ -12,6 +12,7 @@ import 'controllers/speech_controller.dart';
 import 'controllers/two_way_chat_controller.dart';
 import 'models/playback_device.dart';
 import 'services/deepgram_service.dart';
+import 'services/stts_service.dart';
 import 'services/speech_output_provider.dart';
 import 'services/speech_stt_provider.dart';
 import 'services/speech_translation_provider.dart';
@@ -25,19 +26,20 @@ import 'widgets/two_way_chat.dart';
 void main() async {
   await dotenv.load();
 
-  Logger.root.level = Level.FINER; // This will only show WARNING and SEVERE logs
+  Logger.root.level =
+      Level.FINER; // This will only show WARNING and SEVERE logs
   Logger.root.onRecord.listen((record) {
     // Use developer.log to send logs to the debug console
     //if (kDebugMode) {
-      // Apply colorization (optional, see below)
-      final message = '${record.time}: ${record.level.name}: ${record.message}';
-      // Use developer.log to ensure it appears in the VS Code console
-      developer.log(
-        message,
-        name: record.loggerName.padRight(25),
-        level: record.level.value,
-        time: record.time,
-      );
+    // Apply colorization (optional, see below)
+    final message = '${record.time}: ${record.level.name}: ${record.message}';
+    // Use developer.log to ensure it appears in the VS Code console
+    developer.log(
+      message,
+      name: record.loggerName.padRight(25),
+      level: record.level.value,
+      time: record.time,
+    );
     //}
   });
 
@@ -111,10 +113,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class DebouncedMessageDispatcher {
-  DebouncedMessageDispatcher({
-    required this.delay,
-    required this.onDispatch,
-  });
+  DebouncedMessageDispatcher({required this.delay, required this.onDispatch});
 
   final Duration delay;
   final void Function(String message) onDispatch;
@@ -144,6 +143,8 @@ class ProviderSettingsSelection {
   final SpeechOutputProvider outputProvider;
   final String deepgramRecognitionModel;
   final String deepgramRecognitionLanguage;
+  final String sttsRecognitionLocale;
+  final Map<String, String> sttsRecognitionLocales;
   final String? listeningDeviceId;
   final String? playbackDeviceId;
   final ThemeMode themeMode;
@@ -154,6 +155,8 @@ class ProviderSettingsSelection {
     required this.outputProvider,
     required this.deepgramRecognitionModel,
     required this.deepgramRecognitionLanguage,
+    required this.sttsRecognitionLocale,
+    required this.sttsRecognitionLocales,
     required this.listeningDeviceId,
     required this.playbackDeviceId,
     required this.themeMode,
@@ -166,6 +169,8 @@ class ProviderSettingsDialog extends StatefulWidget {
   final SpeechOutputProvider initialOutputProvider;
   final String initialDeepgramRecognitionModel;
   final String initialDeepgramRecognitionLanguage;
+  final String initialSttsRecognitionLocale;
+  final Map<String, String> initialSttsRecognitionLocales;
   final List<InputDevice> initialListeningDevices;
   final String? initialListeningDeviceId;
   final List<PlaybackDevice> initialPlaybackDevices;
@@ -179,6 +184,8 @@ class ProviderSettingsDialog extends StatefulWidget {
     required this.initialOutputProvider,
     required this.initialDeepgramRecognitionModel,
     required this.initialDeepgramRecognitionLanguage,
+    required this.initialSttsRecognitionLocale,
+    required this.initialSttsRecognitionLocales,
     required this.initialListeningDevices,
     required this.initialListeningDeviceId,
     required this.initialPlaybackDevices,
@@ -196,6 +203,8 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
   late SpeechOutputProvider _selectedOutputProvider;
   late String _selectedDeepgramRecognitionModel;
   late String _selectedDeepgramRecognitionLanguage;
+  late String _selectedSttsRecognitionLocale;
+  late Map<String, String> _sttsRecognitionLocales;
   late String? _selectedListeningDeviceId;
   late List<InputDevice> _listeningDevices;
   late String? _selectedPlaybackDeviceId;
@@ -210,7 +219,11 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
     _selectedOutputProvider = widget.initialOutputProvider;
     _selectedDeepgramRecognitionModel = widget.initialDeepgramRecognitionModel;
     _selectedDeepgramRecognitionLanguage =
-      widget.initialDeepgramRecognitionLanguage;
+        widget.initialDeepgramRecognitionLanguage;
+    _selectedSttsRecognitionLocale = widget.initialSttsRecognitionLocale;
+    _sttsRecognitionLocales = Map<String, String>.from(
+      widget.initialSttsRecognitionLocales,
+    );
     _selectedListeningDeviceId = widget.initialListeningDeviceId;
     _listeningDevices = List<InputDevice>.from(widget.initialListeningDevices);
     _selectedPlaybackDeviceId = widget.initialPlaybackDeviceId;
@@ -232,10 +245,10 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     final deepgramLanguages =
-      DeepgramService.supportedRecognitionLanguagesByModel[
-        _selectedDeepgramRecognitionModel] ??
-      DeepgramService.supportedRecognitionLanguagesByModel[
-        DeepgramService.defaultRecognitionModel]!;
+        DeepgramService
+            .supportedRecognitionLanguagesByModel[_selectedDeepgramRecognitionModel] ??
+        DeepgramService.supportedRecognitionLanguagesByModel[DeepgramService
+            .defaultRecognitionModel]!;
 
     return DefaultTabController(
       length: 3,
@@ -280,14 +293,16 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             },
                             items: SpeechSttProvider.values
                                 .map(
-                                  (provider) => DropdownMenuItem<SpeechSttProvider>(
-                                    value: provider,
-                                    child: Text(provider.label),
-                                  ),
+                                  (provider) =>
+                                      DropdownMenuItem<SpeechSttProvider>(
+                                        value: provider,
+                                        child: Text(provider.label),
+                                      ),
                                 )
                                 .toList(),
                           ),
-                          if (_selectedSttProvider == SpeechSttProvider.deepgram) ...[
+                          if (_selectedSttProvider ==
+                              SpeechSttProvider.deepgram) ...[
                             const SizedBox(height: 16),
                             const Text('Deepgram Model'),
                             const SizedBox(height: 8),
@@ -299,8 +314,8 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 setState(() {
                                   _selectedDeepgramRecognitionModel = value;
                                   final supportedValues =
-                                      (DeepgramService.supportedRecognitionLanguagesByModel[
-                                                  value] ??
+                                      (DeepgramService
+                                                  .supportedRecognitionLanguagesByModel[value] ??
                                               const <String, String>{})
                                           .values
                                           .toSet();
@@ -309,8 +324,8 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                   )) {
                                     _selectedDeepgramRecognitionLanguage =
                                         DeepgramService.defaultRecognitionLanguageForModel(
-                                      value,
-                                    );
+                                          value,
+                                        );
                                   }
                                 });
                               },
@@ -327,7 +342,8 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             const Text('Deepgram Language'),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
-                              initialValue: _selectedDeepgramRecognitionLanguage,
+                              initialValue:
+                                  _selectedDeepgramRecognitionLanguage,
                               isExpanded: true,
                               onChanged: (value) {
                                 if (value == null) return;
@@ -336,6 +352,30 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 });
                               },
                               items: deepgramLanguages.entries
+                                  .map(
+                                    (entry) => DropdownMenuItem<String>(
+                                      value: entry.value,
+                                      child: Text(entry.key),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ],
+                          if (_selectedSttProvider ==
+                              SpeechSttProvider.stts) ...[
+                            const SizedBox(height: 16),
+                            const Text('STTS Locale'),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              initialValue: _selectedSttsRecognitionLocale,
+                              isExpanded: true,
+                              onChanged: (value) {
+                                if (value == null) return;
+                                setState(() {
+                                  _selectedSttsRecognitionLocale = value;
+                                });
+                              },
+                              items: _sttsRecognitionLocales.entries
                                   .map(
                                     (entry) => DropdownMenuItem<String>(
                                       value: entry.value,
@@ -359,10 +399,13 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             },
                             items: SpeechTranslationProvider.values
                                 .map(
-                                  (provider) => DropdownMenuItem<SpeechTranslationProvider>(
-                                    value: provider,
-                                    child: Text(provider.label),
-                                  ),
+                                  (provider) =>
+                                      DropdownMenuItem<
+                                        SpeechTranslationProvider
+                                      >(
+                                        value: provider,
+                                        child: Text(provider.label),
+                                      ),
                                 )
                                 .toList(),
                           ),
@@ -380,10 +423,11 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             },
                             items: SpeechOutputProvider.values
                                 .map(
-                                  (provider) => DropdownMenuItem<SpeechOutputProvider>(
-                                    value: provider,
-                                    child: Text(provider.label),
-                                  ),
+                                  (provider) =>
+                                      DropdownMenuItem<SpeechOutputProvider>(
+                                        value: provider,
+                                        child: Text(provider.label),
+                                      ),
                                 )
                                 .toList(),
                           ),
@@ -398,7 +442,8 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                           const SizedBox(height: 12),
                           const Text('Listening Device'),
                           const SizedBox(height: 8),
-                          if (_selectedSttProvider != SpeechSttProvider.deepgram)
+                          if (_selectedSttProvider !=
+                              SpeechSttProvider.deepgram)
                             const Text(
                               'Audio input selection is available when Speech to Text is set to Deepgram.',
                             )
@@ -408,7 +453,11 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             Builder(
                               builder: (context) {
                                 final selected = _listeningDevices
-                                    .where((device) => device.id == _selectedListeningDeviceId)
+                                    .where(
+                                      (device) =>
+                                          device.id ==
+                                          _selectedListeningDeviceId,
+                                    )
                                     .cast<InputDevice?>()
                                     .firstWhere(
                                       (_) => true,
@@ -417,8 +466,8 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 final details = selected == null
                                     ? 'Auto (${_listeningDevices.first.label.isNotEmpty ? _listeningDevices.first.label : _listeningDevices.first.id})'
                                     : selected.label.isNotEmpty
-                                        ? selected.label
-                                        : selected.id;
+                                    ? selected.label
+                                    : selected.id;
 
                                 return Text('Current: $details');
                               },
@@ -442,7 +491,9 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                     (device) => DropdownMenuItem<String>(
                                       value: device.id,
                                       child: Text(
-                                        device.label.isNotEmpty ? device.label : device.id,
+                                        device.label.isNotEmpty
+                                            ? device.label
+                                            : device.id,
                                       ),
                                     ),
                                   ),
@@ -455,7 +506,8 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                           const SizedBox(height: 12),
                           const Text('Playback Device'),
                           const SizedBox(height: 8),
-                          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
+                          if (!kIsWeb &&
+                              defaultTargetPlatform == TargetPlatform.iOS)
                             const Padding(
                               padding: EdgeInsets.only(bottom: 8),
                               child: Text(
@@ -463,18 +515,26 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                               ),
                             ),
                           if (_playbackDevices.isEmpty)
-                            const Text('Playback device details unavailable on this platform.')
+                            const Text(
+                              'Playback device details unavailable on this platform.',
+                            )
                           else ...[
                             Builder(
                               builder: (context) {
                                 final selected = _playbackDevices
-                                    .where((device) => device.id == _selectedPlaybackDeviceId)
+                                    .where(
+                                      (device) =>
+                                          device.id ==
+                                          _selectedPlaybackDeviceId,
+                                    )
                                     .cast<PlaybackDevice?>()
                                     .firstWhere(
                                       (_) => true,
                                       orElse: () => null,
                                     );
-                                final details = selected?.details ?? _playbackDevices.first.details;
+                                final details =
+                                    selected?.details ??
+                                    _playbackDevices.first.details;
 
                                 return Text('Current: $details');
                               },
@@ -542,32 +602,34 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
             ],
           ),
         ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop(
-              ProviderSettingsSelection(
-                sttProvider: _selectedSttProvider,
-                translationProvider: _selectedTranslationProvider,
-                outputProvider: _selectedOutputProvider,
-                deepgramRecognitionModel: _selectedDeepgramRecognitionModel,
-                deepgramRecognitionLanguage:
-                    _selectedDeepgramRecognitionLanguage,
-                listeningDeviceId: _selectedListeningDeviceId,
-                playbackDeviceId: _selectedPlaybackDeviceId,
-                themeMode: _selectedThemeMode,
-              ),
-            );
-          },
-          child: const Text('Save'),
-        ),
-      ],
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(
+                ProviderSettingsSelection(
+                  sttProvider: _selectedSttProvider,
+                  translationProvider: _selectedTranslationProvider,
+                  outputProvider: _selectedOutputProvider,
+                  deepgramRecognitionModel: _selectedDeepgramRecognitionModel,
+                  deepgramRecognitionLanguage:
+                      _selectedDeepgramRecognitionLanguage,
+                  sttsRecognitionLocale: _selectedSttsRecognitionLocale,
+                  sttsRecognitionLocales: _sttsRecognitionLocales,
+                  listeningDeviceId: _selectedListeningDeviceId,
+                  playbackDeviceId: _selectedPlaybackDeviceId,
+                  themeMode: _selectedThemeMode,
+                ),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
@@ -587,13 +649,17 @@ class _MyHomePageState extends State<MyHomePage> {
   SpeechSttProvider _sttProvider = SpeechSttProvider.deepgram;
   SpeechTranslationProvider _translationProvider =
       SpeechTranslationProvider.google;
-    String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
-    String _deepgramRecognitionLanguage =
+  String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
+  String _deepgramRecognitionLanguage =
       DeepgramService.defaultRecognitionLanguage;
-    List<InputDevice> _listeningDevices = const [];
-    List<PlaybackDevice> _playbackDevices = const [];
-    String? _listeningDeviceId;
-    String? _playbackDeviceId;
+  String _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage;
+  Map<String, String> _sttsRecognitionLocales = const {
+    'Multi (Auto)': SttsService.defaultRecognitionLanguage,
+  };
+  List<InputDevice> _listeningDevices = const [];
+  List<PlaybackDevice> _playbackDevices = const [];
+  String? _listeningDeviceId;
+  String? _playbackDeviceId;
 
   bool get _isGroupSection => _selectedSection == 0;
 
@@ -603,7 +669,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _bindListeningDeviceNotifications() {
     _listeningDeviceUpdateSub?.cancel();
-    _listeningDeviceUpdateSub = _controller.listeningDeviceUpdates.listen((message) {
+    _listeningDeviceUpdateSub = _controller.listeningDeviceUpdates.listen((
+      message,
+    ) {
       if (!mounted || _initializing) return;
       _showDebouncedListeningDeviceSnackBar(message);
     });
@@ -663,6 +731,15 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _setSttsRecognitionLocale(String locale) {
+    if (_sttsRecognitionLocale == locale || _initializing) return;
+    setState(() {
+      _sttsRecognitionLocale = locale;
+      _controller.setSttsRecognitionLocale(locale);
+      _twoWayController.setSttsRecognitionLocale(locale);
+    });
+  }
+
   void _setListeningDeviceId(String? deviceId) {
     if (_listeningDeviceId == deviceId || _initializing) return;
     setState(() {
@@ -701,12 +778,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
     await _controller.refreshListeningDevices();
     await _controller.refreshPlaybackDevices();
+    await _controller.refreshSttsRecognitionLocales();
     if (!mounted) return;
     setState(() {
       _listeningDevices = _controller.listeningDevices;
       _listeningDeviceId = _controller.listeningDeviceId;
       _playbackDevices = _controller.playbackDevices;
       _playbackDeviceId = _controller.playbackDeviceId;
+      _sttsRecognitionLocales = _controller.sttsRecognitionLocales;
+      _sttsRecognitionLocale = _controller.sttsRecognitionLocale;
     });
 
     final selection = await showDialog<ProviderSettingsSelection>(
@@ -718,6 +798,8 @@ class _MyHomePageState extends State<MyHomePage> {
           initialOutputProvider: _outputProvider,
           initialDeepgramRecognitionModel: _deepgramRecognitionModel,
           initialDeepgramRecognitionLanguage: _deepgramRecognitionLanguage,
+          initialSttsRecognitionLocale: _sttsRecognitionLocale,
+          initialSttsRecognitionLocales: _sttsRecognitionLocales,
           initialListeningDevices: _listeningDevices,
           initialListeningDeviceId: _listeningDeviceId,
           initialPlaybackDevices: _playbackDevices,
@@ -747,6 +829,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (selection.deepgramRecognitionLanguage != _deepgramRecognitionLanguage) {
       _setDeepgramRecognitionLanguage(selection.deepgramRecognitionLanguage);
     }
+    if (selection.sttsRecognitionLocale != _sttsRecognitionLocale) {
+      _setSttsRecognitionLocale(selection.sttsRecognitionLocale);
+    }
     if (selection.listeningDeviceId != _listeningDeviceId) {
       _setListeningDeviceId(selection.listeningDeviceId);
     }
@@ -766,7 +851,9 @@ class _MyHomePageState extends State<MyHomePage> {
         await _controller.stopListening();
       } catch (_) {}
     }
-    if (_selectedSection == 1 && !_initializing && _twoWayController.isListening) {
+    if (_selectedSection == 1 &&
+        !_initializing &&
+        _twoWayController.isListening) {
       try {
         await _twoWayController.stopListening();
       } catch (_) {}
@@ -881,9 +968,11 @@ class _MyHomePageState extends State<MyHomePage> {
             tooltip: canSwap
                 ? 'Swap source and target language'
                 : (sourceCode == 'multi' || targetCode == 'multi'
-                    ? 'Swap unavailable when source or target is multi'
-                    : 'Swap unavailable for selected language pair'),
-            onPressed: canSwap ? () => _swapGroupLanguages(sourceLanguages) : null,
+                      ? 'Swap unavailable when source or target is multi'
+                      : 'Swap unavailable for selected language pair'),
+            onPressed: canSwap
+                ? () => _swapGroupLanguages(sourceLanguages)
+                : null,
             icon: const Icon(Icons.swap_horiz_rounded),
           ),
           const SizedBox(width: 8),
@@ -980,6 +1069,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _controller.setTranslationProvider(_translationProvider);
       _controller.setDeepgramRecognitionModel(_deepgramRecognitionModel);
       _controller.setDeepgramRecognitionLanguage(_deepgramRecognitionLanguage);
+      _controller.setSttsRecognitionLocale(_sttsRecognitionLocale);
       _twoWayController = TwoWayChatController(
         googleApiKey: _googleApiKey,
         deepgramApiKey: _deepgramApiKey,
@@ -990,6 +1080,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _twoWayController.setDeepgramRecognitionLanguage(
         _deepgramRecognitionLanguage,
       );
+      _twoWayController.setSttsRecognitionLocale(_sttsRecognitionLocale);
       Future.wait([_controller.init(), _twoWayController.init()]).then((_) {
         if (!mounted) return;
         setState(() {
@@ -997,6 +1088,8 @@ class _MyHomePageState extends State<MyHomePage> {
           _listeningDeviceId = _controller.listeningDeviceId;
           _playbackDevices = _controller.playbackDevices;
           _playbackDeviceId = _controller.playbackDeviceId;
+          _sttsRecognitionLocales = _controller.sttsRecognitionLocales;
+          _sttsRecognitionLocale = _controller.sttsRecognitionLocale;
           _initializing = false;
         });
       });
@@ -1105,7 +1198,10 @@ class _MyHomePageState extends State<MyHomePage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Translation Studio', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Translation Studio',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                   Text('Real-time assistant', style: textRoles.appSubtitle),
                 ],
               ),
@@ -1126,29 +1222,27 @@ class _MyHomePageState extends State<MyHomePage> {
             duration: const Duration(milliseconds: 250),
             child: _isGroupSection
                 ? (_initializing
-                    ? const Center(
-                        key: ValueKey('group_loading'),
-                        child: CircularProgressIndicator(),
-                      )
-                    : ChangeNotifierProvider<SpeechController>.value(
-                        value: _controller,
-                        child: Padding(
-                          key: const ValueKey('group_chat'),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 12,
+                      ? const Center(
+                          key: ValueKey('group_loading'),
+                          child: CircularProgressIndicator(),
+                        )
+                      : ChangeNotifierProvider<SpeechController>.value(
+                          value: _controller,
+                          child: Padding(
+                            key: const ValueKey('group_chat'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 12,
+                            ),
+                            child: Column(
+                              children: [
+                                _buildGroupLanguageBar(theme),
+                                const SizedBox(height: 10),
+                                const Expanded(child: ChatMessageList()),
+                              ],
+                            ),
                           ),
-                          child: Column(
-                            children: [
-                              _buildGroupLanguageBar(theme),
-                              const SizedBox(height: 10),
-                              const Expanded(
-                                child: ChatMessageList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ))
+                        ))
                 : Center(
                     key: const ValueKey('two_way_placeholder'),
                     child: Padding(

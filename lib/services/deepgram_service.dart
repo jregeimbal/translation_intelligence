@@ -241,9 +241,38 @@ class DeepgramService {
 
       return SpeechRecognitionResult(
         isFinal: result.isFinal,
+        speechFinal: _deepgramSpeechFinal(result),
         words: mappedWords,
       );
     });
+  }
+
+  bool _deepgramSpeechFinal(dynamic result) {
+    if (result is Map) {
+      final direct = result['speech_final'] ?? result['speechFinal'];
+      if (direct is bool) {
+        return direct;
+      }
+    }
+
+    try {
+      final dynamic value = result.speechFinal;
+      if (value is bool) {
+        return value;
+      }
+    } catch (_) {}
+
+    try {
+      final dynamic json = result.toJson();
+      if (json is Map) {
+        final dynamic value = json['speech_final'] ?? json['speechFinal'];
+        if (value is bool) {
+          return value;
+        }
+      }
+    } catch (_) {}
+
+    return false;
   }
 
   Future<Uint8List> synthesizeSpeech({

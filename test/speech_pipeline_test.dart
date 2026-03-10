@@ -8,14 +8,11 @@ import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
+import 'package:translation_intelligence/services/stts_service.dart';
 import 'package:translation_intelligence/widgets/chat_message.dart';
 
 class _FakeSpeechPipeline extends SpeechPipeline {
-  _FakeSpeechPipeline()
-      : super(
-          googleApiKey: '',
-          deepgramApiKey: '',
-        );
+  _FakeSpeechPipeline() : super(googleApiKey: '', deepgramApiKey: '');
 
   bool apiKeyValid = true;
   int startRecognitionCalls = 0;
@@ -47,6 +44,18 @@ class _FakeSpeechPipeline extends SpeechPipeline {
   }
 }
 
+class _FakeSttsService extends SttsService {
+  Map<String, String> locales = const {
+    'Multi (Auto)': SttsService.defaultRecognitionLanguage,
+    'English (US)': 'en-US',
+  };
+
+  @override
+  Future<Map<String, String>> supportedRecognitionLocales() async {
+    return locales;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -57,19 +66,19 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(audioGlobalChannel, (call) async {
-      return null;
-    });
+          return null;
+        });
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(recordChannel, (call) async {
-      if (call.method == 'create') {
-        return 1;
-      }
-      if (call.method == 'hasPermission') {
-        return hasPermission;
-      }
-      return null;
-    });
+          if (call.method == 'create') {
+            return 1;
+          }
+          if (call.method == 'hasPermission') {
+            return hasPermission;
+          }
+          return null;
+        });
   });
 
   tearDownAll(() {
@@ -110,7 +119,10 @@ void main() {
     test('supportedLanguages contains expected baseline entries', () {
       expect(SpeechController.supportedLanguages['English'], equals('en'));
       expect(SpeechController.supportedLanguages['Spanish'], equals('es'));
-      expect(SpeechController.supportedLanguages['Chinese (Simplified)'], equals('zh-CN'));
+      expect(
+        SpeechController.supportedLanguages['Chinese (Simplified)'],
+        equals('zh-CN'),
+      );
     });
 
     test('setTargetLanguage updates and notifies only on changes', () {
@@ -156,10 +168,7 @@ void main() {
 
     test('chatMessages getter is immutable', () {
       final messages = controller.chatMessages;
-      expect(
-        () => messages.add(ChatMessage('Hello')),
-        throwsUnsupportedError,
-      );
+      expect(() => messages.add(ChatMessage('Hello')), throwsUnsupportedError);
     });
 
     test('provider and deepgram getters expose pipeline state', () {
@@ -194,13 +203,16 @@ void main() {
       expect(notifications, equals(5));
     });
 
-    test('init sets speechError when microphone permission is denied', () async {
-      hasPermission = false;
-      await controller.init();
+    test(
+      'init sets speechError when microphone permission is denied',
+      () async {
+        hasPermission = false;
+        await controller.init();
 
-      expect(controller.speechEnabled, isFalse);
-      expect(controller.speechError, equals('Microphone permission denied'));
-    });
+        expect(controller.speechEnabled, isFalse);
+        expect(controller.speechError, equals('Microphone permission denied'));
+      },
+    );
 
     test('init sets speechError when API key validation fails', () async {
       final fakePipeline = _FakeSpeechPipeline()..apiKeyValid = false;
@@ -217,56 +229,96 @@ void main() {
       expect(localController.speechError, equals('Invalid speech API key'));
     });
 
-    test('startListening uses deepgram language for deepgram STT provider',
-        () async {
-      final results = StreamController<SpeechRecognitionResult>.broadcast();
-      final amplitudes = StreamController<double>.broadcast();
-      final fakePipeline = _FakeSpeechPipeline()
-        ..session = SpeechRecognitionSession(
-          resultStream: results.stream,
-          amplitudeStream: amplitudes.stream,
-          stop: () async {},
+    test(
+      'startListening uses deepgram language for deepgram STT provider',
+      () async {
+        final results = StreamController<SpeechRecognitionResult>.broadcast();
+        final amplitudes = StreamController<double>.broadcast();
+        final fakePipeline = _FakeSpeechPipeline()
+          ..session = SpeechRecognitionSession(
+            resultStream: results.stream,
+            amplitudeStream: amplitudes.stream,
+            stop: () async {},
+          );
+        final localController = SpeechController(
+          googleApiKey: '',
+          deepgramApiKey: 'test-key',
+          speechPipeline: fakePipeline,
         );
-      final localController = SpeechController(
+        addTearDown(() async {
+          await results.close();
+          await amplitudes.close();
+          localController.dispose();
+        });
+
+        await localController.init();
+        localController.setDeepgramRecognitionLanguage('en-US');
+        await localController.startListening();
+        amplitudes.add(0.73);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(localController.isListening, isTrue);
+        expect(localController.amplitude, closeTo(0.73, 0.0001));
+        expect(fakePipeline.lastSourceLanguage, equals('en-US'));
+        expect(fakePipeline.startRecognitionCalls, equals(1));
+      },
+    );
+
+    test(
+      'startListening uses multi source for non-deepgram STT provider',
+      () async {
+        final fakePipeline = _FakeSpeechPipeline();
+        final localController = SpeechController(
+          googleApiKey: '',
+          deepgramApiKey: 'test-key',
+          speechPipeline: fakePipeline,
+        );
+        addTearDown(localController.dispose);
+
+        await localController.init();
+        localController.setSttProvider(SpeechSttProvider.google);
+        await localController.startListening();
+
+        expect(localController.isListening, isTrue);
+        expect(fakePipeline.lastSourceLanguage, equals('multi'));
+        expect(fakePipeline.startRecognitionCalls, equals(1));
+      },
+    );
+  });
+
+  group('SpeechPipeline STTS locales', () {
+    test('setSttsRecognitionLocale keeps valid locale', () async {
+      final fakeStts = _FakeSttsService();
+      final pipeline = SpeechPipeline(
         googleApiKey: '',
         deepgramApiKey: 'test-key',
-        speechPipeline: fakePipeline,
+        sttsService: fakeStts,
       );
-      addTearDown(() async {
-        await results.close();
-        await amplitudes.close();
-        localController.dispose();
-      });
 
-      await localController.init();
-      localController.setDeepgramRecognitionLanguage('en-US');
-      await localController.startListening();
-      amplitudes.add(0.73);
-      await Future<void>.delayed(Duration.zero);
+      await pipeline.refreshSttsRecognitionLocales();
+      pipeline.setSttsRecognitionLocale('en-US');
 
-      expect(localController.isListening, isTrue);
-      expect(localController.amplitude, closeTo(0.73, 0.0001));
-      expect(fakePipeline.lastSourceLanguage, equals('en-US'));
-      expect(fakePipeline.startRecognitionCalls, equals(1));
+      expect(pipeline.sttsRecognitionLocale, equals('en-US'));
     });
 
-    test('startListening uses multi source for non-deepgram STT provider',
-        () async {
-      final fakePipeline = _FakeSpeechPipeline();
-      final localController = SpeechController(
-        googleApiKey: '',
-        deepgramApiKey: 'test-key',
-        speechPipeline: fakePipeline,
-      );
-      addTearDown(localController.dispose);
+    test(
+      'setSttsRecognitionLocale resets to multi for invalid locale',
+      () async {
+        final fakeStts = _FakeSttsService();
+        final pipeline = SpeechPipeline(
+          googleApiKey: '',
+          deepgramApiKey: 'test-key',
+          sttsService: fakeStts,
+        );
 
-      await localController.init();
-      localController.setSttProvider(SpeechSttProvider.google);
-      await localController.startListening();
+        await pipeline.refreshSttsRecognitionLocales();
+        pipeline.setSttsRecognitionLocale('xx-INVALID');
 
-      expect(localController.isListening, isTrue);
-      expect(fakePipeline.lastSourceLanguage, equals('multi'));
-      expect(fakePipeline.startRecognitionCalls, equals(1));
-    });
+        expect(
+          pipeline.sttsRecognitionLocale,
+          equals(SttsService.defaultRecognitionLanguage),
+        );
+      },
+    );
   });
 }
