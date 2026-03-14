@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:logging/logging.dart';
 import 'package:stts/stts.dart';
 
-import 'speech_recognition_models.dart';
+import '../models/speech_recognition_models.dart';
 
 final logger = Logger('STTS Service'); // Create a logger with a name
 
@@ -40,8 +40,12 @@ class SttsService {
     if (!ready) {
       throw Exception('STTS is unavailable on this device');
     }
-    logger.info('STTS started listening with language: ${languageCode ?? 'default'}');
-    logger.info('STTS supported locales: ${await supportedRecognitionLocales()}');
+    logger.info(
+      'STTS started listening with language: ${languageCode ?? 'default'}',
+    );
+    logger.info(
+      'STTS supported locales: ${await supportedRecognitionLocales()}',
+    );
     await _resultSub?.cancel();
     _resultSub = _stt.onResultChanged.listen((recognition) {
       onAmplitude(recognition.isFinal ? 0.0 : 0.5);

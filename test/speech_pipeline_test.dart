@@ -4,12 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
 import 'package:translation_intelligence/services/stts_service.dart';
-import 'package:translation_intelligence/widgets/chat_message.dart';
 
 class _FakeSpeechPipeline extends SpeechPipeline {
   _FakeSpeechPipeline() : super(googleApiKey: '', deepgramApiKey: '');

@@ -7,56 +7,21 @@ import 'package:flutter/services.dart';
 import 'package:record/record.dart';
 
 import '../models/playback_device.dart';
+import '../models/speech_recognition_models.dart';
+import '../models/speech_recognition_session.dart';
 import 'deepgram_service.dart';
 import 'google_speech_service.dart';
 import 'mlkit_translation_service.dart';
 import 'speech_to_text_service.dart';
 import 'stts_service.dart';
 import 'speech_output_provider.dart';
-import 'speech_recognition_models.dart';
 import 'speech_stt_provider.dart';
 import 'speech_translation_provider.dart';
 
-export 'speech_recognition_models.dart'
+export '../models/speech_recognition_models.dart'
     show SpeechRecognitionResult, SpeechRecognitionWord;
-
-class MicrophoneCaptureSession {
-  final Stream<Uint8List> audioStream;
-  final Stream<double> amplitudeStream;
-  final Future<void> Function() stop;
-  final int sampleRate;
-
-  const MicrophoneCaptureSession({
-    required this.audioStream,
-    required this.amplitudeStream,
-    required this.stop,
-    required this.sampleRate,
-  });
-}
-
-class SpeechRecognitionSession {
-  final Stream<SpeechRecognitionResult> resultStream;
-  final Stream<double> amplitudeStream;
-  final Future<void> Function() stop;
-  final int? sampleRate;
-  final SpeechSttProvider sttProvider;
-  final String sourceLanguage;
-  final String? resolvedLanguageCode;
-  final String? listeningDeviceId;
-  final DateTime startedAt;
-
-  SpeechRecognitionSession({
-    required this.resultStream,
-    required this.amplitudeStream,
-    required this.stop,
-    this.sampleRate,
-    this.sttProvider = SpeechSttProvider.deepgram,
-    this.sourceLanguage = 'multi',
-    this.resolvedLanguageCode,
-    this.listeningDeviceId,
-    DateTime? startedAt,
-  }) : startedAt = startedAt ?? DateTime.now();
-}
+export '../models/speech_recognition_session.dart'
+    show MicrophoneCaptureSession, SpeechRecognitionSession;
 
 class SpeechPipeline {
   static const MethodChannel _audioRecordChannel = MethodChannel(

@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/models/playback_device.dart';
+import 'package:translation_intelligence/models/speech_recognition_models.dart';
 import 'package:translation_intelligence/services/deepgram_service.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
-import 'package:translation_intelligence/services/speech_recognition_models.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_to_text_service.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
 import 'package:translation_intelligence/services/stts_service.dart';
-import 'package:translation_intelligence/widgets/chat_message.dart';
 
 /// Lightweight stub of SpeechController for widget tests. Avoids plugins
 /// and network calls while allowing manual control of state.
