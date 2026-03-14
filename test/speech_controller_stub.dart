@@ -8,6 +8,7 @@ import 'package:translation_intelligence/services/deepgram_service.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_recognition_models.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
+import 'package:translation_intelligence/services/speech_to_text_service.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
 import 'package:translation_intelligence/services/stts_service.dart';
 import 'package:translation_intelligence/widgets/chat_message.dart';
@@ -42,6 +43,12 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
   String _deepgramRecognitionLanguage =
       DeepgramService.defaultRecognitionLanguage;
+  String _speechToTextRecognitionLocale =
+      SpeechToTextService.defaultRecognitionLanguage;
+  Map<String, String> _speechToTextRecognitionLocales = const {
+    'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
+    'English (US)': 'en-US',
+  };
   String _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage;
   Map<String, String> _sttsRecognitionLocales = const {
     'Multi (Auto)': SttsService.defaultRecognitionLanguage,
@@ -132,7 +139,14 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   String get sttsRecognitionLocale => _sttsRecognitionLocale;
 
   @override
+  String get speechToTextRecognitionLocale => _speechToTextRecognitionLocale;
+
+  @override
   Map<String, String> get sttsRecognitionLocales => _sttsRecognitionLocales;
+
+  @override
+  Map<String, String> get speechToTextRecognitionLocales =>
+      _speechToTextRecognitionLocales;
 
   @override
   List<InputDevice> get listeningDevices =>
@@ -144,6 +158,24 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   @override
   Stream<String> get listeningDeviceUpdates =>
       _listeningDeviceUpdatesController.stream;
+
+  @override
+  int? get activeSessionSampleRate => null;
+
+  @override
+  SpeechSttProvider? get activeSessionSttProvider => null;
+
+  @override
+  String? get activeSessionSourceLanguage => null;
+
+  @override
+  String? get activeSessionResolvedLanguageCode => null;
+
+  @override
+  String? get activeSessionListeningDeviceId => null;
+
+  @override
+  DateTime? get activeSessionStartedAt => null;
 
   @override
   List<PlaybackDevice> get playbackDevices =>
@@ -254,9 +286,25 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   }
 
   @override
+  void setSpeechToTextRecognitionLocale(String locale) {
+    _speechToTextRecognitionLocale = locale;
+    notifyListeners();
+  }
+
+  @override
   Future<void> refreshSttsRecognitionLocales() async {
     _sttsRecognitionLocales = const {
       'Multi (Auto)': SttsService.defaultRecognitionLanguage,
+      'English (US)': 'en-US',
+      'Spanish (Spain)': 'es-ES',
+    };
+    notifyListeners();
+  }
+
+  @override
+  Future<void> refreshSpeechToTextRecognitionLocales() async {
+    _speechToTextRecognitionLocales = const {
+      'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
       'English (US)': 'en-US',
       'Spanish (Spain)': 'es-ES',
     };

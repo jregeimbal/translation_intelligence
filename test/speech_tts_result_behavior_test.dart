@@ -19,12 +19,10 @@ class _FakeTtsSpeechPipeline extends SpeechPipeline {
   String? lastTtsLanguageRequest;
   int translateCallCount = 0;
   Uint8List synthesizeBytes = Uint8List(0);
+  Future<String?> Function(String text)? translateOverride;
 
   _FakeTtsSpeechPipeline()
-      : super(
-          googleApiKey: 'test-google',
-          deepgramApiKey: 'test-deepgram',
-        );
+    : super(googleApiKey: 'test-google', deepgramApiKey: 'test-deepgram');
 
   @override
   Future<bool> isSpeechApiKeyValid() async => true;
@@ -56,6 +54,10 @@ class _FakeTtsSpeechPipeline extends SpeechPipeline {
     bool nullWhenUnchanged = false,
   }) async {
     translateCallCount += 1;
+    final override = translateOverride;
+    if (override != null) {
+      return override(text);
+    }
     return '$text-translated';
   }
 
@@ -98,33 +100,33 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(audioGlobalChannel, (call) async {
-      return null;
-    });
+          return null;
+        });
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(audioPlayerChannel, (call) async {
-      return null;
-    });
+          return null;
+        });
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(recordChannel, (call) async {
-      if (call.method == 'hasPermission') {
-        return true;
-      }
-      return null;
-    });
+          if (call.method == 'hasPermission') {
+            return true;
+          }
+          return null;
+        });
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(wakelockChannel, (call) async {
-      return null;
-    });
+          return null;
+        });
   });
 
   tearDownAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(audioGlobalChannel, null);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(audioPlayerChannel, null);
+        .setMockMethodCallHandler(audioPlayerChannel, null);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(recordChannel, null);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -166,7 +168,10 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(controller.chatMessages.length, equals(1));
-      expect(controller.chatMessages.first.translation, equals('hello final-translated'));
+      expect(
+        controller.chatMessages.first.translation,
+        equals('hello final-translated'),
+      );
       expect(pipeline.translateCallCount, equals(1));
       expect(pipeline.synthesizeCallCount, equals(1));
       expect(pipeline.lastSynthText, equals('hello final-translated'));
@@ -192,186 +197,277 @@ void main() {
 
       expect(controller.chatMessages.length, equals(1));
       expect(controller.chatMessages.first.speaker, equals(1));
-      expect(controller.chatMessages.first.translation, equals('speaker one-translated'));
+      expect(
+        controller.chatMessages.first.translation,
+        equals('speaker one-translated'),
+      );
       expect(pipeline.translateCallCount, equals(1));
       expect(pipeline.synthesizeCallCount, equals(0));
     });
 
-    test('TTS synthesis uses mapped language code for selected target language', () async {
-      await controller.init();
-      controller.setTargetLanguage('es');
-      await controller.startListening();
+    test(
+      'TTS synthesis uses mapped language code for selected target language',
+      () async {
+        await controller.init();
+        controller.setTargetLanguage('es');
+        await controller.startListening();
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'hola',
-          isFinal: true,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hola',
+            isFinal: true,
+          ),
+        );
 
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(pipeline.lastTtsLanguageRequest, equals('es'));
-      expect(pipeline.lastSynthLanguageCode, equals('mapped-es'));
-    });
+        expect(pipeline.lastTtsLanguageRequest, equals('es'));
+        expect(pipeline.lastSynthLanguageCode, equals('mapped-es'));
+      },
+    );
 
-    test('queued final result translates and speaks before flush, then does not duplicate on commit', () async {
-      final groupedPipeline = _FakeTtsSpeechPipeline();
-      final groupedController = SpeechController(
-        googleApiKey: 'test-google',
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
-        finalResultGroupingWindow: const Duration(milliseconds: 120),
-      );
+    test(
+      'queued final result translates and speaks before flush, then does not duplicate on commit',
+      () async {
+        final groupedPipeline = _FakeTtsSpeechPipeline();
+        final groupedController = SpeechController(
+          googleApiKey: 'test-google',
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 120),
+        );
 
-      await groupedController.init();
-      await groupedController.startListening();
+        await groupedController.init();
+        await groupedController.startListening();
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'queued final',
-          isFinal: true,
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'queued final',
+            isFinal: true,
+          ),
+        );
 
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(groupedController.chatMessages, isEmpty);
-      expect(groupedController.getOptimisticMessages().single.translation, equals('queued final-translated'));
-      expect(groupedPipeline.translateCallCount, equals(1));
-      expect(groupedPipeline.synthesizeCallCount, equals(1));
+        expect(groupedController.chatMessages, isEmpty);
+        expect(
+          groupedController.getOptimisticMessages().single.translation,
+          equals('queued final-translated'),
+        );
+        expect(groupedPipeline.translateCallCount, equals(1));
+        expect(groupedPipeline.synthesizeCallCount, equals(1));
 
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+        await Future<void>.delayed(const Duration(milliseconds: 150));
 
-      expect(groupedController.chatMessages.length, equals(1));
-      expect(groupedController.chatMessages.first.original, equals('queued final.'));
-      expect(groupedController.chatMessages.first.translation, equals('queued final-translated'));
-      expect(groupedPipeline.translateCallCount, equals(1));
-      expect(groupedPipeline.synthesizeCallCount, equals(1));
+        expect(groupedController.chatMessages.length, equals(1));
+        expect(
+          groupedController.chatMessages.first.original,
+          equals('queued final.'),
+        );
+        expect(
+          groupedController.chatMessages.first.translation,
+          equals('queued final-translated'),
+        );
+        expect(groupedPipeline.translateCallCount, equals(1));
+        expect(groupedPipeline.synthesizeCallCount, equals(1));
 
-      await groupedController.stopListening();
-      groupedController.dispose();
-      await groupedPipeline.disposeFake();
-    });
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
 
-    test('preferred speaker is chosen at queue time and skips queued TTS before flush', () async {
-      final groupedPipeline = _FakeTtsSpeechPipeline();
-      final groupedController = SpeechController(
-        googleApiKey: 'test-google',
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
-        finalResultGroupingWindow: const Duration(milliseconds: 120),
-      );
+    test(
+      'queued translation stays visible until replacement translation arrives',
+      () async {
+        final groupedPipeline = _FakeTtsSpeechPipeline();
+        final groupedController = SpeechController(
+          googleApiKey: 'test-google',
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 250),
+        );
 
-      await groupedController.init();
-      await groupedController.startListening();
+        await groupedController.init();
+        await groupedController.startListening();
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult(
-          isFinal: true,
-          words: [
-            SpeechRecognitionWord(word: 'speaker', speaker: 0),
-            SpeechRecognitionWord(word: 'zero', speaker: 0),
-          ],
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hello',
+            isFinal: true,
+          ),
+        );
 
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(groupedController.chatMessages, isEmpty);
-      expect(groupedController.preferredSpeaker, equals(0));
-      expect(groupedPipeline.translateCallCount, equals(1));
-      expect(groupedPipeline.synthesizeCallCount, equals(0));
+        expect(groupedController.chatMessages, isEmpty);
+        expect(
+          groupedController.getOptimisticMessages().single.translation,
+          equals('hello-translated'),
+        );
 
-      await groupedController.stopListening();
-      groupedController.dispose();
-      await groupedPipeline.disposeFake();
-    });
+        groupedPipeline.translateOverride = (text) async {
+          await Future<void>.delayed(const Duration(milliseconds: 60));
+          return 'updated-translation';
+        };
 
-    test('playback completion timeout path does not log audio playback type error', () async {
-      final groupedPipeline = _FakeTtsSpeechPipeline();
-      groupedPipeline.synthesizeBytes = Uint8List.fromList([1, 2, 3]);
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hello there',
+            isFinal: true,
+          ),
+        );
 
-      final groupedController = SpeechController(
-        googleApiKey: 'test-google',
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
-        finalResultGroupingWindow: Duration.zero,
-        audioPlaybackCompletionTimeout: const Duration(milliseconds: 1),
-      );
+        await Future<void>.delayed(Duration.zero);
 
-      final captured = <LogRecord>[];
-      final sub = Logger.root.onRecord.listen(captured.add);
+        expect(
+          groupedController.getOptimisticMessages().single.translation,
+          equals('hello-translated'),
+        );
 
-      await groupedController.init();
-      await groupedController.startListening();
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+        await Future<void>.delayed(Duration.zero);
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'timeout probe',
-          isFinal: true,
-        ),
-      );
+        expect(
+          groupedController.getOptimisticMessages().single.translation,
+          equals('updated-translation'),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
 
-      expect(groupedController.chatMessages.length, equals(1));
-      final hasAudioPlaybackError = captured.any(
-        (record) => record.level >= Level.SEVERE &&
-            record.message.contains('audio playback error'),
-      );
-      expect(hasAudioPlaybackError, isFalse);
+    test(
+      'preferred speaker is chosen at queue time and skips queued TTS before flush',
+      () async {
+        final groupedPipeline = _FakeTtsSpeechPipeline();
+        final groupedController = SpeechController(
+          googleApiKey: 'test-google',
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 120),
+        );
 
-      await sub.cancel();
-      await groupedController.stopListening();
-      groupedController.dispose();
-      await groupedPipeline.disposeFake();
-    });
+        await groupedController.init();
+        await groupedController.startListening();
 
-    test('playback queue continues with next clip after timeout wait path', () async {
-      final groupedPipeline = _FakeTtsSpeechPipeline();
-      groupedPipeline.synthesizeBytes = Uint8List.fromList([1, 2, 3]);
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: true,
+            words: [
+              SpeechRecognitionWord(word: 'speaker', speaker: 0),
+              SpeechRecognitionWord(word: 'zero', speaker: 0),
+            ],
+          ),
+        );
 
-      final groupedController = SpeechController(
-        googleApiKey: 'test-google',
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
-        finalResultGroupingWindow: Duration.zero,
-        audioPlaybackCompletionTimeout: const Duration(milliseconds: 1),
-      );
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      final captured = <LogRecord>[];
-      final sub = Logger.root.onRecord.listen(captured.add);
+        expect(groupedController.chatMessages, isEmpty);
+        expect(groupedController.preferredSpeaker, equals(0));
+        expect(groupedPipeline.translateCallCount, equals(1));
+        expect(groupedPipeline.synthesizeCallCount, equals(0));
 
-      await groupedController.init();
-      await groupedController.startListening();
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'first clip',
-          isFinal: true,
-        ),
-      );
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'second clip',
-          isFinal: true,
-        ),
-      );
+    test(
+      'playback completion timeout path does not log audio playback type error',
+      () async {
+        final groupedPipeline = _FakeTtsSpeechPipeline();
+        groupedPipeline.synthesizeBytes = Uint8List.fromList([1, 2, 3]);
 
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+        final groupedController = SpeechController(
+          googleApiKey: 'test-google',
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: Duration.zero,
+          audioPlaybackCompletionTimeout: const Duration(milliseconds: 1),
+        );
 
-      expect(groupedController.chatMessages.length, equals(2));
-      expect(groupedPipeline.translateCallCount, equals(2));
-      expect(groupedPipeline.synthesizeCallCount, equals(2));
+        final captured = <LogRecord>[];
+        final sub = Logger.root.onRecord.listen(captured.add);
 
-      await sub.cancel();
-      await groupedController.stopListening();
-      groupedController.dispose();
-      await groupedPipeline.disposeFake();
-    });
+        await groupedController.init();
+        await groupedController.startListening();
+
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'timeout probe',
+            isFinal: true,
+          ),
+        );
+
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+
+        expect(groupedController.chatMessages.length, equals(1));
+        final hasAudioPlaybackError = captured.any(
+          (record) =>
+              record.level >= Level.SEVERE &&
+              record.message.contains('audio playback error'),
+        );
+        expect(hasAudioPlaybackError, isFalse);
+
+        await sub.cancel();
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
+
+    test(
+      'playback queue continues with next clip after timeout wait path',
+      () async {
+        final groupedPipeline = _FakeTtsSpeechPipeline();
+        groupedPipeline.synthesizeBytes = Uint8List.fromList([1, 2, 3]);
+
+        final groupedController = SpeechController(
+          googleApiKey: 'test-google',
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: Duration.zero,
+          audioPlaybackCompletionTimeout: const Duration(milliseconds: 1),
+        );
+
+        final captured = <LogRecord>[];
+        final sub = Logger.root.onRecord.listen(captured.add);
+
+        await groupedController.init();
+        await groupedController.startListening();
+
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'first clip',
+            isFinal: true,
+          ),
+        );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'second clip',
+            isFinal: true,
+          ),
+        );
+
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(groupedController.chatMessages.length, equals(2));
+        expect(groupedPipeline.translateCallCount, equals(2));
+        expect(groupedPipeline.synthesizeCallCount, equals(2));
+
+        await sub.cancel();
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
   });
 }

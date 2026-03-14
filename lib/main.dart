@@ -12,6 +12,7 @@ import 'controllers/speech_controller.dart';
 import 'controllers/two_way_chat_controller.dart';
 import 'models/playback_device.dart';
 import 'services/deepgram_service.dart';
+import 'services/speech_to_text_service.dart';
 import 'services/stts_service.dart';
 import 'services/speech_output_provider.dart';
 import 'services/speech_stt_provider.dart';
@@ -143,6 +144,8 @@ class ProviderSettingsSelection {
   final SpeechOutputProvider outputProvider;
   final String deepgramRecognitionModel;
   final String deepgramRecognitionLanguage;
+  final String speechToTextRecognitionLocale;
+  final Map<String, String> speechToTextRecognitionLocales;
   final String sttsRecognitionLocale;
   final Map<String, String> sttsRecognitionLocales;
   final String? listeningDeviceId;
@@ -155,6 +158,8 @@ class ProviderSettingsSelection {
     required this.outputProvider,
     required this.deepgramRecognitionModel,
     required this.deepgramRecognitionLanguage,
+    required this.speechToTextRecognitionLocale,
+    required this.speechToTextRecognitionLocales,
     required this.sttsRecognitionLocale,
     required this.sttsRecognitionLocales,
     required this.listeningDeviceId,
@@ -169,6 +174,8 @@ class ProviderSettingsDialog extends StatefulWidget {
   final SpeechOutputProvider initialOutputProvider;
   final String initialDeepgramRecognitionModel;
   final String initialDeepgramRecognitionLanguage;
+  final String initialSpeechToTextRecognitionLocale;
+  final Map<String, String> initialSpeechToTextRecognitionLocales;
   final String initialSttsRecognitionLocale;
   final Map<String, String> initialSttsRecognitionLocales;
   final List<InputDevice> initialListeningDevices;
@@ -184,6 +191,8 @@ class ProviderSettingsDialog extends StatefulWidget {
     required this.initialOutputProvider,
     required this.initialDeepgramRecognitionModel,
     required this.initialDeepgramRecognitionLanguage,
+    required this.initialSpeechToTextRecognitionLocale,
+    required this.initialSpeechToTextRecognitionLocales,
     required this.initialSttsRecognitionLocale,
     required this.initialSttsRecognitionLocales,
     required this.initialListeningDevices,
@@ -203,6 +212,8 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
   late SpeechOutputProvider _selectedOutputProvider;
   late String _selectedDeepgramRecognitionModel;
   late String _selectedDeepgramRecognitionLanguage;
+  late String _selectedSpeechToTextRecognitionLocale;
+  late Map<String, String> _speechToTextRecognitionLocales;
   late String _selectedSttsRecognitionLocale;
   late Map<String, String> _sttsRecognitionLocales;
   late String? _selectedListeningDeviceId;
@@ -220,6 +231,11 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
     _selectedDeepgramRecognitionModel = widget.initialDeepgramRecognitionModel;
     _selectedDeepgramRecognitionLanguage =
         widget.initialDeepgramRecognitionLanguage;
+    _selectedSpeechToTextRecognitionLocale =
+        widget.initialSpeechToTextRecognitionLocale;
+    _speechToTextRecognitionLocales = Map<String, String>.from(
+      widget.initialSpeechToTextRecognitionLocales,
+    );
     _selectedSttsRecognitionLocale = widget.initialSttsRecognitionLocale;
     _sttsRecognitionLocales = Map<String, String>.from(
       widget.initialSttsRecognitionLocales,
@@ -352,6 +368,32 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 });
                               },
                               items: deepgramLanguages.entries
+                                  .map(
+                                    (entry) => DropdownMenuItem<String>(
+                                      value: entry.value,
+                                      child: Text(entry.key),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ],
+                          if (_selectedSttProvider ==
+                              SpeechSttProvider.google) ...[
+                            const SizedBox(height: 16),
+                            const Text('Google Locale'),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              initialValue:
+                                  _selectedSpeechToTextRecognitionLocale,
+                              isExpanded: true,
+                              onChanged: (value) {
+                                if (value == null) return;
+                                setState(() {
+                                  _selectedSpeechToTextRecognitionLocale =
+                                      value;
+                                });
+                              },
+                              items: _speechToTextRecognitionLocales.entries
                                   .map(
                                     (entry) => DropdownMenuItem<String>(
                                       value: entry.value,
@@ -619,6 +661,10 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                   deepgramRecognitionModel: _selectedDeepgramRecognitionModel,
                   deepgramRecognitionLanguage:
                       _selectedDeepgramRecognitionLanguage,
+                  speechToTextRecognitionLocale:
+                      _selectedSpeechToTextRecognitionLocale,
+                  speechToTextRecognitionLocales:
+                      _speechToTextRecognitionLocales,
                   sttsRecognitionLocale: _selectedSttsRecognitionLocale,
                   sttsRecognitionLocales: _sttsRecognitionLocales,
                   listeningDeviceId: _selectedListeningDeviceId,
@@ -652,6 +698,11 @@ class _MyHomePageState extends State<MyHomePage> {
   String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
   String _deepgramRecognitionLanguage =
       DeepgramService.defaultRecognitionLanguage;
+  String _speechToTextRecognitionLocale =
+      SpeechToTextService.defaultRecognitionLanguage;
+  Map<String, String> _speechToTextRecognitionLocales = const {
+    'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
+  };
   String _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage;
   Map<String, String> _sttsRecognitionLocales = const {
     'Multi (Auto)': SttsService.defaultRecognitionLanguage,
@@ -662,6 +713,144 @@ class _MyHomePageState extends State<MyHomePage> {
   String? _playbackDeviceId;
 
   bool get _isGroupSection => _selectedSection == 0;
+
+  SpeechSttProvider? get _activeSessionSttProvider => _isGroupSection
+      ? _controller.activeSessionSttProvider
+      : _twoWayController.activeSessionSttProvider;
+
+  String? get _activeSessionSourceLanguage => _isGroupSection
+      ? _controller.activeSessionSourceLanguage
+      : _twoWayController.activeSessionSourceLanguage;
+
+  String? get _activeSessionResolvedLanguageCode => _isGroupSection
+      ? _controller.activeSessionResolvedLanguageCode
+      : _twoWayController.activeSessionResolvedLanguageCode;
+
+  int? get _activeSessionSampleRate => _isGroupSection
+      ? _controller.activeSessionSampleRate
+      : _twoWayController.activeSessionSampleRate;
+
+  String? get _activeSessionListeningDeviceId => _isGroupSection
+      ? _controller.activeSessionListeningDeviceId
+      : _twoWayController.activeSessionListeningDeviceId;
+
+  DateTime? get _activeSessionStartedAt => _isGroupSection
+      ? _controller.activeSessionStartedAt
+      : _twoWayController.activeSessionStartedAt;
+
+  bool get _isActiveListening =>
+      _isGroupSection ? _controller.isListening : _twoWayController.isListening;
+
+  double get _activeAmplitude =>
+      _isGroupSection ? _controller.amplitude : _twoWayController.amplitude;
+
+  void _showDebugAudioDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Debug Audio Stream'),
+          content: StreamBuilder<int>(
+            stream: Stream<int>.periodic(
+              const Duration(milliseconds: 250),
+              (count) => count,
+            ),
+            initialData: 0,
+            builder: (context, _) {
+              final startedAt = _activeSessionStartedAt;
+              final elapsed = startedAt == null
+                  ? null
+                  : DateTime.now().difference(startedAt);
+              final elapsedLabel = elapsed == null
+                  ? 'n/a'
+                  : '${elapsed.inMinutes.toString().padLeft(2, '0')}:${(elapsed.inSeconds % 60).toString().padLeft(2, '0')}';
+
+              final rows = <MapEntry<String, String>>[
+                MapEntry('Section', _isGroupSection ? 'Group' : '2-way'),
+                MapEntry('Listening Active', _isActiveListening ? 'yes' : 'no'),
+                MapEntry(
+                  'STT Provider',
+                  _activeSessionSttProvider?.name ?? 'n/a',
+                ),
+                MapEntry(
+                  'Source Language',
+                  _activeSessionSourceLanguage ?? 'n/a',
+                ),
+                MapEntry(
+                  'Resolved Language Code',
+                  _activeSessionResolvedLanguageCode ?? 'n/a',
+                ),
+                MapEntry(
+                  'Active Sample Rate',
+                  _activeSessionSampleRate == null
+                      ? 'n/a'
+                      : '${_activeSessionSampleRate!} Hz',
+                ),
+                MapEntry(
+                  'Listening Device Id',
+                  _activeSessionListeningDeviceId ?? 'auto/default',
+                ),
+                MapEntry(
+                  'Amplitude (0-1)',
+                  _activeAmplitude.toStringAsFixed(3),
+                ),
+                MapEntry('Session Elapsed', elapsedLabel),
+                MapEntry(
+                  'Session Started At',
+                  startedAt?.toIso8601String() ?? 'n/a',
+                ),
+                MapEntry(
+                  'Configured STT Provider',
+                  _isGroupSection
+                      ? _controller.sttProvider.name
+                      : _twoWayController.sttProvider.name,
+                ),
+                MapEntry(
+                  'Configured Deepgram Language',
+                  _isGroupSection
+                      ? _controller.deepgramRecognitionLanguage
+                      : _twoWayController.deepgramRecognitionLanguage,
+                ),
+                MapEntry(
+                  'Configured Google Locale',
+                  _isGroupSection
+                      ? _controller.speechToTextRecognitionLocale
+                      : _twoWayController.speechToTextRecognitionLocale,
+                ),
+                MapEntry(
+                  'Configured STTS Locale',
+                  _isGroupSection
+                      ? _controller.sttsRecognitionLocale
+                      : _twoWayController.sttsRecognitionLocale,
+                ),
+              ];
+
+              return SizedBox(
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final row in rows) ...[
+                        Text('${row.key}: ${row.value}'),
+                        const SizedBox(height: 8),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   void _showDebouncedListeningDeviceSnackBar(String message) {
     _listeningDeviceSnackBarDebouncer.schedule(message);
@@ -731,6 +920,15 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _setSpeechToTextRecognitionLocale(String locale) {
+    if (_speechToTextRecognitionLocale == locale || _initializing) return;
+    setState(() {
+      _speechToTextRecognitionLocale = locale;
+      _controller.setSpeechToTextRecognitionLocale(locale);
+      _twoWayController.setSpeechToTextRecognitionLocale(locale);
+    });
+  }
+
   void _setSttsRecognitionLocale(String locale) {
     if (_sttsRecognitionLocale == locale || _initializing) return;
     setState(() {
@@ -778,6 +976,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     await _controller.refreshListeningDevices();
     await _controller.refreshPlaybackDevices();
+    await _controller.refreshSpeechToTextRecognitionLocales();
     await _controller.refreshSttsRecognitionLocales();
     if (!mounted) return;
     setState(() {
@@ -785,6 +984,10 @@ class _MyHomePageState extends State<MyHomePage> {
       _listeningDeviceId = _controller.listeningDeviceId;
       _playbackDevices = _controller.playbackDevices;
       _playbackDeviceId = _controller.playbackDeviceId;
+      _speechToTextRecognitionLocales =
+          _controller.speechToTextRecognitionLocales;
+      _speechToTextRecognitionLocale =
+          _controller.speechToTextRecognitionLocale;
       _sttsRecognitionLocales = _controller.sttsRecognitionLocales;
       _sttsRecognitionLocale = _controller.sttsRecognitionLocale;
     });
@@ -798,6 +1001,9 @@ class _MyHomePageState extends State<MyHomePage> {
           initialOutputProvider: _outputProvider,
           initialDeepgramRecognitionModel: _deepgramRecognitionModel,
           initialDeepgramRecognitionLanguage: _deepgramRecognitionLanguage,
+          initialSpeechToTextRecognitionLocale: _speechToTextRecognitionLocale,
+          initialSpeechToTextRecognitionLocales:
+              _speechToTextRecognitionLocales,
           initialSttsRecognitionLocale: _sttsRecognitionLocale,
           initialSttsRecognitionLocales: _sttsRecognitionLocales,
           initialListeningDevices: _listeningDevices,
@@ -828,6 +1034,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     if (selection.deepgramRecognitionLanguage != _deepgramRecognitionLanguage) {
       _setDeepgramRecognitionLanguage(selection.deepgramRecognitionLanguage);
+    }
+    if (selection.speechToTextRecognitionLocale !=
+        _speechToTextRecognitionLocale) {
+      _setSpeechToTextRecognitionLocale(
+        selection.speechToTextRecognitionLocale,
+      );
     }
     if (selection.sttsRecognitionLocale != _sttsRecognitionLocale) {
       _setSttsRecognitionLocale(selection.sttsRecognitionLocale);
@@ -1069,6 +1281,9 @@ class _MyHomePageState extends State<MyHomePage> {
       _controller.setTranslationProvider(_translationProvider);
       _controller.setDeepgramRecognitionModel(_deepgramRecognitionModel);
       _controller.setDeepgramRecognitionLanguage(_deepgramRecognitionLanguage);
+      _controller.setSpeechToTextRecognitionLocale(
+        _speechToTextRecognitionLocale,
+      );
       _controller.setSttsRecognitionLocale(_sttsRecognitionLocale);
       _twoWayController = TwoWayChatController(
         googleApiKey: _googleApiKey,
@@ -1080,6 +1295,9 @@ class _MyHomePageState extends State<MyHomePage> {
       _twoWayController.setDeepgramRecognitionLanguage(
         _deepgramRecognitionLanguage,
       );
+      _twoWayController.setSpeechToTextRecognitionLocale(
+        _speechToTextRecognitionLocale,
+      );
       _twoWayController.setSttsRecognitionLocale(_sttsRecognitionLocale);
       Future.wait([_controller.init(), _twoWayController.init()]).then((_) {
         if (!mounted) return;
@@ -1088,6 +1306,10 @@ class _MyHomePageState extends State<MyHomePage> {
           _listeningDeviceId = _controller.listeningDeviceId;
           _playbackDevices = _controller.playbackDevices;
           _playbackDeviceId = _controller.playbackDeviceId;
+          _speechToTextRecognitionLocales =
+              _controller.speechToTextRecognitionLocales;
+          _speechToTextRecognitionLocale =
+              _controller.speechToTextRecognitionLocale;
           _sttsRecognitionLocales = _controller.sttsRecognitionLocales;
           _sttsRecognitionLocale = _controller.sttsRecognitionLocale;
           _initializing = false;
@@ -1208,6 +1430,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           actions: [
+            if (kDebugMode)
+              IconButton(
+                icon: const Icon(Icons.bug_report_outlined),
+                tooltip: 'Debug Audio Stream',
+                onPressed: _showDebugAudioDialog,
+              ),
             if (!_initializing)
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
