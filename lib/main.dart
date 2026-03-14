@@ -10,6 +10,7 @@ import 'package:record/record.dart';
 
 import 'controllers/speech_controller.dart';
 import 'controllers/two_way_chat_controller.dart';
+import 'models/provider_settings_selection.dart';
 import 'models/playback_device.dart';
 import 'services/deepgram_service.dart';
 import 'services/speech_to_text_service.dart';
@@ -136,36 +137,6 @@ class DebouncedMessageDispatcher {
   void dispose() {
     _timer?.cancel();
   }
-}
-
-class ProviderSettingsSelection {
-  final SpeechSttProvider sttProvider;
-  final SpeechTranslationProvider translationProvider;
-  final SpeechOutputProvider outputProvider;
-  final String deepgramRecognitionModel;
-  final String deepgramRecognitionLanguage;
-  final String speechToTextRecognitionLocale;
-  final Map<String, String> speechToTextRecognitionLocales;
-  final String sttsRecognitionLocale;
-  final Map<String, String> sttsRecognitionLocales;
-  final String? listeningDeviceId;
-  final String? playbackDeviceId;
-  final ThemeMode themeMode;
-
-  const ProviderSettingsSelection({
-    required this.sttProvider,
-    required this.translationProvider,
-    required this.outputProvider,
-    required this.deepgramRecognitionModel,
-    required this.deepgramRecognitionLanguage,
-    required this.speechToTextRecognitionLocale,
-    required this.speechToTextRecognitionLocales,
-    required this.sttsRecognitionLocale,
-    required this.sttsRecognitionLocales,
-    required this.listeningDeviceId,
-    required this.playbackDeviceId,
-    required this.themeMode,
-  });
 }
 
 class ProviderSettingsDialog extends StatefulWidget {

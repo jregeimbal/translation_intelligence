@@ -1,4 +1,4 @@
-import '../widgets/chat_message.dart';
+import 'chat_message.dart';
 
 class QueuedChatMessage {
   QueuedChatMessage({

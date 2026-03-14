@@ -5,25 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../models/two_way_message.dart';
 import '../services/speech_pipeline.dart';
 import '../services/speech_output_provider.dart';
 import '../services/speech_stt_provider.dart';
 import '../services/speech_translation_provider.dart';
-
-enum TwoWaySpeaker { primary, guest }
-
-class TwoWayMessage {
-  final TwoWaySpeaker speaker;
-  final String primaryText;
-  final String guestText;
-  final DateTime timestamp;
-
-  TwoWayMessage({
-    required this.speaker,
-    required this.primaryText,
-    required this.guestText,
-  }) : timestamp = DateTime.now();
-}
 
 class TwoWayChatController extends ChangeNotifier {
   final SpeechPipeline _speechPipeline;

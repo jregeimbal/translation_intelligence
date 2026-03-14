@@ -7,6 +7,7 @@ import 'package:logging/logging.dart';
 import 'package:record/record.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../models/chat_message.dart';
 import '../models/playback_device.dart';
 import '../models/queued_chat_message.dart';
 import '../services/audio_playback_queue.dart';
@@ -14,7 +15,6 @@ import '../services/speech_pipeline.dart';
 import '../services/speech_output_provider.dart';
 import '../services/speech_stt_provider.dart';
 import '../services/speech_translation_provider.dart';
-import '../widgets/chat_message.dart';
 
 final logger = Logger('SpeechController'); // Create a logger with a name
 

@@ -5,13 +5,14 @@ import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:http/http.dart' as http;
 import 'package:translation_intelligence/controllers/speech_controller.dart';
 
-import 'speech_recognition_models.dart';
+import '../models/speech_recognition_models.dart';
 
 typedef DeepgramApiKeyValidator = Future<bool> Function();
-typedef DeepgramLiveRecognizer = Stream<dynamic> Function(
-  Stream<Uint8List> audioStream,
-  Map<String, dynamic> queryParams,
-);
+typedef DeepgramLiveRecognizer =
+    Stream<dynamic> Function(
+      Stream<Uint8List> audioStream,
+      Map<String, dynamic> queryParams,
+    );
 
 class DeepgramService {
   static const String defaultRecognitionModel = 'nova-3';
@@ -22,7 +23,8 @@ class DeepgramService {
     'nova-3-medical',
   ];
 
-  static const Map<String, Map<String, String>> supportedRecognitionLanguagesByModel = {
+  static const Map<String, Map<String, String>>
+  supportedRecognitionLanguagesByModel = {
     'nova-3': {
       'Multi': 'multi',
       'Arabic': 'ar',
@@ -130,14 +132,13 @@ class DeepgramService {
     DeepgramLiveRecognizer? liveRecognizer,
     String initialRecognitionModel = defaultRecognitionModel,
     String initialRecognitionLanguage = defaultRecognitionLanguage,
-  })
-      : _apiKey = apiKey,
-        _deepgram = Deepgram(apiKey),
-        _httpClient = httpClient ?? http.Client(),
-        _apiKeyValidator = apiKeyValidator,
-        _liveRecognizer = liveRecognizer,
-        _recognitionModel = initialRecognitionModel,
-        _recognitionLanguage = initialRecognitionLanguage;
+  }) : _apiKey = apiKey,
+       _deepgram = Deepgram(apiKey),
+       _httpClient = httpClient ?? http.Client(),
+       _apiKeyValidator = apiKeyValidator,
+       _liveRecognizer = liveRecognizer,
+       _recognitionModel = initialRecognitionModel,
+       _recognitionLanguage = initialRecognitionLanguage;
 
   String get recognitionModel => _recognitionModel;
   String get recognitionLanguage => _recognitionLanguage;
@@ -147,10 +148,7 @@ class DeepgramService {
         supportedRecognitionLanguagesByModel[defaultRecognitionModel]!;
   }
 
-  bool isRecognitionLanguageSupportedForModel(
-    String model,
-    String language,
-  ) {
+  bool isRecognitionLanguageSupportedForModel(String model, String language) {
     return supportedRecognitionLanguagesForModel(model).containsValue(language);
   }
 
@@ -199,8 +197,9 @@ class DeepgramService {
     bool detectLanguage = false,
   }) {
     final selectedModel = model ?? _recognitionModel;
-    final selectedLanguage =
-        sourceLanguage == 'multi' ? (language ?? _recognitionLanguage) : sourceLanguage;
+    final selectedLanguage = sourceLanguage == 'multi'
+        ? (language ?? _recognitionLanguage)
+        : sourceLanguage;
 
     final params = <String, dynamic>{
       'detect_language': detectLanguage,
@@ -232,10 +231,8 @@ class DeepgramService {
     return liveStream.map((result) {
       final mappedWords = (result.words as Iterable)
           .map<SpeechRecognitionWord>(
-            (word) => SpeechRecognitionWord(
-              word: word.word,
-              speaker: word.speaker,
-            ),
+            (word) =>
+                SpeechRecognitionWord(word: word.word, speaker: word.speaker),
           )
           .toList(growable: false);
 
@@ -295,7 +292,9 @@ class DeepgramService {
     );
 
     if (resp.statusCode != 200) {
-      throw Exception('Deepgram TTS API returned ${resp.statusCode}: ${resp.body}');
+      throw Exception(
+        'Deepgram TTS API returned ${resp.statusCode}: ${resp.body}',
+      );
     }
 
     return resp.bodyBytes;
