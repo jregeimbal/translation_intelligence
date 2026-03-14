@@ -6,6 +6,9 @@ import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/theme/app_theme_resolver.dart';
 
 class ChatMessage {
+  static int _nextMessageId = 0;
+
+  final String id;
   String original;
   bool isFinal;
   String? translation;
@@ -14,7 +17,14 @@ class ChatMessage {
   /// Optional speaker ID assigned by Deepgram.  `null` indicates unknown.
   final int? speaker;
 
-  ChatMessage(this.original, {this.speaker, this.isFinal = false}) : timestamp = DateTime.now();
+  ChatMessage(
+    this.original, {
+    this.speaker,
+    this.isFinal = false,
+    String? id,
+    DateTime? timestamp,
+  }) : id = id ?? 'msg_${_nextMessageId++}',
+       timestamp = timestamp ?? DateTime.now();
 
   @override
   String toString() {
@@ -29,6 +39,10 @@ class ChatMessage {
       json['original'] as String,
       speaker: json['speaker'] as int?,
       isFinal: json['isFinal'] as bool? ?? false,
+      id: json['id'] as String?,
+      timestamp: json['timestamp'] is String
+          ? DateTime.tryParse(json['timestamp'] as String)
+          : null,
     )..translation = json['translation'] as String?;
   }
 
@@ -38,6 +52,8 @@ class ChatMessage {
       'speaker': speaker,
       'isFinal': isFinal,
       'translation': translation,
+      'id': id,
+      'timestamp': timestamp.toIso8601String(),
     };
   }
 }
@@ -281,24 +297,18 @@ class _ChatMessageListState extends State<ChatMessageList> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    if (msg.isFinal)
-                      Text(
-                        msg.original,
-                        style: textRoles.bubbleBody.copyWith(
-                          color: textColor,
-                        ),
-                      )
-                    else
-                      _AnimatedPartialMessageText(
-                        text: msg.original,
-                        style: textRoles.bubbleBody.copyWith(
-                          color: textColor,
-                        ),
-                      ),
+                    _AnimatedRecognitionMessageText(
+                      key: ValueKey<String>(msg.id),
+                      text: msg.original,
+                      isFinal: msg.isFinal,
+                      style: textRoles.bubbleBody.copyWith(color: textColor),
+                    ),
                     if (msg.translation != null) ...[
                       const SizedBox(height: 10),
-                      Text(
-                        msg.translation!,
+                      _AnimatedRecognitionMessageText(
+                        key: ValueKey<String>('${msg.id}_translation'),
+                        text: msg.translation!,
+                        isFinal: msg.isFinal,
                         style: textRoles.bubbleTranslation.copyWith(
                           color: textColor.withValues(alpha: 0.9),
                         ),
@@ -340,21 +350,83 @@ class _ChatMessageListState extends State<ChatMessageList> {
   }
 }
 
+class _AnimatedRecognitionMessageText extends StatefulWidget {
+  final String text;
+  final bool isFinal;
+  final TextStyle? style;
+
+  const _AnimatedRecognitionMessageText({
+    super.key,
+    required this.text,
+    required this.isFinal,
+    required this.style,
+  });
+
+  @override
+  State<_AnimatedRecognitionMessageText> createState() =>
+      _AnimatedRecognitionMessageTextState();
+}
+
 class _AnimatedPartialMessageText extends StatefulWidget {
   final String text;
   final TextStyle? style;
 
-  const _AnimatedPartialMessageText({
-    required this.text,
-    required this.style,
-  });
+  const _AnimatedPartialMessageText({required this.text, required this.style});
 
   @override
   State<_AnimatedPartialMessageText> createState() =>
       _AnimatedPartialMessageTextState();
 }
 
-class _AnimatedPartialMessageTextState extends State<_AnimatedPartialMessageText> {
+class _AnimatedRecognitionMessageTextState
+    extends State<_AnimatedRecognitionMessageText> {
+  static const Duration _fadeDuration = Duration(seconds: 1);
+  static const double _partialOpacity = 0.6;
+  static const double _startingOpacity = 0.2;
+  double _currentOpacity = _startingOpacity;
+  double _targetOpacity = _startingOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _targetOpacity = widget.isFinal ? 1.0 : _partialOpacity;
+      });
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedRecognitionMessageText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextOpacity = widget.isFinal ? 1.0 : _partialOpacity;
+    if (_targetOpacity == nextOpacity) return;
+    setState(() {
+      _currentOpacity = _targetOpacity;
+      _targetOpacity = nextOpacity;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final child = widget.isFinal
+        ? Text(widget.text, style: widget.style)
+        : _AnimatedPartialMessageText(text: widget.text, style: widget.style);
+
+    return TweenAnimationBuilder<double>(
+      duration: _fadeDuration,
+      curve: Curves.easeOut,
+      tween: Tween<double>(begin: _currentOpacity, end: _targetOpacity),
+      builder: (context, animatedOpacity, _) {
+        return Opacity(opacity: animatedOpacity, child: child);
+      },
+    );
+  }
+}
+
+class _AnimatedPartialMessageTextState
+    extends State<_AnimatedPartialMessageText> {
   static const Duration _tick = Duration(milliseconds: 320);
   late final Timer _timer;
   int _activeDotIndex = 0;

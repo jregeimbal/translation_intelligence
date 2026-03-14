@@ -3,23 +3,29 @@ import 'package:translation_intelligence/models/queued_chat_message.dart';
 
 void main() {
   group('QueuedChatMessage', () {
-    test('toChatMessage carries original speaker final and translation values', () {
-      final queued = QueuedChatMessage(
-        original: 'hola',
-        speaker: 2,
-        translation: 'hello',
-      );
+    test(
+      'toChatMessage carries original speaker final and translation values',
+      () {
+        final queued = QueuedChatMessage(
+          id: 'q1',
+          original: 'hola',
+          speaker: 2,
+          translation: 'hello',
+        );
 
-      final chat = queued.toChatMessage(isFinal: true);
+        final chat = queued.toChatMessage(isFinal: true);
 
-      expect(chat.original, equals('hola'));
-      expect(chat.speaker, equals(2));
-      expect(chat.isFinal, isTrue);
-      expect(chat.translation, equals('hello'));
-    });
+        expect(chat.original, equals('hola'));
+        expect(chat.speaker, equals(2));
+        expect(chat.id, equals('q1'));
+        expect(chat.isFinal, isTrue);
+        expect(chat.translation, equals('hello'));
+      },
+    );
 
     test('processingStarted defaults to false', () {
       final queued = QueuedChatMessage(
+        id: 'q2',
         original: 'test',
         speaker: null,
       );

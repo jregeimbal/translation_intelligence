@@ -9,7 +9,10 @@ import 'speech_controller_stub.dart';
 void main() {
   group('ChatMessageList', () {
     testWidgets('shows listening placeholder when empty', (tester) async {
-      final controller = TestSpeechController(isListening: true, speechEnabled: true);
+      final controller = TestSpeechController(
+        isListening: true,
+        speechEnabled: true,
+      );
 
       await tester.pumpWidget(
         MaterialApp(
@@ -25,8 +28,13 @@ void main() {
       expect(find.textContaining('Listening'), findsOneWidget);
     });
 
-    testWidgets('optimistically renders buffered text before first commit', (tester) async {
-      final controller = TestSpeechController(isListening: true, speechEnabled: true);
+    testWidgets('optimistically renders buffered text before first commit', (
+      tester,
+    ) async {
+      final controller = TestSpeechController(
+        isListening: true,
+        speechEnabled: true,
+      );
       controller.setListeningState(
         isListening: true,
         lastWords: 'buffered preview text',
@@ -48,7 +56,10 @@ void main() {
     });
 
     testWidgets('shows idle prompt when empty and idle', (tester) async {
-      final controller = TestSpeechController(isListening: false, speechEnabled: true);
+      final controller = TestSpeechController(
+        isListening: false,
+        speechEnabled: true,
+      );
 
       await tester.pumpWidget(
         MaterialApp(
@@ -71,7 +82,8 @@ void main() {
 
     testWidgets('renders speaker bubble with translation', (tester) async {
       final controller = TestSpeechController();
-      final message = ChatMessage('Hola', speaker: 0, isFinal: true)..translation = 'Hello';
+      final message = ChatMessage('Hola', speaker: 0, isFinal: true)
+        ..translation = 'Hello';
       controller.preferredSpeaker = 0;
       controller.addMessage(message);
 
@@ -152,7 +164,7 @@ void main() {
       final controller = TestSpeechController();
       final messages = List.generate(
         24,
-        (index) => ChatMessage('Message $index'),
+        (index) => ChatMessage('Message $index', isFinal: true),
       );
       for (final message in messages) {
         controller.addMessage(message);
@@ -177,26 +189,21 @@ void main() {
       final scrollable = tester.state<ScrollableState>(find.byType(Scrollable));
       final initialBottomGap =
           scrollable.position.maxScrollExtent - scrollable.position.pixels;
-      expect(
-        initialBottomGap,
-        lessThan(25.0),
-      );
+      expect(initialBottomGap, lessThan(25.0));
 
       lastMessage.translation =
           'Translated message text that increases row height significantly.';
       controller.notifyListeners();
       await tester.pumpAndSettle();
 
-      final updatedScrollable =
-          tester.state<ScrollableState>(find.byType(Scrollable));
+      final updatedScrollable = tester.state<ScrollableState>(
+        find.byType(Scrollable),
+      );
       final updatedBottomGap =
           updatedScrollable.position.maxScrollExtent -
           updatedScrollable.position.pixels;
       expect(find.text(lastMessage.translation!), findsOneWidget);
-      expect(
-        updatedBottomGap,
-        lessThanOrEqualTo(initialBottomGap + 1.0),
-      );
+      expect(updatedBottomGap, lessThanOrEqualTo(initialBottomGap + 1.0));
     });
   });
 }

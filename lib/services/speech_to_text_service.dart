@@ -6,6 +6,8 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'speech_recognition_models.dart';
 
 class SpeechToTextService {
+  static const String defaultRecognitionLanguage = 'multi';
+
   final SpeechToText _speechToText;
   final Duration _inactivityFinalizeDelay;
   bool _initialized = false;
@@ -16,8 +18,8 @@ class SpeechToTextService {
   SpeechToTextService({
     SpeechToText? speechToText,
     Duration inactivityFinalizeDelay = const Duration(seconds: 1),
-  })  : _speechToText = speechToText ?? SpeechToText(),
-        _inactivityFinalizeDelay = inactivityFinalizeDelay;
+  }) : _speechToText = speechToText ?? SpeechToText(),
+       _inactivityFinalizeDelay = inactivityFinalizeDelay;
 
   Future<bool> initialize({String languageCode = 'en-US'}) async {
     if (_initialized) return true;
@@ -48,7 +50,9 @@ class SpeechToTextService {
         }
         onResult(
           SpeechRecognitionResult.fromTranscript(
-            transcript: _lastTranscript.substring(min(_lastTranscript.length, _lastFinalizedTranscript.length)),
+            transcript: _lastTranscript.substring(
+              min(_lastTranscript.length, _lastFinalizedTranscript.length),
+            ),
             isFinal: true,
           ),
         );
@@ -60,9 +64,10 @@ class SpeechToTextService {
     await _speechToText.listen(
       localeId: languageCode,
       listenOptions: SpeechListenOptions(
-          partialResults: true,
-          cancelOnError: true,
-          listenMode: ListenMode.dictation),
+        partialResults: true,
+        cancelOnError: true,
+        listenMode: ListenMode.dictation,
+      ),
       onResult: (result) {
         final transcript = result.recognizedWords.trim();
         final hasNewWords =
@@ -71,7 +76,9 @@ class SpeechToTextService {
 
         onResult(
           SpeechRecognitionResult.fromTranscript(
-            transcript: _lastTranscript.substring(min(_lastTranscript.length, _lastFinalizedTranscript.length)),
+            transcript: _lastTranscript.substring(
+              min(_lastTranscript.length, _lastFinalizedTranscript.length),
+            ),
             isFinal: result.finalResult,
           ),
         );
@@ -102,6 +109,27 @@ class SpeechToTextService {
     _lastTranscript = '';
     _lastFinalizedTranscript = '';
     await _speechToText.stop();
+  }
+
+  Future<Map<String, String>> supportedRecognitionLocales() async {
+    final locales = <String>{};
+
+    try {
+      final results = await _speechToText.locales();
+      for (final locale in results) {
+        final dynamic item = locale;
+        final localeId = item.localeId?.toString();
+        if (localeId != null && localeId.isNotEmpty) {
+          locales.add(localeId);
+        }
+      }
+    } catch (_) {}
+
+    final sorted = locales.toList()..sort();
+    return <String, String>{
+      'Multi (Auto)': defaultRecognitionLanguage,
+      for (final locale in sorted) locale: locale,
+    };
   }
 
   String? languageCodeForAppLanguage(String appLang) {
