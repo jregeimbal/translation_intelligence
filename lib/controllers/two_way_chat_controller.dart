@@ -33,6 +33,12 @@ class TwoWayChatController extends ChangeNotifier {
   StreamSubscription<SpeechRecognitionResult>? _listenSub;
   StreamSubscription<double>? _ampSub;
   SpeechRecognitionSession? _recognitionSession;
+  int? _activeSessionSampleRate;
+  SpeechSttProvider? _activeSessionSttProvider;
+  String? _activeSessionSourceLanguage;
+  String? _activeSessionResolvedLanguageCode;
+  String? _activeSessionListeningDeviceId;
+  DateTime? _activeSessionStartedAt;
   int _listenSessionId = 0;
 
   bool _speechEnabled = false;
@@ -71,13 +77,24 @@ class TwoWayChatController extends ChangeNotifier {
       _speechPipeline.deepgramRecognitionModel;
   String get deepgramRecognitionLanguage =>
       _speechPipeline.deepgramRecognitionLanguage;
+  String get speechToTextRecognitionLocale =>
+      _speechPipeline.speechToTextRecognitionLocale;
   String get sttsRecognitionLocale => _speechPipeline.sttsRecognitionLocale;
   List<String> get deepgramRecognitionModels =>
       _speechPipeline.deepgramRecognitionModels;
   Map<String, String> get deepgramRecognitionLanguages =>
       _speechPipeline.deepgramRecognitionLanguages;
+  Map<String, String> get speechToTextRecognitionLocales =>
+      _speechPipeline.speechToTextRecognitionLocales;
   Map<String, String> get sttsRecognitionLocales =>
       _speechPipeline.sttsRecognitionLocales;
+  int? get activeSessionSampleRate => _activeSessionSampleRate;
+  SpeechSttProvider? get activeSessionSttProvider => _activeSessionSttProvider;
+  String? get activeSessionSourceLanguage => _activeSessionSourceLanguage;
+  String? get activeSessionResolvedLanguageCode =>
+      _activeSessionResolvedLanguageCode;
+  String? get activeSessionListeningDeviceId => _activeSessionListeningDeviceId;
+  DateTime? get activeSessionStartedAt => _activeSessionStartedAt;
 
   String get primaryLanguage => _primaryLanguage;
   String get guestLanguage => _guestLanguage;
@@ -116,6 +133,12 @@ class TwoWayChatController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSpeechToTextRecognitionLocale(String locale) {
+    if (_speechPipeline.speechToTextRecognitionLocale == locale) return;
+    _speechPipeline.setSpeechToTextRecognitionLocale(locale);
+    notifyListeners();
+  }
+
   void setSttsRecognitionLocale(String locale) {
     if (_speechPipeline.sttsRecognitionLocale == locale) return;
     _speechPipeline.setSttsRecognitionLocale(locale);
@@ -124,6 +147,11 @@ class TwoWayChatController extends ChangeNotifier {
 
   Future<void> refreshSttsRecognitionLocales() async {
     await _speechPipeline.refreshSttsRecognitionLocales();
+    notifyListeners();
+  }
+
+  Future<void> refreshSpeechToTextRecognitionLocales() async {
+    await _speechPipeline.refreshSpeechToTextRecognitionLocales();
     notifyListeners();
   }
 
@@ -225,6 +253,12 @@ class TwoWayChatController extends ChangeNotifier {
       sourceLanguage: sourceLang,
     );
     _recognitionSession = session;
+    _activeSessionSampleRate = session.sampleRate;
+    _activeSessionSttProvider = session.sttProvider;
+    _activeSessionSourceLanguage = session.sourceLanguage;
+    _activeSessionResolvedLanguageCode = session.resolvedLanguageCode;
+    _activeSessionListeningDeviceId = session.listeningDeviceId;
+    _activeSessionStartedAt = session.startedAt;
     _ampSub?.cancel();
     _ampSub = session.amplitudeStream.listen((value) {
       _amplitude = value;
@@ -330,6 +364,12 @@ class TwoWayChatController extends ChangeNotifier {
 
     await _recognitionSession?.stop();
     _recognitionSession = null;
+    _activeSessionSampleRate = null;
+    _activeSessionSttProvider = null;
+    _activeSessionSourceLanguage = null;
+    _activeSessionResolvedLanguageCode = null;
+    _activeSessionListeningDeviceId = null;
+    _activeSessionStartedAt = null;
     await _ampSub?.cancel();
     _ampSub = null;
 

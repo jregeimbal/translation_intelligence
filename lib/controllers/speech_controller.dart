@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
@@ -45,6 +44,12 @@ class SpeechController extends ChangeNotifier {
   StreamSubscription<double>? _ampSub;
   StreamSubscription<dynamic>? _listeningDeviceChangeSub;
   SpeechRecognitionSession? _recognitionSession;
+  int? _activeSessionSampleRate;
+  SpeechSttProvider? _activeSessionSttProvider;
+  String? _activeSessionSourceLanguage;
+  String? _activeSessionResolvedLanguageCode;
+  String? _activeSessionListeningDeviceId;
+  DateTime? _activeSessionStartedAt;
   final Map<int, Timer> _finalResultTimersBySpeaker = <int, Timer>{};
   // final List<SpeechRecognitionWord> _pendingFinalWords = [];
   List<QueuedChatMessage> _queuedMessages = [];
@@ -94,11 +99,15 @@ class SpeechController extends ChangeNotifier {
       _speechPipeline.deepgramRecognitionModel;
   String get deepgramRecognitionLanguage =>
       _speechPipeline.deepgramRecognitionLanguage;
+  String get speechToTextRecognitionLocale =>
+      _speechPipeline.speechToTextRecognitionLocale;
   String get sttsRecognitionLocale => _speechPipeline.sttsRecognitionLocale;
   List<String> get deepgramRecognitionModels =>
       _speechPipeline.deepgramRecognitionModels;
   Map<String, String> get deepgramRecognitionLanguages =>
       _speechPipeline.deepgramRecognitionLanguages;
+  Map<String, String> get speechToTextRecognitionLocales =>
+      _speechPipeline.speechToTextRecognitionLocales;
   Map<String, String> get sttsRecognitionLocales =>
       _speechPipeline.sttsRecognitionLocales;
   List<InputDevice> get listeningDevices =>
@@ -109,14 +118,29 @@ class SpeechController extends ChangeNotifier {
   String? get playbackDeviceId => _speechPipeline.playbackDeviceId;
   Stream<String> get listeningDeviceUpdates =>
       _listeningDeviceUpdateController.stream;
+  int? get activeSessionSampleRate => _activeSessionSampleRate;
+  SpeechSttProvider? get activeSessionSttProvider => _activeSessionSttProvider;
+  String? get activeSessionSourceLanguage => _activeSessionSourceLanguage;
+  String? get activeSessionResolvedLanguageCode =>
+      _activeSessionResolvedLanguageCode;
+  String? get activeSessionListeningDeviceId => _activeSessionListeningDeviceId;
+  DateTime? get activeSessionStartedAt => _activeSessionStartedAt;
 
   List<ChatMessage> wordsToMessages(
     List<ChatMessage> oldMessages,
     Iterable<SpeechRecognitionWord> words, {
     bool isFinal = false,
   }) {
-    final newMessages = (json.decode(json.encode(oldMessages)) as List)
-        .map((e) => ChatMessage.fromJson(e))
+    final newMessages = oldMessages
+        .map(
+          (msg) => ChatMessage(
+            msg.original,
+            speaker: msg.speaker,
+            isFinal: msg.isFinal,
+            id: msg.id,
+            timestamp: msg.timestamp,
+          )..translation = msg.translation,
+        )
         .toList();
 
     Map<int, List<SpeechRecognitionWord>> mergedBySpeaker = {};
@@ -225,6 +249,12 @@ class SpeechController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSpeechToTextRecognitionLocale(String locale) {
+    if (_speechPipeline.speechToTextRecognitionLocale == locale) return;
+    _speechPipeline.setSpeechToTextRecognitionLocale(locale);
+    notifyListeners();
+  }
+
   void setSttsRecognitionLocale(String locale) {
     if (_speechPipeline.sttsRecognitionLocale == locale) return;
     _speechPipeline.setSttsRecognitionLocale(locale);
@@ -233,6 +263,11 @@ class SpeechController extends ChangeNotifier {
 
   Future<void> refreshSttsRecognitionLocales() async {
     await _speechPipeline.refreshSttsRecognitionLocales();
+    notifyListeners();
+  }
+
+  Future<void> refreshSpeechToTextRecognitionLocales() async {
+    await _speechPipeline.refreshSpeechToTextRecognitionLocales();
     notifyListeners();
   }
 
@@ -545,6 +580,12 @@ class SpeechController extends ChangeNotifier {
       utterances: true,
     );
     _recognitionSession = session;
+    _activeSessionSampleRate = session.sampleRate;
+    _activeSessionSttProvider = session.sttProvider;
+    _activeSessionSourceLanguage = session.sourceLanguage;
+    _activeSessionResolvedLanguageCode = session.resolvedLanguageCode;
+    _activeSessionListeningDeviceId = session.listeningDeviceId;
+    _activeSessionStartedAt = session.startedAt;
     _recognitionSub?.cancel();
     _recognitionSub = session.resultStream.listen(_onRecognitionResult);
     _ampSub?.cancel();
@@ -563,6 +604,12 @@ class SpeechController extends ChangeNotifier {
 
     await _recognitionSession?.stop();
     _recognitionSession = null;
+    _activeSessionSampleRate = null;
+    _activeSessionSttProvider = null;
+    _activeSessionSourceLanguage = null;
+    _activeSessionResolvedLanguageCode = null;
+    _activeSessionListeningDeviceId = null;
+    _activeSessionStartedAt = null;
     await _recognitionSub?.cancel();
     _recognitionSub = null;
     await _ampSub?.cancel();
@@ -650,16 +697,14 @@ class SpeechController extends ChangeNotifier {
 
       _queuedMessages = queuedAsMessages.map((queuedMsg) {
         final previous = previousBySpeaker[queuedMsg.speaker];
-        final previousTranslation =
-            previous != null && previous.original == queuedMsg.original
-            ? previous.translation
-            : null;
+        final previousTranslation = previous?.translation;
         final processingStarted =
             previous != null && previous.original == queuedMsg.original
             ? previous.processingStarted
             : false;
 
         return QueuedChatMessage(
+          id: previous?.id ?? queuedMsg.id,
           original: queuedMsg.original,
           speaker: queuedMsg.speaker,
           translation: previousTranslation,

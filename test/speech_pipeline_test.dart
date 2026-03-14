@@ -17,7 +17,7 @@ class _FakeSpeechPipeline extends SpeechPipeline {
   bool apiKeyValid = true;
   int startRecognitionCalls = 0;
   String? lastSourceLanguage;
-  SpeechRecognitionSession session = const SpeechRecognitionSession(
+  SpeechRecognitionSession session = SpeechRecognitionSession(
     resultStream: Stream<SpeechRecognitionResult>.empty(),
     amplitudeStream: Stream<double>.empty(),
     stop: _noopStop,

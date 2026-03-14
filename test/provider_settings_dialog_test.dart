@@ -5,6 +5,7 @@ import 'package:translation_intelligence/main.dart';
 import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
+import 'package:translation_intelligence/services/speech_to_text_service.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
 import 'package:translation_intelligence/services/stts_service.dart';
 
@@ -23,6 +24,12 @@ void main() {
               initialOutputProvider: SpeechOutputProvider.google,
               initialDeepgramRecognitionModel: 'nova-3',
               initialDeepgramRecognitionLanguage: 'multi',
+              initialSpeechToTextRecognitionLocale:
+                  SpeechToTextService.defaultRecognitionLanguage,
+              initialSpeechToTextRecognitionLocales: {
+                'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
+                'English (US)': 'en-US',
+              },
               initialSttsRecognitionLocale:
                   SttsService.defaultRecognitionLanguage,
               initialSttsRecognitionLocales: {
@@ -85,6 +92,12 @@ void main() {
             initialOutputProvider: SpeechOutputProvider.google,
             initialDeepgramRecognitionModel: 'nova-3',
             initialDeepgramRecognitionLanguage: 'multi',
+            initialSpeechToTextRecognitionLocale:
+                SpeechToTextService.defaultRecognitionLanguage,
+            initialSpeechToTextRecognitionLocales: {
+              'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
+              'English (US)': 'en-US',
+            },
             initialSttsRecognitionLocale:
                 SttsService.defaultRecognitionLanguage,
             initialSttsRecognitionLocales: {
@@ -130,6 +143,12 @@ void main() {
               initialOutputProvider: SpeechOutputProvider.google,
               initialDeepgramRecognitionModel: 'nova-3',
               initialDeepgramRecognitionLanguage: 'multi',
+              initialSpeechToTextRecognitionLocale:
+                  SpeechToTextService.defaultRecognitionLanguage,
+              initialSpeechToTextRecognitionLocales: {
+                'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
+                'English (US)': 'en-US',
+              },
               initialSttsRecognitionLocale:
                   SttsService.defaultRecognitionLanguage,
               initialSttsRecognitionLocales: {
