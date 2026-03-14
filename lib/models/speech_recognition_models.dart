@@ -38,12 +38,7 @@ class SpeechRecognitionResult {
     final words = normalizedTranscript
         .split(RegExp(r'\s+'))
         .where((token) => token.isNotEmpty)
-        .map(
-          (token) => SpeechRecognitionWord(
-            word: token,
-            speaker: speaker,
-          ),
-        )
+        .map((token) => SpeechRecognitionWord(word: token, speaker: speaker))
         .toList(growable: false);
 
     return SpeechRecognitionResult(

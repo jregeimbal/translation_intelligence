@@ -9,8 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/widgets/chat_control_bar.dart';
-import 'package:translation_intelligence/widgets/chat_message.dart';
 
 import 'speech_controller_stub.dart';
 

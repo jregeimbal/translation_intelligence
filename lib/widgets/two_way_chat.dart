@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/two_way_chat_controller.dart';
+import '../models/two_way_message.dart';
 import '../theme/app_theme_resolver.dart';
 
 class TwoWayChatView extends StatefulWidget {
@@ -27,10 +28,7 @@ class _TwoWayChatViewState extends State<TwoWayChatView> {
             Expanded(
               child: Transform.rotate(
                 angle: math.pi,
-                child: _SpeakerPanel(
-                  title: 'Guest',
-                  role: TwoWaySpeaker.guest,
-                ),
+                child: _SpeakerPanel(title: 'Guest', role: TwoWaySpeaker.guest),
               ),
             ),
             const SizedBox(height: 10),
@@ -65,10 +63,7 @@ class _SpeakerPanel extends StatefulWidget {
   final String title;
   final TwoWaySpeaker role;
 
-  const _SpeakerPanel({
-    required this.title,
-    required this.role,
-  });
+  const _SpeakerPanel({required this.title, required this.role});
 
   @override
   State<_SpeakerPanel> createState() => _SpeakerPanelState();
@@ -208,13 +203,10 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
                 style: theme.textTheme.titleMedium,
               ),
               const Spacer(),
-              Text(
-                languageLabel,
-                style: textRoles.timestamp,
-              ),
+              Text(languageLabel, style: textRoles.timestamp),
             ],
           ),
-            if (controller.canChangeLanguages) ...[
+          if (controller.canChangeLanguages) ...[
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               initialValue: activeLanguage,
@@ -253,7 +245,9 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
               onChanged: (value) {
                 if (value == null) return;
                 if (_isPrimary) {
-                  context.read<TwoWayChatController>().setPrimaryLanguage(value);
+                  context.read<TwoWayChatController>().setPrimaryLanguage(
+                    value,
+                  );
                 } else {
                   context.read<TwoWayChatController>().setGuestLanguage(value);
                 }
@@ -273,10 +267,10 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
                   ),
                   child: lines.isEmpty
                       ? Text(
-                        controller.isListening && isListeningThisPanel
-                          ? (controller.lastWords.isEmpty
+                          controller.isListening && isListeningThisPanel
+                              ? (controller.lastWords.isEmpty
                                     ? 'Listening...'
-                            : controller.lastWords)
+                                    : controller.lastWords)
                               : 'No messages yet',
                           style: textRoles.helperText,
                         )
@@ -327,7 +321,9 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
                     child: IgnorePointer(
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surface.withValues(alpha: 0.72),
+                          color: theme.colorScheme.surface.withValues(
+                            alpha: 0.72,
+                          ),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Padding(
@@ -354,26 +350,20 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed:
-                  (!controller.speechEnabled || isListeningOtherPanel)
+              onPressed: (!controller.speechEnabled || isListeningOtherPanel)
                   ? null
-                  : () => context
-                      .read<TwoWayChatController>()
-                      .toggleListening(widget.role),
+                  : () => context.read<TwoWayChatController>().toggleListening(
+                      widget.role,
+                    ),
               icon: Icon(
                 isListeningThisPanel ? Icons.stop_rounded : Icons.mic_rounded,
               ),
-              label: Text(
-                isListeningThisPanel ? 'Stop listening' : 'Listen',
-              ),
+              label: Text(isListeningThisPanel ? 'Stop listening' : 'Listen'),
             ),
           ),
           if (controller.speechError.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(
-              controller.speechError,
-              style: textRoles.errorText,
-            ),
+            Text(controller.speechError, style: textRoles.errorText),
           ],
         ],
       ),

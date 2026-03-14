@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:speech_to_text/speech_to_text.dart';
 
-import 'speech_recognition_models.dart';
+import '../models/speech_recognition_models.dart';
 
 class SpeechToTextService {
   static const String defaultRecognitionLanguage = 'multi';
