@@ -104,6 +104,110 @@ void main() {
       expect(find.text('Speaker 1'), findsOneWidget);
     });
 
+    testWidgets('right-aligns primary speaker header and body text', (
+      tester,
+    ) async {
+      final controller = TestSpeechController();
+      controller.preferredSpeaker = 0;
+      controller.addMessage(
+        ChatMessage('Primary line', speaker: 0, isFinal: true),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChangeNotifierProvider<SpeechController>.value(
+              value: controller,
+              child: const ChatMessageList(),
+            ),
+          ),
+        ),
+      );
+
+      final headerAlign = tester.widgetList<Align>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Align &&
+              widget.child is Row &&
+              widget.alignment == Alignment.centerRight,
+        ),
+      );
+      expect(headerAlign, isNotEmpty);
+
+      final bodyText = tester.widget<Text>(find.text('Primary line'));
+      expect(bodyText.textAlign, TextAlign.right);
+    });
+
+    testWidgets('left-aligns non-primary speaker header and body text', (
+      tester,
+    ) async {
+      final controller = TestSpeechController();
+      controller.preferredSpeaker = 1;
+      controller.addMessage(
+        ChatMessage('Guest line', speaker: 0, isFinal: true),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChangeNotifierProvider<SpeechController>.value(
+              value: controller,
+              child: const ChatMessageList(),
+            ),
+          ),
+        ),
+      );
+
+      final headerAlign = tester.widgetList<Align>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Align &&
+              widget.child is Row &&
+              widget.alignment == Alignment.centerLeft,
+        ),
+      );
+      expect(headerAlign, isNotEmpty);
+
+      final bodyText = tester.widget<Text>(find.text('Guest line'));
+      expect(bodyText.textAlign, TextAlign.left);
+    });
+
+    testWidgets(
+      'renders grouped segments inline with punctuation-aware separators',
+      (tester) async {
+        final controller = TestSpeechController();
+        controller.addMessage(
+          ChatMessage(
+            'Hello. General there',
+            speaker: 0,
+            isFinal: true,
+            groups: const [
+              ChatMessageGroup(id: 'g1', original: 'Hello.'),
+              ChatMessageGroup(id: 'g2', original: 'General'),
+              ChatMessageGroup(id: 'g3', original: 'there'),
+            ],
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<SpeechController>.value(
+                value: controller,
+                child: const ChatMessageList(),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Hello.'), findsOneWidget);
+        expect(find.text('General'), findsOneWidget);
+        expect(find.text('there'), findsOneWidget);
+        expect(find.text(', '), findsOneWidget);
+        expect(find.text(' '), findsOneWidget);
+      },
+    );
+
     testWidgets('animates ellipsis for partial messages', (tester) async {
       final controller = TestSpeechController();
       controller.addMessage(ChatMessage('Streaming update', isFinal: false));

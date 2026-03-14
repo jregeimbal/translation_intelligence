@@ -192,6 +192,8 @@ class _ChatMessageListState extends State<ChatMessageList> {
             final isPreferred =
                 msg.speaker != null &&
                 msg.speaker == controller.preferredSpeaker;
+            final isPrimaryStyled =
+                controller.preferredSpeaker != null && isPreferred;
             final textColor = theme.colorScheme.onSurface;
             final speakerChipColor = _speakerChipBackground(
               msg.speaker,
@@ -201,68 +203,121 @@ class _ChatMessageListState extends State<ChatMessageList> {
             );
 
             return Align(
+              key: ValueKey<String>('chat_row_${msg.id}'),
               alignment: isPreferred
                   ? Alignment.centerRight
                   : Alignment.centerLeft,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.88,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: isPreferred ? 56 : 12,
+                  right: isPreferred ? 12 : 56,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (msg.speaker != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: speakerChipColor,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'Speaker ${msg.speaker! + 1}',
-                              style: textRoles.speakerChip.copyWith(
-                                color: _speakerChipTextColor(
-                                  speakerChipColor,
-                                  theme,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.88,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: isPrimaryStyled
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Align(
+                        alignment:
+                            controller.preferredSpeaker != null && isPreferred
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (msg.speaker != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: speakerChipColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'Speaker ${msg.speaker! + 1}',
+                                  style: textRoles.speakerChip.copyWith(
+                                    color: _speakerChipTextColor(
+                                      speakerChipColor,
+                                      theme,
+                                    ),
+                                  ),
                                 ),
                               ),
+                            if (msg.speaker != null) const SizedBox(width: 8),
+                            Text(
+                              _formatTime(context, msg.timestamp),
+                              style: textRoles.timestamp.copyWith(
+                                color: textColor.withValues(alpha: 0.8),
+                              ),
                             ),
-                          ),
-                        if (msg.speaker != null) const SizedBox(width: 8),
-                        Text(
-                          _formatTime(context, msg.timestamp),
-                          style: textRoles.timestamp.copyWith(
-                            color: textColor.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    _AnimatedRecognitionMessageText(
-                      key: ValueKey<String>(msg.id),
-                      text: msg.original,
-                      isFinal: msg.isFinal,
-                      style: textRoles.bubbleBody.copyWith(color: textColor),
-                    ),
-                    if (msg.translation != null) ...[
-                      const SizedBox(height: 10),
-                      _AnimatedRecognitionMessageText(
-                        key: ValueKey<String>('${msg.id}_translation'),
-                        text: msg.translation!,
-                        isFinal: msg.isFinal,
-                        style: textRoles.bubbleTranslation.copyWith(
-                          color: textColor.withValues(alpha: 0.9),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      if (msg.groups.isEmpty) ...[
+                        _AnimatedRecognitionMessageText(
+                          key: ValueKey<String>(msg.id),
+                          text: msg.original,
+                          isFinal: msg.isFinal,
+                          textAlign: isPrimaryStyled
+                              ? TextAlign.right
+                              : TextAlign.left,
+                          style: textRoles.bubbleBody.copyWith(
+                            color: textColor,
+                          ),
+                        ),
+                        if (msg.translation != null) ...[
+                          const SizedBox(height: 10),
+                          _AnimatedRecognitionMessageText(
+                            key: ValueKey<String>('${msg.id}_translation'),
+                            text: msg.translation!,
+                            isFinal: msg.isFinal,
+                            textAlign: isPrimaryStyled
+                                ? TextAlign.right
+                                : TextAlign.left,
+                            style: textRoles.bubbleTranslation.copyWith(
+                              color: textColor.withValues(alpha: 0.9),
+                            ),
+                          ),
+                        ],
+                      ] else ...[
+                        _InlineGroupedRecognitionText(
+                          messageId: msg.id,
+                          groups: msg.groups,
+                          isFinal: msg.isFinal,
+                          textForGroup: (group) => group.original,
+                          keySuffix: 'orig',
+                          alignRight: isPrimaryStyled,
+                          style: textRoles.bubbleBody.copyWith(
+                            color: textColor,
+                          ),
+                        ),
+                        if (msg.groups.any(
+                          (group) => group.translation != null,
+                        )) ...[
+                          const SizedBox(height: 10),
+                          _InlineGroupedRecognitionText(
+                            messageId: msg.id,
+                            groups: msg.groups,
+                            isFinal: msg.isFinal,
+                            textForGroup: (group) => group.translation,
+                            keySuffix: 'translation',
+                            alignRight: isPrimaryStyled,
+                            style: textRoles.bubbleTranslation.copyWith(
+                              color: textColor.withValues(alpha: 0.9),
+                            ),
+                          ),
+                        ],
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             );
@@ -302,12 +357,14 @@ class _AnimatedRecognitionMessageText extends StatefulWidget {
   final String text;
   final bool isFinal;
   final TextStyle? style;
+  final TextAlign? textAlign;
 
   const _AnimatedRecognitionMessageText({
     super.key,
     required this.text,
     required this.isFinal,
     required this.style,
+    this.textAlign,
   });
 
   @override
@@ -318,8 +375,13 @@ class _AnimatedRecognitionMessageText extends StatefulWidget {
 class _AnimatedPartialMessageText extends StatefulWidget {
   final String text;
   final TextStyle? style;
+  final TextAlign? textAlign;
 
-  const _AnimatedPartialMessageText({required this.text, required this.style});
+  const _AnimatedPartialMessageText({
+    required this.text,
+    required this.style,
+    this.textAlign,
+  });
 
   @override
   State<_AnimatedPartialMessageText> createState() =>
@@ -359,8 +421,12 @@ class _AnimatedRecognitionMessageTextState
   @override
   Widget build(BuildContext context) {
     final child = widget.isFinal
-        ? Text(widget.text, style: widget.style)
-        : _AnimatedPartialMessageText(text: widget.text, style: widget.style);
+        ? Text(widget.text, style: widget.style, textAlign: widget.textAlign)
+        : _AnimatedPartialMessageText(
+            text: widget.text,
+            style: widget.style,
+            textAlign: widget.textAlign,
+          );
 
     return TweenAnimationBuilder<double>(
       duration: _fadeDuration,
@@ -418,6 +484,102 @@ class _AnimatedPartialMessageTextState
         ],
       ),
       style: resolvedStyle,
+      textAlign: widget.textAlign,
+    );
+  }
+}
+
+class _InlineGroupedRecognitionText extends StatelessWidget {
+  final String messageId;
+  final List<ChatMessageGroup> groups;
+  final bool isFinal;
+  final String? Function(ChatMessageGroup group) textForGroup;
+  final String keySuffix;
+  final bool alignRight;
+  final TextStyle? style;
+
+  const _InlineGroupedRecognitionText({
+    required this.messageId,
+    required this.groups,
+    required this.isFinal,
+    required this.textForGroup,
+    required this.keySuffix,
+    required this.alignRight,
+    required this.style,
+  });
+
+  bool _hasTerminalPunctuation(String text) {
+    return RegExp(r'[.!?]$').hasMatch(text.trimRight());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = <({ChatMessageGroup group, String text, int index})>[];
+    for (var i = 0; i < groups.length; i++) {
+      final text = textForGroup(groups[i]);
+      if (text == null) continue;
+      final trimmed = text.trim();
+      if (trimmed.isEmpty) continue;
+      entries.add((group: groups[i], text: trimmed, index: i));
+    }
+
+    if (entries.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final latestIndex = entries.last.index;
+    final children = <Widget>[];
+    for (var i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      final segmentIsFinal = isFinal || entry.index < latestIndex;
+      final words = entry.text
+          .split(RegExp(r'\s+'))
+          .where((word) => word.isNotEmpty)
+          .toList(growable: false);
+      for (var wordIndex = 0; wordIndex < words.length; wordIndex++) {
+        children.add(
+          _AnimatedRecognitionMessageText(
+            key: ValueKey<String>(
+              '${messageId}_group_${entry.group.id}_${keySuffix}_w$wordIndex',
+            ),
+            text: words[wordIndex],
+            isFinal: true,
+            textAlign: alignRight ? TextAlign.right : TextAlign.left,
+            style: style,
+          ),
+        );
+        if (wordIndex < words.length - 1) {
+          children.add(Text(' ', style: style));
+        }
+      }
+
+      if (!segmentIsFinal) {
+        if (words.isNotEmpty) {
+          children.add(Text(' ', style: style));
+        }
+        children.add(
+          _AnimatedRecognitionMessageText(
+            key: ValueKey<String>(
+              '${messageId}_group_${entry.group.id}_${keySuffix}_ellipsis',
+            ),
+            text: '',
+            isFinal: false,
+            textAlign: alignRight ? TextAlign.right : TextAlign.left,
+            style: style,
+          ),
+        );
+      }
+
+      if (i < entries.length - 1) {
+        final separator = _hasTerminalPunctuation(entry.text) ? ' ' : ', ';
+        children.add(Text(separator, style: style));
+      }
+    }
+
+    return Wrap(
+      alignment: alignRight ? WrapAlignment.end : WrapAlignment.start,
+      crossAxisAlignment: WrapCrossAlignment.end,
+      children: children,
     );
   }
 }
