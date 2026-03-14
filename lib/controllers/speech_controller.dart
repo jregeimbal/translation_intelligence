@@ -139,6 +139,7 @@ class SpeechController extends ChangeNotifier {
             isFinal: msg.isFinal,
             id: msg.id,
             timestamp: msg.timestamp,
+            groups: msg.groups,
           )..translation = msg.translation,
         )
         .toList();
@@ -463,15 +464,46 @@ class SpeechController extends ChangeNotifier {
     QueuedChatMessage queued,
     String translation,
   ) {
+    if (queued.groups.isNotEmpty) {
+      final lastIndex = queued.groups.length - 1;
+      final currentGroup = queued.groups[lastIndex];
+      queued.groups[lastIndex] = ChatMessageGroup(
+        id: currentGroup.id,
+        original: currentGroup.original,
+        translation: translation,
+      );
+    }
+
     for (var i = _chatMessages.length - 1; i >= 0; i--) {
       final committed = _chatMessages[i];
       if (committed.speaker != queued.speaker) {
         continue;
       }
 
-      if (committed.original == queued.original ||
-          committed.original == '${queued.original}.') {
-        committed.translation = translation;
+      if (committed.id == queued.id) {
+        final committedGroups = List<ChatMessageGroup>.from(committed.groups);
+        if (committedGroups.isNotEmpty) {
+          final committedLastIndex = committedGroups.length - 1;
+          final committedGroup = committedGroups[committedLastIndex];
+          committedGroups[committedLastIndex] = ChatMessageGroup(
+            id: committedGroup.id,
+            original: committedGroup.original,
+            translation: translation,
+          );
+          final translationText = committedGroups
+              .map((group) => group.translation)
+              .whereType<String>()
+              .join(' ')
+              .trim();
+          _chatMessages[i] = ChatMessage(
+            committed.original,
+            speaker: committed.speaker,
+            isFinal: committed.isFinal,
+            id: committed.id,
+            timestamp: committed.timestamp,
+            groups: committedGroups,
+          )..translation = translationText.isEmpty ? null : translationText;
+        }
         break;
       }
     }
@@ -643,6 +675,21 @@ class SpeechController extends ChangeNotifier {
     return _queuedMessages.map((msg) => msg.original).join(' ').trim();
   }
 
+  String _extractQueuedGroupText(
+    String? previousOriginal,
+    String nextOriginal,
+  ) {
+    final prev = (previousOriginal ?? '').trim();
+    final next = nextOriginal.trim();
+    if (prev.isEmpty || next.isEmpty || !next.startsWith(prev)) {
+      return next;
+    }
+    final suffix = next
+        .substring(prev.length)
+        .replaceFirst(RegExp(r'^[,\s]+'), '');
+    return suffix.isEmpty ? next : suffix;
+  }
+
   void _onRecognitionResult(SpeechRecognitionResult result) {
     final shouldAdvanceToQueue = result.isFinal || result.speechFinal;
 
@@ -698,10 +745,28 @@ class SpeechController extends ChangeNotifier {
       _queuedMessages = queuedAsMessages.map((queuedMsg) {
         final previous = previousBySpeaker[queuedMsg.speaker];
         final previousTranslation = previous?.translation;
+        final previousOriginal = previous?.original;
         final processingStarted =
             previous != null && previous.original == queuedMsg.original
             ? previous.processingStarted
             : false;
+
+        final previousGroups = previous == null
+            ? const <ChatMessageGroup>[]
+            : List<ChatMessageGroup>.from(previous.groups);
+        final nextGroupIndex = previousGroups.length;
+        final nextGroups = <ChatMessageGroup>[
+          ...previousGroups,
+          if (previousOriginal != queuedMsg.original)
+            ChatMessageGroup(
+              id: '${queuedMsg.id}_g$nextGroupIndex',
+              original: _extractQueuedGroupText(
+                previousOriginal,
+                queuedMsg.original,
+              ),
+              translation: null,
+            ),
+        ];
 
         return QueuedChatMessage(
           id: previous?.id ?? queuedMsg.id,
@@ -709,6 +774,7 @@ class SpeechController extends ChangeNotifier {
           speaker: queuedMsg.speaker,
           translation: previousTranslation,
           processingStarted: processingStarted,
+          groups: nextGroups,
         );
       }).toList();
 
@@ -773,16 +839,41 @@ class SpeechController extends ChangeNotifier {
     final nonWordOrSpace = RegExp(r'[\w]$', unicode: true);
 
     for (final queued in queuedBySpeaker) {
-      final message = queued.toChatMessage(isFinal: true);
-      if (nonWordOrSpace.hasMatch(message.original)) {
-        message.original = '${message.original}.';
+      var finalOriginal = queued.original;
+      if (nonWordOrSpace.hasMatch(finalOriginal)) {
+        finalOriginal = '$finalOriginal.';
       }
 
-      _chatMessages.add(message);
-      _maybeDefaultPreferred(message.speaker);
+      final groups = List<ChatMessageGroup>.from(queued.groups);
+      if (groups.isNotEmpty) {
+        final last = groups.last;
+        final finalizedLastOriginal = nonWordOrSpace.hasMatch(last.original)
+            ? '${last.original}.'
+            : last.original;
+        groups[groups.length - 1] = ChatMessageGroup(
+          id: last.id,
+          original: finalizedLastOriginal,
+          translation: last.translation,
+        );
+      }
+      final finalTranslation = groups
+          .map((group) => group.translation)
+          .whereType<String>()
+          .join(' ')
+          .trim();
+      final finalizedMessage = ChatMessage(
+        finalOriginal,
+        speaker: queued.speaker,
+        isFinal: true,
+        id: queued.id,
+        groups: groups,
+      )..translation = finalTranslation.isEmpty ? null : finalTranslation;
 
-      if (message.translation == null && !queued.processingStarted) {
-        unawaited(_translateAndSpeak(message));
+      _chatMessages.add(finalizedMessage);
+      _maybeDefaultPreferred(finalizedMessage.speaker);
+
+      if (finalizedMessage.translation == null && !queued.processingStarted) {
+        unawaited(_translateAndSpeak(finalizedMessage));
       }
     }
   }

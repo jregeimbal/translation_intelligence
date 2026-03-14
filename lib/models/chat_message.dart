@@ -1,3 +1,27 @@
+class ChatMessageGroup {
+  final String id;
+  final String original;
+  final String? translation;
+
+  const ChatMessageGroup({
+    required this.id,
+    required this.original,
+    this.translation,
+  });
+
+  factory ChatMessageGroup.fromJson(Map<String, dynamic> json) {
+    return ChatMessageGroup(
+      id: json['id'] as String,
+      original: json['original'] as String,
+      translation: json['translation'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'original': original, 'translation': translation};
+  }
+}
+
 class ChatMessage {
   static int _nextMessageId = 0;
 
@@ -6,6 +30,7 @@ class ChatMessage {
   bool isFinal;
   String? translation;
   final DateTime timestamp;
+  final List<ChatMessageGroup> groups;
 
   final int? speaker;
 
@@ -15,8 +40,10 @@ class ChatMessage {
     this.isFinal = false,
     String? id,
     DateTime? timestamp,
+    List<ChatMessageGroup>? groups,
   }) : id = id ?? 'msg_${_nextMessageId++}',
-       timestamp = timestamp ?? DateTime.now();
+       timestamp = timestamp ?? DateTime.now(),
+       groups = List<ChatMessageGroup>.unmodifiable(groups ?? const []);
 
   @override
   String toString() {
@@ -35,6 +62,10 @@ class ChatMessage {
       timestamp: json['timestamp'] is String
           ? DateTime.tryParse(json['timestamp'] as String)
           : null,
+      groups: ((json['groups'] as List?) ?? const <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(ChatMessageGroup.fromJson)
+          .toList(growable: false),
     )..translation = json['translation'] as String?;
   }
 
@@ -46,6 +77,7 @@ class ChatMessage {
       'translation': translation,
       'id': id,
       'timestamp': timestamp.toIso8601String(),
+      'groups': groups.map((group) => group.toJson()).toList(growable: false),
     };
   }
 }
