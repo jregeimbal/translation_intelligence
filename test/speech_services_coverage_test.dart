@@ -10,7 +10,6 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text_platform_interface/speech_to_text_platform_interface.dart';
-import 'package:stts_platform_interface/stts_platform_interface.dart';
 import 'package:translation_intelligence/services/deepgram_service.dart';
 import 'package:translation_intelligence/services/google_speech_service.dart';
 import 'package:translation_intelligence/services/mlkit_translation_service.dart';
@@ -19,7 +18,6 @@ import 'package:translation_intelligence/services/speech_pipeline.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_to_text_service.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
-import 'package:translation_intelligence/services/stts_service.dart';
 
 String _resultText(SpeechRecognitionResult result) {
   return result.words.map((word) => word.word).join(' ').trim();
@@ -90,147 +88,6 @@ class _FakeSpeechToTextPlatform extends SpeechToTextPlatform
   void emitListeningStatus() {
     onStatus?.call('listening');
   }
-}
-
-class _FakeSttPlatform extends SttPlatformInterface {
-  bool supported = true;
-  bool permission = true;
-  bool setLanguageThrows = false;
-  bool startCalled = false;
-  bool stopCalled = false;
-  String currentLanguage = 'en-US';
-
-  final StreamController<SttState> _stateController =
-      StreamController<SttState>.broadcast();
-  final StreamController<SttRecognition> _resultController =
-      StreamController<SttRecognition>.broadcast();
-
-  @override
-  Future<bool> isSupported() async => supported;
-
-  @override
-  Future<bool> hasPermission() async => permission;
-
-  @override
-  Future<String> getLanguage() async => currentLanguage;
-
-  @override
-  Future<void> setLanguage(String language) async {
-    if (setLanguageThrows) {
-      throw Exception('setLanguage failed');
-    }
-    currentLanguage = language;
-  }
-
-  @override
-  Future<List<String>> getLanguages() async => const ['en-US', 'es-ES'];
-
-  @override
-  Future<void> start([SttRecognitionOptions? options]) async {
-    startCalled = true;
-  }
-
-  @override
-  Future<void> stop() async {
-    stopCalled = true;
-  }
-
-  @override
-  Future<void> dispose() async {
-    await _stateController.close();
-    await _resultController.close();
-  }
-
-  @override
-  Stream<SttState> get onStateChanged => _stateController.stream;
-
-  @override
-  Stream<SttRecognition> get onResultChanged => _resultController.stream;
-
-  @override
-  SttAndroid? get android => null;
-
-  @override
-  SttIos? get ios => null;
-
-  @override
-  SttWindows? get windows => null;
-
-  void emitResult(SttRecognition value) {
-    _resultController.add(value);
-  }
-}
-
-class _FakeTtsPlatform implements TtsPlatformInterface {
-  bool supported = true;
-  bool setLanguageThrows = false;
-  bool startCalled = false;
-  String? lastLanguage;
-  String? lastText;
-
-  final StreamController<TtsState> _stateController =
-      StreamController<TtsState>.broadcast();
-
-  @override
-  Future<bool> isSupported() async => supported;
-
-  @override
-  Future<void> start(
-    String text, {
-    TtsOptions options = const TtsOptions(),
-  }) async {
-    startCalled = true;
-    lastText = text;
-  }
-
-  @override
-  Future<void> stop() async {}
-
-  @override
-  Future<void> pause() async {}
-
-  @override
-  Future<void> resume() async {}
-
-  @override
-  Future<void> setLanguage(String language) async {
-    if (setLanguageThrows) {
-      throw Exception('setLanguage failed');
-    }
-    lastLanguage = language;
-  }
-
-  @override
-  Future<String> getLanguage() async => lastLanguage ?? 'en-US';
-
-  @override
-  Future<List<String>> getLanguages() async => const ['en-US'];
-
-  @override
-  Future<void> setVoice(String voiceId) async {}
-
-  @override
-  Future<List<TtsVoice>> getVoices() async => const [];
-
-  @override
-  Future<List<TtsVoice>> getVoicesByLanguage(String language) async => const [];
-
-  @override
-  Future<void> setPitch(double pitch) async {}
-
-  @override
-  Future<void> setRate(double rate) async {}
-
-  @override
-  Future<void> setVolume(double volume) async {}
-
-  @override
-  Future<void> dispose() async {
-    await _stateController.close();
-  }
-
-  @override
-  Stream<TtsState> get onStateChanged => _stateController.stream;
 }
 
 class _FakeDeepgramService extends DeepgramService {
@@ -334,56 +191,6 @@ class _FakeMlKitTranslationService extends MlKitTranslationService {
     lastTargetLanguage = targetLanguage;
     lastSourceLanguage = sourceLanguage;
     return 'mlkit-$text-$targetLanguage';
-  }
-}
-
-class _FakeSttsService extends SttsService {
-  bool initResult = true;
-  bool startCalled = false;
-  bool stopCalled = false;
-  String? lastLanguageCode;
-  void Function(SpeechRecognitionResult result)? _onResult;
-  void Function(double value)? _onAmplitude;
-
-  @override
-  Future<bool> initialize({String? languageCode}) async => initResult;
-
-  @override
-  Future<void> startListening({
-    required String? languageCode,
-    required void Function(SpeechRecognitionResult result) onResult,
-    required void Function(double value) onAmplitude,
-  }) async {
-    startCalled = true;
-    lastLanguageCode = languageCode;
-    _onResult = onResult;
-    _onAmplitude = onAmplitude;
-  }
-
-  @override
-  Future<void> stopListening() async {
-    stopCalled = true;
-  }
-
-  @override
-  Future<Uint8List> synthesizeSpeech({
-    required String text,
-    String languageCode = 'en-US',
-  }) async {
-    return Uint8List.fromList(const [5, 5, 5]);
-  }
-
-  @override
-  String? languageCodeForAppLanguage(String appLang) => 'stts-$appLang';
-
-  void emitSample() {
-    _onAmplitude?.call(0.24);
-    _onResult?.call(
-      SpeechRecognitionResult.fromTranscript(
-        transcript: 'from-stts',
-        isFinal: true,
-      ),
-    );
   }
 }
 
@@ -519,13 +326,11 @@ void main() {
     test('SpeechOutputProvider labels are correct', () {
       expect(SpeechOutputProvider.google.label, equals('Google'));
       expect(SpeechOutputProvider.deepgram.label, equals('Deepgram'));
-      expect(SpeechOutputProvider.stts.label, equals('STTS'));
     });
 
     test('SpeechSttProvider labels are correct', () {
       expect(SpeechSttProvider.deepgram.label, equals('Deepgram'));
       expect(SpeechSttProvider.google.label, equals('Speech to Text'));
-      expect(SpeechSttProvider.stts.label, equals('STTS'));
     });
   });
 
@@ -1045,138 +850,6 @@ void main() {
     });
   });
 
-  group('SttsService non-plugin behavior', () {
-    late SttsService service;
-
-    setUp(() {
-      service = SttsService();
-    });
-
-    test('synthesizeSpeech returns empty bytes for empty text', () async {
-      final bytes = await service.synthesizeSpeech(text: '   ');
-      expect(bytes, isEmpty);
-    });
-
-    test('languageCodeForAppLanguage maps known values', () {
-      expect(service.languageCodeForAppLanguage('multi'), isNull);
-      expect(service.languageCodeForAppLanguage('ko'), equals('ko-KR'));
-      expect(service.languageCodeForAppLanguage('zh-CN'), equals('zh-CN'));
-    });
-
-    test('languageCodeForAppLanguage falls back to app language', () {
-      expect(service.languageCodeForAppLanguage('en-GB'), equals('en-GB'));
-    });
-  });
-
-  group('SttsService platform behavior', () {
-    late SttPlatformInterface originalSttPlatform;
-    late TtsPlatformInterface originalTtsPlatform;
-    late _FakeSttPlatform fakeStt;
-    late _FakeTtsPlatform fakeTts;
-    late SttsService service;
-
-    setUp(() {
-      originalSttPlatform = SttPlatformInterface.instance;
-      originalTtsPlatform = TtsPlatformInterface.instance;
-      fakeStt = _FakeSttPlatform();
-      fakeTts = _FakeTtsPlatform();
-      SttPlatformInterface.instance = fakeStt;
-      TtsPlatformInterface.instance = fakeTts;
-      service = SttsService();
-    });
-
-    tearDown(() {
-      SttPlatformInterface.instance = originalSttPlatform;
-      TtsPlatformInterface.instance = originalTtsPlatform;
-    });
-
-    test('initialize returns false when unsupported', () async {
-      fakeStt.supported = false;
-      final ready = await service.initialize();
-      expect(ready, isFalse);
-    });
-
-    test('initialize returns false when permission is denied', () async {
-      fakeStt.permission = false;
-      final ready = await service.initialize();
-      expect(ready, isFalse);
-    });
-
-    test('initialize tolerates setLanguage failures', () async {
-      fakeStt.setLanguageThrows = true;
-      final ready = await service.initialize(languageCode: 'fr-FR');
-      expect(ready, isTrue);
-    });
-
-    test('startListening throws when service is unavailable', () async {
-      fakeStt.supported = false;
-      expect(
-        () => service.startListening(
-          languageCode: 'en-US',
-          onResult: (_) {},
-          onAmplitude: (_) {},
-        ),
-        throwsException,
-      );
-    });
-
-    test('startListening forwards interim and final results', () async {
-      final results = <SpeechRecognitionResult>[];
-      final amplitudes = <double>[];
-
-      await service.startListening(
-        languageCode: 'en-US',
-        onResult: results.add,
-        onAmplitude: amplitudes.add,
-      );
-
-      fakeStt.emitResult(const SttRecognition('hello', false));
-      fakeStt.emitResult(const SttRecognition('hello there', true));
-      await Future<void>.delayed(Duration.zero);
-
-      expect(fakeStt.startCalled, isTrue);
-      expect(results.length, equals(2));
-      expect(_resultText(results.first), equals('hello'));
-      expect(results.first.isFinal, isFalse);
-      expect(_resultText(results.last), equals('hello there'));
-      expect(results.last.isFinal, isTrue);
-      expect(amplitudes.first, equals(0.5));
-      expect(amplitudes.last, equals(0.0));
-    });
-
-    test('stopListening cancels stream and calls platform stop', () async {
-      await service.startListening(
-        languageCode: 'en-US',
-        onResult: (_) {},
-        onAmplitude: (_) {},
-      );
-
-      await service.stopListening();
-      expect(fakeStt.stopCalled, isTrue);
-    });
-
-    test('synthesizeSpeech returns empty when unsupported', () async {
-      fakeTts.supported = false;
-      final bytes = await service.synthesizeSpeech(
-        text: 'hello',
-        languageCode: 'en-US',
-      );
-      expect(bytes, isEmpty);
-      expect(fakeTts.startCalled, isFalse);
-    });
-
-    test('synthesizeSpeech starts TTS even when setLanguage throws', () async {
-      fakeTts.setLanguageThrows = true;
-      final bytes = await service.synthesizeSpeech(
-        text: 'hello',
-        languageCode: 'es-ES',
-      );
-      expect(bytes, isEmpty);
-      expect(fakeTts.startCalled, isTrue);
-      expect(fakeTts.lastText, equals('hello'));
-    });
-  });
-
   group('SpeechPipeline provider routing behavior', () {
     late SpeechPipeline pipeline;
 
@@ -1188,10 +861,10 @@ void main() {
       expect(pipeline.outputProvider, equals(SpeechOutputProvider.google));
       expect(pipeline.sttProvider, equals(SpeechSttProvider.deepgram));
 
-      pipeline.setOutputProvider(SpeechOutputProvider.stts);
+      pipeline.setOutputProvider(SpeechOutputProvider.deepgram);
       pipeline.setSttProvider(SpeechSttProvider.google);
 
-      expect(pipeline.outputProvider, equals(SpeechOutputProvider.stts));
+      expect(pipeline.outputProvider, equals(SpeechOutputProvider.deepgram));
       expect(pipeline.sttProvider, equals(SpeechSttProvider.google));
     });
 
@@ -1271,10 +944,6 @@ void main() {
       pipeline.setOutputProvider(SpeechOutputProvider.deepgram);
       final deepgramBytes = await pipeline.synthesizeSpeech(text: 'hello');
       expect(deepgramBytes, isEmpty);
-
-      pipeline.setOutputProvider(SpeechOutputProvider.stts);
-      final sttsBytes = await pipeline.synthesizeSpeech(text: '   ');
-      expect(sttsBytes, isEmpty);
     });
 
     test('ttsLanguageCodeForAppLanguage changes with output provider', () {
@@ -1283,21 +952,16 @@ void main() {
 
       pipeline.setOutputProvider(SpeechOutputProvider.deepgram);
       expect(pipeline.ttsLanguageCodeForAppLanguage('ja'), equals('ja'));
-
-      pipeline.setOutputProvider(SpeechOutputProvider.stts);
-      expect(pipeline.ttsLanguageCodeForAppLanguage('pt'), equals('pt'));
     });
 
     test('isSpeechApiKeyValid delegates by selected STT provider', () async {
       final deepgram = _FakeDeepgramService()..apiKeyValid = true;
       final speechToText = _FakeSpeechToTextService(initResult: false);
-      final stts = _FakeSttsService()..initResult = true;
       final routedPipeline = SpeechPipeline(
         googleApiKey: 'g',
         deepgramApiKey: 'd',
         recognitionService: deepgram,
         speechToTextService: speechToText,
-        sttsService: stts,
       );
 
       routedPipeline.setSttProvider(SpeechSttProvider.deepgram);
@@ -1305,9 +969,6 @@ void main() {
 
       routedPipeline.setSttProvider(SpeechSttProvider.google);
       expect(await routedPipeline.isSpeechApiKeyValid(), isFalse);
-
-      routedPipeline.setSttProvider(SpeechSttProvider.stts);
-      expect(await routedPipeline.isSpeechApiKeyValid(), isTrue);
     });
 
     test(
@@ -1345,34 +1006,6 @@ void main() {
 
       await session.stop();
       expect(speechToText.stopCalled, isTrue);
-    });
-
-    test('startRecognitionSession routes to STTS service', () async {
-      final stts = _FakeSttsService();
-      final routedPipeline = SpeechPipeline(
-        googleApiKey: 'g',
-        deepgramApiKey: 'd',
-        sttsService: stts,
-      )..setSttProvider(SpeechSttProvider.stts);
-
-      final session = await routedPipeline.startRecognitionSession(
-        AudioRecorder(),
-        sourceLanguage: 'es',
-      );
-
-      final resultFuture = session.resultStream.first;
-      final amplitudeFuture = session.amplitudeStream.first;
-      stts.emitSample();
-      final result = await resultFuture;
-      final amplitude = await amplitudeFuture;
-
-      expect(stts.startCalled, isTrue);
-      expect(stts.lastLanguageCode, equals('stts-es'));
-      expect(_resultText(result), equals('from-stts'));
-      expect(amplitude, equals(0.24));
-
-      await session.stop();
-      expect(stts.stopCalled, isTrue);
     });
 
     test('startRecognitionSession routes to Deepgram live stream', () async {

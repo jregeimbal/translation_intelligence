@@ -7,7 +7,6 @@ import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_to_text_service.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
-import 'package:translation_intelligence/services/stts_service.dart';
 
 import 'speech_controller_stub.dart';
 
@@ -28,12 +27,6 @@ void main() {
                   SpeechToTextService.defaultRecognitionLanguage,
               initialSpeechToTextRecognitionLocales: {
                 'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
-                'English (US)': 'en-US',
-              },
-              initialSttsRecognitionLocale:
-                  SttsService.defaultRecognitionLanguage,
-              initialSttsRecognitionLocales: {
-                'Multi (Auto)': SttsService.defaultRecognitionLanguage,
                 'English (US)': 'en-US',
               },
               initialListeningDevices: [],
@@ -98,12 +91,6 @@ void main() {
               'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
               'English (US)': 'en-US',
             },
-            initialSttsRecognitionLocale:
-                SttsService.defaultRecognitionLanguage,
-            initialSttsRecognitionLocales: {
-              'Multi (Auto)': SttsService.defaultRecognitionLanguage,
-              'English (US)': 'en-US',
-            },
             initialListeningDevices: [
               InputDevice(id: 'builtin', label: 'Built-in Microphone'),
             ],
@@ -147,12 +134,6 @@ void main() {
                   SpeechToTextService.defaultRecognitionLanguage,
               initialSpeechToTextRecognitionLocales: {
                 'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
-                'English (US)': 'en-US',
-              },
-              initialSttsRecognitionLocale:
-                  SttsService.defaultRecognitionLanguage,
-              initialSttsRecognitionLocales: {
-                'Multi (Auto)': SttsService.defaultRecognitionLanguage,
                 'English (US)': 'en-US',
               },
               initialListeningDevices: [

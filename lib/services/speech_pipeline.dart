@@ -13,7 +13,6 @@ import 'deepgram_service.dart';
 import 'google_speech_service.dart';
 import 'mlkit_translation_service.dart';
 import 'speech_to_text_service.dart';
-import 'stts_service.dart';
 import 'speech_output_provider.dart';
 import 'speech_stt_provider.dart';
 import 'speech_translation_provider.dart';
@@ -42,7 +41,6 @@ class SpeechPipeline {
   final DeepgramService _deepgramSpeechService;
   final GoogleSpeechService _googleSpeechService;
   final SpeechToTextService _speechToTextService;
-  final SttsService _sttsService;
   final MlKitTranslationService _mlKitTranslationService;
   SpeechOutputProvider _outputProvider;
   SpeechSttProvider _sttProvider;
@@ -51,8 +49,6 @@ class SpeechPipeline {
   String _deepgramRecognitionLanguage;
   String _speechToTextRecognitionLocale;
   Map<String, String> _speechToTextRecognitionLocales;
-  String _sttsRecognitionLocale;
-  Map<String, String> _sttsRecognitionLocales;
   String? _listeningDeviceId;
   String? _playbackDeviceId;
 
@@ -67,7 +63,6 @@ class SpeechPipeline {
     DeepgramService? deepgramSpeechService,
     GoogleSpeechService? googleSpeechService,
     SpeechToTextService? speechToTextService,
-    SttsService? sttsService,
     MlKitTranslationService? mlKitTranslationService,
   }) : _recognitionService =
            recognitionService ?? DeepgramService(apiKey: deepgramApiKey),
@@ -77,7 +72,6 @@ class SpeechPipeline {
            googleSpeechService ??
            GoogleSpeechService(googleApiKey: googleApiKey),
        _speechToTextService = speechToTextService ?? SpeechToTextService(),
-       _sttsService = sttsService ?? SttsService(),
        _mlKitTranslationService =
            mlKitTranslationService ?? MlKitTranslationService(),
        _outputProvider = initialOutputProvider,
@@ -90,10 +84,6 @@ class SpeechPipeline {
            SpeechToTextService.defaultRecognitionLanguage,
        _speechToTextRecognitionLocales = const {
          'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
-       },
-       _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage,
-       _sttsRecognitionLocales = const {
-         'Multi (Auto)': SttsService.defaultRecognitionLanguage,
        };
 
   SpeechOutputProvider get outputProvider => _outputProvider;
@@ -102,14 +92,12 @@ class SpeechPipeline {
   String get deepgramRecognitionModel => _deepgramRecognitionModel;
   String get deepgramRecognitionLanguage => _deepgramRecognitionLanguage;
   String get speechToTextRecognitionLocale => _speechToTextRecognitionLocale;
-  String get sttsRecognitionLocale => _sttsRecognitionLocale;
   List<String> get deepgramRecognitionModels =>
       DeepgramService.supportedRecognitionModels;
   Map<String, String> get deepgramRecognitionLanguages => _recognitionService
       .supportedRecognitionLanguagesForModel(_deepgramRecognitionModel);
   Map<String, String> get speechToTextRecognitionLocales =>
       _speechToTextRecognitionLocales;
-  Map<String, String> get sttsRecognitionLocales => _sttsRecognitionLocales;
   String? get listeningDeviceId => _listeningDeviceId;
   String? get playbackDeviceId => _playbackDeviceId;
 
@@ -153,22 +141,6 @@ class SpeechPipeline {
     }
     _speechToTextRecognitionLocale =
         SpeechToTextService.defaultRecognitionLanguage;
-  }
-
-  Future<void> refreshSttsRecognitionLocales() async {
-    final locales = await _sttsService.supportedRecognitionLocales();
-    _sttsRecognitionLocales = locales;
-    if (!_sttsRecognitionLocales.containsValue(_sttsRecognitionLocale)) {
-      _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage;
-    }
-  }
-
-  void setSttsRecognitionLocale(String locale) {
-    if (_sttsRecognitionLocales.containsValue(locale)) {
-      _sttsRecognitionLocale = locale;
-      return;
-    }
-    _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage;
   }
 
   void setListeningDeviceId(String? deviceId) {
@@ -284,14 +256,6 @@ class SpeechPipeline {
               ? 'en-US'
               : _speechToTextRecognitionLocale,
         );
-      case SpeechSttProvider.stts:
-        await refreshSttsRecognitionLocales();
-        return _sttsService.initialize(
-          languageCode:
-              _sttsRecognitionLocale == SttsService.defaultRecognitionLanguage
-              ? null
-              : _sttsRecognitionLocale,
-        );
     }
   }
 
@@ -374,50 +338,6 @@ class SpeechPipeline {
                     ? null
                     : _speechToTextRecognitionLocale)
               : _speechToTextService.languageCodeForAppLanguage(sourceLanguage),
-          listeningDeviceId: _listeningDeviceId,
-        );
-      case SpeechSttProvider.stts:
-        final resultController =
-            StreamController<SpeechRecognitionResult>.broadcast();
-        final amplitudeController = StreamController<double>.broadcast();
-
-        final sttsLanguageCode = sourceLanguage == 'multi'
-            ? (_sttsRecognitionLocale == SttsService.defaultRecognitionLanguage
-                  ? null
-                  : _sttsRecognitionLocale)
-            : _sttsService.languageCodeForAppLanguage(sourceLanguage);
-
-        await _sttsService.startListening(
-          languageCode: sttsLanguageCode,
-          onResult: (result) {
-            if (!resultController.isClosed) {
-              resultController.add(result);
-            }
-          },
-          onAmplitude: (value) {
-            if (!amplitudeController.isClosed) {
-              amplitudeController.add(value);
-            }
-          },
-        );
-
-        Future<void> stop() async {
-          await _sttsService.stopListening();
-          if (!resultController.isClosed) {
-            await resultController.close();
-          }
-          if (!amplitudeController.isClosed) {
-            await amplitudeController.close();
-          }
-        }
-
-        return SpeechRecognitionSession(
-          resultStream: resultController.stream,
-          amplitudeStream: amplitudeController.stream,
-          stop: stop,
-          sttProvider: SpeechSttProvider.stts,
-          sourceLanguage: sourceLanguage,
-          resolvedLanguageCode: sttsLanguageCode,
           listeningDeviceId: _listeningDeviceId,
         );
     }
@@ -611,11 +531,6 @@ class SpeechPipeline {
           text: text,
           languageCode: languageCode,
         );
-      case SpeechOutputProvider.stts:
-        return _sttsService.synthesizeSpeech(
-          text: text,
-          languageCode: languageCode,
-        );
     }
   }
 
@@ -624,8 +539,6 @@ class SpeechPipeline {
       case SpeechOutputProvider.google:
         return _googleSpeechService.ttsLanguageCodeForAppLanguage(appLang);
       case SpeechOutputProvider.deepgram:
-        return appLang;
-      case SpeechOutputProvider.stts:
         return appLang;
     }
   }
