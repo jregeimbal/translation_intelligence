@@ -101,15 +101,12 @@ class SpeechController extends ChangeNotifier {
       _speechPipeline.deepgramRecognitionLanguage;
   String get speechToTextRecognitionLocale =>
       _speechPipeline.speechToTextRecognitionLocale;
-  String get sttsRecognitionLocale => _speechPipeline.sttsRecognitionLocale;
   List<String> get deepgramRecognitionModels =>
       _speechPipeline.deepgramRecognitionModels;
   Map<String, String> get deepgramRecognitionLanguages =>
       _speechPipeline.deepgramRecognitionLanguages;
   Map<String, String> get speechToTextRecognitionLocales =>
       _speechPipeline.speechToTextRecognitionLocales;
-  Map<String, String> get sttsRecognitionLocales =>
-      _speechPipeline.sttsRecognitionLocales;
   List<InputDevice> get listeningDevices =>
       List<InputDevice>.unmodifiable(_listeningDevices);
   String? get listeningDeviceId => _speechPipeline.listeningDeviceId;
@@ -253,17 +250,6 @@ class SpeechController extends ChangeNotifier {
   void setSpeechToTextRecognitionLocale(String locale) {
     if (_speechPipeline.speechToTextRecognitionLocale == locale) return;
     _speechPipeline.setSpeechToTextRecognitionLocale(locale);
-    notifyListeners();
-  }
-
-  void setSttsRecognitionLocale(String locale) {
-    if (_speechPipeline.sttsRecognitionLocale == locale) return;
-    _speechPipeline.setSttsRecognitionLocale(locale);
-    notifyListeners();
-  }
-
-  Future<void> refreshSttsRecognitionLocales() async {
-    await _speechPipeline.refreshSttsRecognitionLocales();
     notifyListeners();
   }
 

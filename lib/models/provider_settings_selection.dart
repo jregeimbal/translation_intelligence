@@ -12,8 +12,6 @@ class ProviderSettingsSelection {
   final String deepgramRecognitionLanguage;
   final String speechToTextRecognitionLocale;
   final Map<String, String> speechToTextRecognitionLocales;
-  final String sttsRecognitionLocale;
-  final Map<String, String> sttsRecognitionLocales;
   final String? listeningDeviceId;
   final String? playbackDeviceId;
   final ThemeMode themeMode;
@@ -26,8 +24,6 @@ class ProviderSettingsSelection {
     required this.deepgramRecognitionLanguage,
     required this.speechToTextRecognitionLocale,
     required this.speechToTextRecognitionLocales,
-    required this.sttsRecognitionLocale,
-    required this.sttsRecognitionLocales,
     required this.listeningDeviceId,
     required this.playbackDeviceId,
     required this.themeMode,

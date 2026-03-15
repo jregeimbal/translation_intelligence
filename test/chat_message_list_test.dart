@@ -99,9 +99,68 @@ void main() {
         ),
       );
 
-      expect(find.text('Hola'), findsOneWidget);
+      expect(find.text('Hola'), findsNothing);
       expect(find.text('Hello'), findsOneWidget);
       expect(find.text('Speaker 1'), findsOneWidget);
+      expect(find.text('Show original'), findsOneWidget);
+    });
+
+    testWidgets('final message without translation keeps original visible', (
+      tester,
+    ) async {
+      final controller = TestSpeechController();
+      controller.addMessage(ChatMessage('No translation yet', isFinal: true));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChangeNotifierProvider<SpeechController>.value(
+              value: controller,
+              child: const ChatMessageList(),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('No translation yet'), findsOneWidget);
+      expect(find.text('Show original'), findsNothing);
+      expect(find.text('Hide original'), findsNothing);
+    });
+
+    testWidgets('final messages collapse original behind show/hide toggle', (
+      tester,
+    ) async {
+      final controller = TestSpeechController();
+      final message = ChatMessage('Hola', speaker: 0, isFinal: true)
+        ..translation = 'Hello';
+      controller.addMessage(message);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChangeNotifierProvider<SpeechController>.value(
+              value: controller,
+              child: const ChatMessageList(),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Hola'), findsNothing);
+      expect(find.text('Hello'), findsOneWidget);
+      expect(find.text('Show original'), findsOneWidget);
+
+      await tester.tap(find.text('Show original'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hola'), findsOneWidget);
+      expect(find.text('Hide original'), findsOneWidget);
+
+      await tester.tap(find.text('Hide original'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hola'), findsNothing);
+      expect(find.text('Show original'), findsOneWidget);
     });
 
     testWidgets('right-aligns primary speaker header and body text', (
@@ -110,7 +169,7 @@ void main() {
       final controller = TestSpeechController();
       controller.preferredSpeaker = 0;
       controller.addMessage(
-        ChatMessage('Primary line', speaker: 0, isFinal: true),
+        ChatMessage('Primary line', speaker: 0, isFinal: false),
       );
 
       await tester.pumpWidget(
@@ -132,9 +191,17 @@ void main() {
               widget.alignment == Alignment.centerRight,
         ),
       );
+
       expect(headerAlign, isNotEmpty);
 
-      final bodyText = tester.widget<Text>(find.text('Primary line'));
+      final bodyText = tester.widget<Text>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Text &&
+              widget.data == null &&
+              widget.textSpan?.toPlainText() == 'Primary line...',
+        ),
+      );
       expect(bodyText.textAlign, TextAlign.right);
     });
 
@@ -144,7 +211,7 @@ void main() {
       final controller = TestSpeechController();
       controller.preferredSpeaker = 1;
       controller.addMessage(
-        ChatMessage('Guest line', speaker: 0, isFinal: true),
+        ChatMessage('Guest line', speaker: 0, isFinal: false),
       );
 
       await tester.pumpWidget(
@@ -168,7 +235,14 @@ void main() {
       );
       expect(headerAlign, isNotEmpty);
 
-      final bodyText = tester.widget<Text>(find.text('Guest line'));
+      final bodyText = tester.widget<Text>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Text &&
+              widget.data == null &&
+              widget.textSpan?.toPlainText() == 'Guest line...',
+        ),
+      );
       expect(bodyText.textAlign, TextAlign.left);
     });
 
