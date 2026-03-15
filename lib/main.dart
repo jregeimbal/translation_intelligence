@@ -14,7 +14,6 @@ import 'models/provider_settings_selection.dart';
 import 'models/playback_device.dart';
 import 'services/deepgram_service.dart';
 import 'services/speech_to_text_service.dart';
-import 'services/stts_service.dart';
 import 'services/speech_output_provider.dart';
 import 'services/speech_stt_provider.dart';
 import 'services/speech_translation_provider.dart';
@@ -147,8 +146,6 @@ class ProviderSettingsDialog extends StatefulWidget {
   final String initialDeepgramRecognitionLanguage;
   final String initialSpeechToTextRecognitionLocale;
   final Map<String, String> initialSpeechToTextRecognitionLocales;
-  final String initialSttsRecognitionLocale;
-  final Map<String, String> initialSttsRecognitionLocales;
   final List<InputDevice> initialListeningDevices;
   final String? initialListeningDeviceId;
   final List<PlaybackDevice> initialPlaybackDevices;
@@ -164,8 +161,6 @@ class ProviderSettingsDialog extends StatefulWidget {
     required this.initialDeepgramRecognitionLanguage,
     required this.initialSpeechToTextRecognitionLocale,
     required this.initialSpeechToTextRecognitionLocales,
-    required this.initialSttsRecognitionLocale,
-    required this.initialSttsRecognitionLocales,
     required this.initialListeningDevices,
     required this.initialListeningDeviceId,
     required this.initialPlaybackDevices,
@@ -185,8 +180,6 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
   late String _selectedDeepgramRecognitionLanguage;
   late String _selectedSpeechToTextRecognitionLocale;
   late Map<String, String> _speechToTextRecognitionLocales;
-  late String _selectedSttsRecognitionLocale;
-  late Map<String, String> _sttsRecognitionLocales;
   late String? _selectedListeningDeviceId;
   late List<InputDevice> _listeningDevices;
   late String? _selectedPlaybackDeviceId;
@@ -206,10 +199,6 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
         widget.initialSpeechToTextRecognitionLocale;
     _speechToTextRecognitionLocales = Map<String, String>.from(
       widget.initialSpeechToTextRecognitionLocales,
-    );
-    _selectedSttsRecognitionLocale = widget.initialSttsRecognitionLocale;
-    _sttsRecognitionLocales = Map<String, String>.from(
-      widget.initialSttsRecognitionLocales,
     );
     _selectedListeningDeviceId = widget.initialListeningDeviceId;
     _listeningDevices = List<InputDevice>.from(widget.initialListeningDevices);
@@ -365,30 +354,6 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 });
                               },
                               items: _speechToTextRecognitionLocales.entries
-                                  .map(
-                                    (entry) => DropdownMenuItem<String>(
-                                      value: entry.value,
-                                      child: Text(entry.key),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ],
-                          if (_selectedSttProvider ==
-                              SpeechSttProvider.stts) ...[
-                            const SizedBox(height: 16),
-                            const Text('STTS Locale'),
-                            const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              initialValue: _selectedSttsRecognitionLocale,
-                              isExpanded: true,
-                              onChanged: (value) {
-                                if (value == null) return;
-                                setState(() {
-                                  _selectedSttsRecognitionLocale = value;
-                                });
-                              },
-                              items: _sttsRecognitionLocales.entries
                                   .map(
                                     (entry) => DropdownMenuItem<String>(
                                       value: entry.value,
@@ -636,8 +601,6 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                       _selectedSpeechToTextRecognitionLocale,
                   speechToTextRecognitionLocales:
                       _speechToTextRecognitionLocales,
-                  sttsRecognitionLocale: _selectedSttsRecognitionLocale,
-                  sttsRecognitionLocales: _sttsRecognitionLocales,
                   listeningDeviceId: _selectedListeningDeviceId,
                   playbackDeviceId: _selectedPlaybackDeviceId,
                   themeMode: _selectedThemeMode,
@@ -673,10 +636,6 @@ class _MyHomePageState extends State<MyHomePage> {
       SpeechToTextService.defaultRecognitionLanguage;
   Map<String, String> _speechToTextRecognitionLocales = const {
     'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
-  };
-  String _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage;
-  Map<String, String> _sttsRecognitionLocales = const {
-    'Multi (Auto)': SttsService.defaultRecognitionLanguage,
   };
   List<InputDevice> _listeningDevices = const [];
   List<PlaybackDevice> _playbackDevices = const [];
@@ -789,10 +748,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       : _twoWayController.speechToTextRecognitionLocale,
                 ),
                 MapEntry(
-                  'Configured STTS Locale',
+                  'Configured STT Locale',
                   _isGroupSection
-                      ? _controller.sttsRecognitionLocale
-                      : _twoWayController.sttsRecognitionLocale,
+                      ? _controller.speechToTextRecognitionLocale
+                      : _twoWayController.speechToTextRecognitionLocale,
                 ),
               ];
 
@@ -900,15 +859,6 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _setSttsRecognitionLocale(String locale) {
-    if (_sttsRecognitionLocale == locale || _initializing) return;
-    setState(() {
-      _sttsRecognitionLocale = locale;
-      _controller.setSttsRecognitionLocale(locale);
-      _twoWayController.setSttsRecognitionLocale(locale);
-    });
-  }
-
   void _setListeningDeviceId(String? deviceId) {
     if (_listeningDeviceId == deviceId || _initializing) return;
     setState(() {
@@ -948,7 +898,6 @@ class _MyHomePageState extends State<MyHomePage> {
     await _controller.refreshListeningDevices();
     await _controller.refreshPlaybackDevices();
     await _controller.refreshSpeechToTextRecognitionLocales();
-    await _controller.refreshSttsRecognitionLocales();
     if (!mounted) return;
     setState(() {
       _listeningDevices = _controller.listeningDevices;
@@ -959,8 +908,6 @@ class _MyHomePageState extends State<MyHomePage> {
           _controller.speechToTextRecognitionLocales;
       _speechToTextRecognitionLocale =
           _controller.speechToTextRecognitionLocale;
-      _sttsRecognitionLocales = _controller.sttsRecognitionLocales;
-      _sttsRecognitionLocale = _controller.sttsRecognitionLocale;
     });
 
     final selection = await showDialog<ProviderSettingsSelection>(
@@ -975,8 +922,6 @@ class _MyHomePageState extends State<MyHomePage> {
           initialSpeechToTextRecognitionLocale: _speechToTextRecognitionLocale,
           initialSpeechToTextRecognitionLocales:
               _speechToTextRecognitionLocales,
-          initialSttsRecognitionLocale: _sttsRecognitionLocale,
-          initialSttsRecognitionLocales: _sttsRecognitionLocales,
           initialListeningDevices: _listeningDevices,
           initialListeningDeviceId: _listeningDeviceId,
           initialPlaybackDevices: _playbackDevices,
@@ -1011,9 +956,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _setSpeechToTextRecognitionLocale(
         selection.speechToTextRecognitionLocale,
       );
-    }
-    if (selection.sttsRecognitionLocale != _sttsRecognitionLocale) {
-      _setSttsRecognitionLocale(selection.sttsRecognitionLocale);
     }
     if (selection.listeningDeviceId != _listeningDeviceId) {
       _setListeningDeviceId(selection.listeningDeviceId);
@@ -1255,7 +1197,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _controller.setSpeechToTextRecognitionLocale(
         _speechToTextRecognitionLocale,
       );
-      _controller.setSttsRecognitionLocale(_sttsRecognitionLocale);
       _twoWayController = TwoWayChatController(
         googleApiKey: _googleApiKey,
         deepgramApiKey: _deepgramApiKey,
@@ -1269,7 +1210,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _twoWayController.setSpeechToTextRecognitionLocale(
         _speechToTextRecognitionLocale,
       );
-      _twoWayController.setSttsRecognitionLocale(_sttsRecognitionLocale);
       Future.wait([_controller.init(), _twoWayController.init()]).then((_) {
         if (!mounted) return;
         setState(() {
@@ -1281,8 +1221,6 @@ class _MyHomePageState extends State<MyHomePage> {
               _controller.speechToTextRecognitionLocales;
           _speechToTextRecognitionLocale =
               _controller.speechToTextRecognitionLocale;
-          _sttsRecognitionLocales = _controller.sttsRecognitionLocales;
-          _sttsRecognitionLocale = _controller.sttsRecognitionLocale;
           _initializing = false;
         });
       });

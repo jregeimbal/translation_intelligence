@@ -1,4 +1,4 @@
-enum SpeechOutputProvider { google, deepgram, stts }
+enum SpeechOutputProvider { google, deepgram }
 
 extension SpeechOutputProviderLabel on SpeechOutputProvider {
   String get label {
@@ -7,8 +7,6 @@ extension SpeechOutputProviderLabel on SpeechOutputProvider {
         return 'Google';
       case SpeechOutputProvider.deepgram:
         return 'Deepgram';
-      case SpeechOutputProvider.stts:
-        return 'STTS';
     }
   }
 }

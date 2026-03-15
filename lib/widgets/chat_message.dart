@@ -18,6 +18,7 @@ class ChatMessageList extends StatefulWidget {
 
 class _ChatMessageListState extends State<ChatMessageList> {
   int _lastMessageSnapshotHash = 0;
+  final Set<String> _expandedOriginalMessageIds = <String>{};
 
   final ScrollController _scrollController = ScrollController();
   bool _shouldAutoScroll = true;
@@ -261,61 +262,28 @@ class _ChatMessageListState extends State<ChatMessageList> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      if (msg.groups.isEmpty) ...[
-                        _AnimatedRecognitionMessageText(
-                          key: ValueKey<String>(msg.id),
-                          text: msg.original,
-                          isFinal: msg.isFinal,
-                          textAlign: isPrimaryStyled
-                              ? TextAlign.right
-                              : TextAlign.left,
-                          style: textRoles.bubbleBody.copyWith(
-                            color: textColor,
-                          ),
-                        ),
-                        if (msg.translation != null) ...[
-                          const SizedBox(height: 10),
-                          _AnimatedRecognitionMessageText(
-                            key: ValueKey<String>('${msg.id}_translation'),
-                            text: msg.translation!,
-                            isFinal: msg.isFinal,
-                            textAlign: isPrimaryStyled
-                                ? TextAlign.right
-                                : TextAlign.left,
-                            style: textRoles.bubbleTranslation.copyWith(
-                              color: textColor.withValues(alpha: 0.9),
-                            ),
-                          ),
-                        ],
-                      ] else ...[
-                        _InlineGroupedRecognitionText(
-                          messageId: msg.id,
-                          groups: msg.groups,
-                          isFinal: msg.isFinal,
-                          textForGroup: (group) => group.original,
-                          keySuffix: 'orig',
-                          alignRight: isPrimaryStyled,
-                          style: textRoles.bubbleBody.copyWith(
-                            color: textColor,
-                          ),
-                        ),
-                        if (msg.groups.any(
-                          (group) => group.translation != null,
-                        )) ...[
-                          const SizedBox(height: 10),
-                          _InlineGroupedRecognitionText(
-                            messageId: msg.id,
-                            groups: msg.groups,
-                            isFinal: msg.isFinal,
-                            textForGroup: (group) => group.translation,
-                            keySuffix: 'translation',
-                            alignRight: isPrimaryStyled,
-                            style: textRoles.bubbleTranslation.copyWith(
-                              color: textColor.withValues(alpha: 0.9),
-                            ),
-                          ),
-                        ],
-                      ],
+                      _ChatMessageContent(
+                        message: msg,
+                        isPrimaryStyled: isPrimaryStyled,
+                        textColor: textColor,
+                        textRoles: textRoles,
+                        showOriginal:
+                            !msg.isFinal ||
+                            _expandedOriginalMessageIds.contains(msg.id),
+                        onToggleOriginal: msg.isFinal
+                            ? () {
+                                setState(() {
+                                  if (_expandedOriginalMessageIds.contains(
+                                    msg.id,
+                                  )) {
+                                    _expandedOriginalMessageIds.remove(msg.id);
+                                  } else {
+                                    _expandedOriginalMessageIds.add(msg.id);
+                                  }
+                                });
+                              }
+                            : null,
+                      ),
                     ],
                   ),
                 ),
@@ -348,6 +316,98 @@ class _ChatMessageListState extends State<ChatMessageList> {
               ),
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _ChatMessageContent extends StatelessWidget {
+  final ChatMessage message;
+  final bool isPrimaryStyled;
+  final Color textColor;
+  final AppThemeTextRoles textRoles;
+  final bool showOriginal;
+  final VoidCallback? onToggleOriginal;
+
+  const _ChatMessageContent({
+    required this.message,
+    required this.isPrimaryStyled,
+    required this.textColor,
+    required this.textRoles,
+    required this.showOriginal,
+    required this.onToggleOriginal,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bodyStyle = textRoles.bubbleBody.copyWith(color: textColor);
+    final translationStyle = textRoles.bubbleTranslation.copyWith(
+      color: textColor.withValues(alpha: 0.9),
+    );
+    final hasTranslation =
+        message.translation != null ||
+        message.groups.any((group) => group.translation != null);
+    final shouldCollapseOriginal = message.isFinal && hasTranslation;
+
+    return Column(
+      crossAxisAlignment: isPrimaryStyled
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!shouldCollapseOriginal || showOriginal) ...[
+          if (message.groups.isEmpty)
+            _AnimatedRecognitionMessageText(
+              key: ValueKey<String>(message.id),
+              text: message.original,
+              isFinal: message.isFinal,
+              textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
+              style: bodyStyle,
+            )
+          else
+            _InlineGroupedRecognitionText(
+              messageId: message.id,
+              groups: message.groups,
+              isFinal: message.isFinal,
+              textForGroup: (group) => group.original,
+              keySuffix: 'orig',
+              alignRight: isPrimaryStyled,
+              style: bodyStyle,
+            ),
+          if (shouldCollapseOriginal && onToggleOriginal != null) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: onToggleOriginal,
+              child: const Text('Hide original'),
+            ),
+          ],
+        ] else if (shouldCollapseOriginal && onToggleOriginal != null) ...[
+          TextButton(
+            onPressed: onToggleOriginal,
+            child: const Text('Show original'),
+          ),
+        ],
+        if (message.translation != null) ...[
+          if (!message.isFinal || showOriginal) const SizedBox(height: 10),
+          if (message.groups.any((group) => group.translation != null))
+            _InlineGroupedRecognitionText(
+              messageId: message.id,
+              groups: message.groups,
+              isFinal: message.isFinal,
+              textForGroup: (group) => group.translation,
+              keySuffix: 'translation',
+              alignRight: isPrimaryStyled,
+              style: translationStyle,
+            )
+          else
+            _AnimatedRecognitionMessageText(
+              key: ValueKey<String>('${message.id}_translation'),
+              text: message.translation!,
+              isFinal: message.isFinal,
+              textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
+              style: translationStyle,
+            ),
+        ],
       ],
     );
   }

@@ -11,7 +11,6 @@ import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_to_text_service.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
-import 'package:translation_intelligence/services/stts_service.dart';
 
 /// Lightweight stub of SpeechController for widget tests. Avoids plugins
 /// and network calls while allowing manual control of state.
@@ -47,11 +46,6 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
       SpeechToTextService.defaultRecognitionLanguage;
   Map<String, String> _speechToTextRecognitionLocales = const {
     'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
-    'English (US)': 'en-US',
-  };
-  String _sttsRecognitionLocale = SttsService.defaultRecognitionLanguage;
-  Map<String, String> _sttsRecognitionLocales = const {
-    'Multi (Auto)': SttsService.defaultRecognitionLanguage,
     'English (US)': 'en-US',
   };
   List<InputDevice> _listeningDevices = const [];
@@ -136,13 +130,7 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
       const <String, String>{};
 
   @override
-  String get sttsRecognitionLocale => _sttsRecognitionLocale;
-
-  @override
   String get speechToTextRecognitionLocale => _speechToTextRecognitionLocale;
-
-  @override
-  Map<String, String> get sttsRecognitionLocales => _sttsRecognitionLocales;
 
   @override
   Map<String, String> get speechToTextRecognitionLocales =>
@@ -280,24 +268,8 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   }
 
   @override
-  void setSttsRecognitionLocale(String locale) {
-    _sttsRecognitionLocale = locale;
-    notifyListeners();
-  }
-
-  @override
   void setSpeechToTextRecognitionLocale(String locale) {
     _speechToTextRecognitionLocale = locale;
-    notifyListeners();
-  }
-
-  @override
-  Future<void> refreshSttsRecognitionLocales() async {
-    _sttsRecognitionLocales = const {
-      'Multi (Auto)': SttsService.defaultRecognitionLanguage,
-      'English (US)': 'en-US',
-      'Spanish (Spain)': 'es-ES',
-    };
     notifyListeners();
   }
 

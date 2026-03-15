@@ -9,7 +9,6 @@ import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
-import 'package:translation_intelligence/services/stts_service.dart';
 
 class _FakeSpeechPipeline extends SpeechPipeline {
   _FakeSpeechPipeline() : super(googleApiKey: '', deepgramApiKey: '');
@@ -41,18 +40,6 @@ class _FakeSpeechPipeline extends SpeechPipeline {
     startRecognitionCalls += 1;
     lastSourceLanguage = sourceLanguage;
     return session;
-  }
-}
-
-class _FakeSttsService extends SttsService {
-  Map<String, String> locales = const {
-    'Multi (Auto)': SttsService.defaultRecognitionLanguage,
-    'English (US)': 'en-US',
-  };
-
-  @override
-  Future<Map<String, String>> supportedRecognitionLocales() async {
-    return locales;
   }
 }
 
@@ -282,42 +269,6 @@ void main() {
         expect(localController.isListening, isTrue);
         expect(fakePipeline.lastSourceLanguage, equals('multi'));
         expect(fakePipeline.startRecognitionCalls, equals(1));
-      },
-    );
-  });
-
-  group('SpeechPipeline STTS locales', () {
-    test('setSttsRecognitionLocale keeps valid locale', () async {
-      final fakeStts = _FakeSttsService();
-      final pipeline = SpeechPipeline(
-        googleApiKey: '',
-        deepgramApiKey: 'test-key',
-        sttsService: fakeStts,
-      );
-
-      await pipeline.refreshSttsRecognitionLocales();
-      pipeline.setSttsRecognitionLocale('en-US');
-
-      expect(pipeline.sttsRecognitionLocale, equals('en-US'));
-    });
-
-    test(
-      'setSttsRecognitionLocale resets to multi for invalid locale',
-      () async {
-        final fakeStts = _FakeSttsService();
-        final pipeline = SpeechPipeline(
-          googleApiKey: '',
-          deepgramApiKey: 'test-key',
-          sttsService: fakeStts,
-        );
-
-        await pipeline.refreshSttsRecognitionLocales();
-        pipeline.setSttsRecognitionLocale('xx-INVALID');
-
-        expect(
-          pipeline.sttsRecognitionLocale,
-          equals(SttsService.defaultRecognitionLanguage),
-        );
       },
     );
   });
