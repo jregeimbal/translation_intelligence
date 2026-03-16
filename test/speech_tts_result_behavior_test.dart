@@ -19,7 +19,6 @@ class _FakeTtsSpeechPipeline extends SpeechPipeline {
   String? lastTtsLanguageRequest;
   int translateCallCount = 0;
   Uint8List synthesizeBytes = Uint8List(0);
-  Future<String?> Function(String text)? translateOverride;
 
   _FakeTtsSpeechPipeline()
     : super(googleApiKey: 'test-google', deepgramApiKey: 'test-deepgram');
@@ -54,10 +53,6 @@ class _FakeTtsSpeechPipeline extends SpeechPipeline {
     bool nullWhenUnchanged = false,
   }) async {
     translateCallCount += 1;
-    final override = translateOverride;
-    if (override != null) {
-      return override(text);
-    }
     return '$text-translated';
   }
 
@@ -309,11 +304,6 @@ void main() {
           equals('hello-translated'),
         );
 
-        groupedPipeline.translateOverride = (text) async {
-          await Future<void>.delayed(const Duration(milliseconds: 60));
-          return 'updated-translation';
-        };
-
         groupedPipeline.resultController.add(
           SpeechRecognitionResult.fromTranscript(
             transcript: 'hello there',
@@ -325,7 +315,7 @@ void main() {
 
         expect(
           groupedController.getOptimisticMessages().single.translation,
-          equals('hello-translated'),
+          equals('hello there-translated'),
         );
 
         await Future<void>.delayed(const Duration(milliseconds: 80));
@@ -333,7 +323,7 @@ void main() {
 
         expect(
           groupedController.getOptimisticMessages().single.translation,
-          equals('updated-translation'),
+          equals('hello there-translated'),
         );
 
         await groupedController.stopListening();

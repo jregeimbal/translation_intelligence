@@ -21,7 +21,6 @@ class SpeechFooter extends StatefulWidget {
 }
 
 class _SpeechFooterState extends State<SpeechFooter> {
-
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SpeechController>();
@@ -46,6 +45,24 @@ class _SpeechFooterState extends State<SpeechFooter> {
                 onPressed: hasMessages
                     ? context.read<SpeechController>().clearMessages
                     : null,
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: hasMessages
+                    ? () {
+                        context
+                            .read<SpeechController>()
+                            .setHideTranslatedOriginalText(
+                              !controller.hideTranslatedOriginalText,
+                            );
+                      }
+                    : null,
+                tooltip: 'Hide translation original text',
+                icon: Icon(
+                  controller.hideTranslatedOriginalText
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
               ),
               const SizedBox(width: 8),
               if (!speechEnabled)
@@ -73,6 +90,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
                     width: 140,
                     child: DropdownButtonFormField<int?>(
                       initialValue: preferred,
+                      isExpanded: true,
                       icon: const SizedBox.shrink(),
                       decoration: InputDecoration(
                         isDense: true,
@@ -111,7 +129,9 @@ class _SpeechFooterState extends State<SpeechFooter> {
                         ),
                       ],
                       onChanged: (value) {
-                        context.read<SpeechController>().setPreferredSpeaker(value);
+                        context.read<SpeechController>().setPreferredSpeaker(
+                          value,
+                        );
                       },
                     ),
                   ),
@@ -135,10 +155,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
               ],
             ),
           ),
-          const Align(
-            alignment: Alignment.center,
-            child: SpeechFab(),
-          ),
+          const Align(alignment: Alignment.center, child: SpeechFab()),
         ],
       ),
     );

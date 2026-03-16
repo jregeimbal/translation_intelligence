@@ -99,6 +99,8 @@ void main() {
         ),
       );
 
+      await tester.pump(const Duration(milliseconds: 300));
+
       expect(find.text('Hola'), findsNothing);
       expect(find.text('Hello'), findsOneWidget);
       expect(find.text('Speaker 1'), findsOneWidget);
@@ -146,6 +148,8 @@ void main() {
         ),
       );
 
+      await tester.pump(const Duration(milliseconds: 300));
+
       expect(find.text('Hola'), findsNothing);
       expect(find.text('Hello'), findsOneWidget);
       expect(find.text('Show original'), findsOneWidget);
@@ -161,6 +165,32 @@ void main() {
 
       expect(find.text('Hola'), findsNothing);
       expect(find.text('Show original'), findsOneWidget);
+    });
+
+    testWidgets('global hide-original toggle shows all originals when off', (
+      tester,
+    ) async {
+      final controller = TestSpeechController();
+      controller.setHideTranslatedOriginalText(false);
+      final message = ChatMessage('Hola', speaker: 0, isFinal: true)
+        ..translation = 'Hello';
+      controller.addMessage(message);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChangeNotifierProvider<SpeechController>.value(
+              value: controller,
+              child: const ChatMessageList(),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Hola'), findsOneWidget);
+      expect(find.text('Hello'), findsOneWidget);
+      expect(find.text('Show original'), findsNothing);
+      expect(find.text('Hide original'), findsNothing);
     });
 
     testWidgets('right-aligns primary speaker header and body text', (

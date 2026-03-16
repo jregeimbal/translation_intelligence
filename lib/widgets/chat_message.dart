@@ -119,6 +119,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
     final theme = Theme.of(context);
     final textRoles = resolveAppThemeTextRoles(theme);
     final tokens = resolveAppThemeTokens(theme);
+    final hideTranslatedOriginalText = controller.hideTranslatedOriginalText;
 
     var messages = controller.chatMessages;
     final optimisticMessages = controller.getOptimisticMessages();
@@ -268,9 +269,11 @@ class _ChatMessageListState extends State<ChatMessageList> {
                         textColor: textColor,
                         textRoles: textRoles,
                         showOriginal:
+                            !hideTranslatedOriginalText ||
                             !msg.isFinal ||
                             _expandedOriginalMessageIds.contains(msg.id),
-                        onToggleOriginal: msg.isFinal
+                        onToggleOriginal:
+                            hideTranslatedOriginalText && msg.isFinal
                             ? () {
                                 setState(() {
                                   if (_expandedOriginalMessageIds.contains(
@@ -322,6 +325,8 @@ class _ChatMessageListState extends State<ChatMessageList> {
 }
 
 class _ChatMessageContent extends StatelessWidget {
+  static const Duration _originalToggleDuration = Duration(milliseconds: 220);
+
   final ChatMessage message;
   final bool isPrimaryStyled;
   final Color textColor;
@@ -348,6 +353,23 @@ class _ChatMessageContent extends StatelessWidget {
         message.translation != null ||
         message.groups.any((group) => group.translation != null);
     final shouldCollapseOriginal = message.isFinal && hasTranslation;
+    final originalContent = message.groups.isEmpty
+        ? _AnimatedRecognitionMessageText(
+            key: ValueKey<String>(message.id),
+            text: message.original,
+            isFinal: message.isFinal,
+            textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
+            style: bodyStyle,
+          )
+        : _InlineGroupedRecognitionText(
+            messageId: message.id,
+            groups: message.groups,
+            isFinal: message.isFinal,
+            textForGroup: (group) => group.original,
+            keySuffix: 'orig',
+            alignRight: isPrimaryStyled,
+            style: bodyStyle,
+          );
 
     return Column(
       crossAxisAlignment: isPrimaryStyled
@@ -355,40 +377,42 @@ class _ChatMessageContent extends StatelessWidget {
           : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (!shouldCollapseOriginal || showOriginal) ...[
-          if (message.groups.isEmpty)
-            _AnimatedRecognitionMessageText(
-              key: ValueKey<String>(message.id),
-              text: message.original,
-              isFinal: message.isFinal,
-              textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
-              style: bodyStyle,
-            )
-          else
-            _InlineGroupedRecognitionText(
-              messageId: message.id,
-              groups: message.groups,
-              isFinal: message.isFinal,
-              textForGroup: (group) => group.original,
-              keySuffix: 'orig',
-              alignRight: isPrimaryStyled,
-              style: bodyStyle,
-            ),
-          if (shouldCollapseOriginal && onToggleOriginal != null) ...[
+        if (!shouldCollapseOriginal)
+          originalContent
+        else ...[
+          AnimatedSwitcher(
+            duration: _originalToggleDuration,
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            transitionBuilder: (child, animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SizeTransition(
+                  sizeFactor: animation,
+                  axisAlignment: -1.0,
+                  child: child,
+                ),
+              );
+            },
+            child: showOriginal
+                ? KeyedSubtree(
+                    key: ValueKey<String>('${message.id}_original_visible'),
+                    child: originalContent,
+                  )
+                : SizedBox(
+                    key: ValueKey<String>('${message.id}_original_hidden'),
+                  ),
+          ),
+          if (onToggleOriginal != null) ...[
             const SizedBox(height: 8),
             TextButton(
               onPressed: onToggleOriginal,
-              child: const Text('Hide original'),
+              child: Text(showOriginal ? 'Hide original' : 'Show original'),
             ),
           ],
-        ] else if (shouldCollapseOriginal && onToggleOriginal != null) ...[
-          TextButton(
-            onPressed: onToggleOriginal,
-            child: const Text('Show original'),
-          ),
         ],
         if (message.translation != null) ...[
-          if (!message.isFinal || showOriginal) const SizedBox(height: 10),
+          const SizedBox(height: 10),
           if (message.groups.any((group) => group.translation != null))
             _InlineGroupedRecognitionText(
               messageId: message.id,
