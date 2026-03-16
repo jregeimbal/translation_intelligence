@@ -10,33 +10,37 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
-import 'package:translation_intelligence/widgets/chat_control_bar.dart';
+import 'package:translation_intelligence/widgets/footer.dart';
 
 import 'speech_controller_stub.dart';
 
 void main() {
-  testWidgets('ChatControlBar shows speakers and clears', (tester) async {
+  testWidgets('SpeechFooter shows speakers and hide-original toggle', (
+    tester,
+  ) async {
     final controller = TestSpeechController();
     controller.addMessage(ChatMessage('Hello', speaker: 0));
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ChangeNotifierProvider<SpeechController>.value(
-            value: controller,
-            child: const ChatControlBar(),
+          body: SizedBox(
+            width: 1000,
+            child: ChangeNotifierProvider<SpeechController>.value(
+              value: controller,
+              child: const SpeechFooter(),
+            ),
           ),
         ),
       ),
     );
 
-    expect(find.text('Primary speaker'), findsOneWidget);
+    expect(find.text('Primary Speaker'), findsOneWidget);
+    expect(find.byTooltip('Hide translation original text'), findsOneWidget);
 
-    // Open dropdown to reveal speaker options
-    await tester.tap(find.byType(DropdownButtonFormField<int?>));
+    controller.setHideTranslatedOriginalText(false);
     await tester.pumpAndSettle();
-
-    expect(find.text('Speaker 1'), findsOneWidget);
+    expect(controller.hideTranslatedOriginalText, isFalse);
 
     // Clear via controller to avoid overlay timing issues.
     controller.clearMessages();

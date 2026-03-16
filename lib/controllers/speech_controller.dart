@@ -37,6 +37,7 @@ class SpeechController extends ChangeNotifier {
   bool _speechEnabled = false; // speech service + permission
   bool _isListening = false;
   bool _audioPlaybackEnabled = true;
+  bool _hideTranslatedOriginalText = true;
   String _speechError = '';
   double _amplitude =
       0.0; // normalized 0.0‑1.0 (mapped from dB-truncated values)
@@ -88,6 +89,7 @@ class SpeechController extends ChangeNotifier {
   bool get speechEnabled => _speechEnabled;
   bool get isListening => _isListening;
   bool get audioPlaybackEnabled => _audioPlaybackEnabled;
+  bool get hideTranslatedOriginalText => _hideTranslatedOriginalText;
   String get speechError => _speechError;
   double get amplitude => _amplitude;
   List<ChatMessage> get chatMessages => List.unmodifiable(_chatMessages);
@@ -232,6 +234,12 @@ class SpeechController extends ChangeNotifier {
   void setAudioPlaybackEnabled(bool enabled) {
     if (_audioPlaybackEnabled == enabled) return;
     _audioPlaybackEnabled = enabled;
+    notifyListeners();
+  }
+
+  void setHideTranslatedOriginalText(bool enabled) {
+    if (_hideTranslatedOriginalText == enabled) return;
+    _hideTranslatedOriginalText = enabled;
     notifyListeners();
   }
 
@@ -428,9 +436,9 @@ class SpeechController extends ChangeNotifier {
 
   Future<void> _translateAndSpeakQueued(QueuedChatMessage msg) async {
     try {
-      final translated = await _translateText(msg.original);
+      if (msg.groups.isEmpty) return;
+      final translated = await _translateText(msg.groups.last.original);
       if (translated == null) return;
-      msg.translation = translated;
       _applyQueuedTranslationToCommittedMessage(msg, translated);
       notifyListeners();
       if (msg.speaker != null && msg.speaker == preferredSpeaker) {
@@ -458,6 +466,7 @@ class SpeechController extends ChangeNotifier {
         original: currentGroup.original,
         translation: translation,
       );
+      queued.translation = _joinQueuedGroupTranslations(queued.groups);
     }
 
     for (var i = _chatMessages.length - 1; i >= 0; i--) {
@@ -661,19 +670,48 @@ class SpeechController extends ChangeNotifier {
     return _queuedMessages.map((msg) => msg.original).join(' ').trim();
   }
 
-  String _extractQueuedGroupText(
-    String? previousOriginal,
+  String _joinQueuedGroupOriginals(List<ChatMessageGroup> groups) {
+    final buffer = StringBuffer();
+    for (var index = 0; index < groups.length; index++) {
+      final text = groups[index].original.trim();
+      if (text.isEmpty) {
+        continue;
+      }
+      if (buffer.isNotEmpty) {
+        final previousText = groups[index - 1].original.trimRight();
+        buffer.write(RegExp(r'[.!?]$').hasMatch(previousText) ? ' ' : ', ');
+      }
+      buffer.write(text);
+    }
+    return buffer.toString();
+  }
+
+  String? _joinQueuedGroupTranslations(List<ChatMessageGroup> groups) {
+    final translation = groups
+        .map((group) => group.translation?.trim())
+        .whereType<String>()
+        .where((text) => text.isNotEmpty)
+        .join(' ')
+        .trim();
+    return translation.isEmpty ? null : translation;
+  }
+
+  bool _shouldReplaceLatestQueuedGroup(
+    ChatMessageGroup previousGroup,
     String nextOriginal,
   ) {
-    final prev = (previousOriginal ?? '').trim();
+    final previous = previousGroup.original.trim().replaceFirst(
+      RegExp(r'[,.!?\s]+$'),
+      '',
+    );
     final next = nextOriginal.trim();
-    if (prev.isEmpty || next.isEmpty || !next.startsWith(prev)) {
-      return next;
+    if (previous.isEmpty || next.isEmpty) {
+      return false;
     }
-    final suffix = next
-        .substring(prev.length)
-        .replaceFirst(RegExp(r'^[,\s]+'), '');
-    return suffix.isEmpty ? next : suffix;
+    if (next == previous) {
+      return false;
+    }
+    return next.startsWith('$previous ') || next.startsWith('$previous,');
   }
 
   void _onRecognitionResult(SpeechRecognitionResult result) {
@@ -719,50 +757,91 @@ class SpeechController extends ChangeNotifier {
     );
 
     if (result.words.isNotEmpty) {
+      final latestOriginalBySpeaker = <int?, String>{};
+      for (final word in result.words) {
+        final speaker = word.speaker;
+        latestOriginalBySpeaker.update(
+          speaker,
+          (value) => '$value ${word.word}',
+          ifAbsent: () => word.word,
+        );
+      }
+
       final previousBySpeaker = {
         for (final queued in _queuedMessages) queued.speaker: queued,
       };
 
-      final queuedAsMessages = wordsToMessages(
-        _queuedMessagesAsChatMessages(),
-        result.words,
-      );
-
-      _queuedMessages = queuedAsMessages.map((queuedMsg) {
-        final previous = previousBySpeaker[queuedMsg.speaker];
-        final previousTranslation = previous?.translation;
-        final previousOriginal = previous?.original;
+      QueuedChatMessage buildQueuedMessage(int? speaker, String nextOriginal) {
+        final previous = previousBySpeaker[speaker];
         final processingStarted =
-            previous != null && previous.original == queuedMsg.original
+            previous != null && previous.original == nextOriginal
             ? previous.processingStarted
             : false;
+        final queuedId =
+            previous?.id ??
+            'msg_${DateTime.now().microsecondsSinceEpoch}_${speaker ?? 'u'}';
 
-        final previousGroups = previous == null
-            ? const <ChatMessageGroup>[]
+        final nextGroups = previous == null
+            ? <ChatMessageGroup>[]
             : List<ChatMessageGroup>.from(previous.groups);
-        final nextGroupIndex = previousGroups.length;
-        final nextGroups = <ChatMessageGroup>[
-          ...previousGroups,
-          if (previousOriginal != queuedMsg.original)
+
+        if (nextGroups.isEmpty) {
+          nextGroups.add(
+            ChatMessageGroup(id: '${queuedId}_g0', original: nextOriginal),
+          );
+        } else if (_shouldReplaceLatestQueuedGroup(
+          nextGroups.last,
+          nextOriginal,
+        )) {
+          final lastIndex = nextGroups.length - 1;
+          final lastGroup = nextGroups[lastIndex];
+          nextGroups[lastIndex] = ChatMessageGroup(
+            id: lastGroup.id,
+            original: nextOriginal,
+            translation: lastGroup.translation,
+          );
+        } else if (nextGroups.last.original != nextOriginal) {
+          nextGroups.add(
             ChatMessageGroup(
-              id: '${queuedMsg.id}_g$nextGroupIndex',
-              original: _extractQueuedGroupText(
-                previousOriginal,
-                queuedMsg.original,
-              ),
-              translation: null,
+              id: '${queuedId}_g${nextGroups.length}',
+              original: nextOriginal,
             ),
-        ];
+          );
+        }
 
         return QueuedChatMessage(
-          id: previous?.id ?? queuedMsg.id,
-          original: queuedMsg.original,
-          speaker: queuedMsg.speaker,
-          translation: previousTranslation,
+          id: queuedId,
+          original: _joinQueuedGroupOriginals(nextGroups),
+          speaker: speaker,
+          translation: _joinQueuedGroupTranslations(nextGroups),
           processingStarted: processingStarted,
           groups: nextGroups,
         );
-      }).toList();
+      }
+
+      final nextQueuedMessages = <QueuedChatMessage>[];
+      final updatedSpeakers = <int?>{};
+
+      for (final queued in _queuedMessages) {
+        if (latestOriginalBySpeaker.containsKey(queued.speaker)) {
+          nextQueuedMessages.add(
+            buildQueuedMessage(
+              queued.speaker,
+              latestOriginalBySpeaker[queued.speaker]!,
+            ),
+          );
+          updatedSpeakers.add(queued.speaker);
+        } else {
+          nextQueuedMessages.add(queued);
+        }
+      }
+
+      for (final entry in latestOriginalBySpeaker.entries) {
+        if (updatedSpeakers.contains(entry.key)) continue;
+        nextQueuedMessages.add(buildQueuedMessage(entry.key, entry.value));
+      }
+
+      _queuedMessages = nextQueuedMessages;
 
       for (final queued in _queuedMessages) {
         final previous = previousBySpeaker[queued.speaker];
