@@ -29,6 +29,7 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   bool _isListening;
   final bool _speechEnabled;
   bool _audioPlaybackEnabled = true;
+  bool _hideTranslatedOriginalText = true;
   final String _speechError = '';
   String _lastWords = '';
   final double _amplitude;
@@ -96,6 +97,9 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
 
   @override
   bool get audioPlaybackEnabled => _audioPlaybackEnabled;
+
+  @override
+  bool get hideTranslatedOriginalText => _hideTranslatedOriginalText;
 
   @override
   Set<int> get speakers =>
@@ -252,6 +256,12 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   @override
   void setAudioPlaybackEnabled(bool enabled) {
     _audioPlaybackEnabled = enabled;
+    notifyListeners();
+  }
+
+  @override
+  void setHideTranslatedOriginalText(bool enabled) {
+    _hideTranslatedOriginalText = enabled;
     notifyListeners();
   }
 
