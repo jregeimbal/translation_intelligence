@@ -23,6 +23,15 @@ class BackendApiClient {
     return response.statusCode == 200;
   }
 
+  Future<bool> isAuthenticated() async {
+    try {
+      final token = await _authTokenProvider();
+      return token.trim().isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<String?> translateText({
     required String text,
     required String targetLanguage,

@@ -1,10 +1,9 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RuntimeConfig {
-  const RuntimeConfig({required this.apiBaseUrl, required this.deepgramApiKey});
+  const RuntimeConfig({required this.apiBaseUrl});
 
   final String apiBaseUrl;
-  final String deepgramApiKey;
 
   factory RuntimeConfig.fromDotEnv(DotEnv dotenv) {
     String require(String key) {
@@ -15,9 +14,6 @@ class RuntimeConfig {
       return value;
     }
 
-    return RuntimeConfig(
-      apiBaseUrl: require('API_BASE_URL'),
-      deepgramApiKey: require('DEEPGRAM_API_KEY'),
-    );
+    return RuntimeConfig(apiBaseUrl: require('API_BASE_URL'));
   }
 }

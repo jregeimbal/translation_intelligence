@@ -12,6 +12,7 @@ import '../models/playback_device.dart';
 import '../models/queued_chat_message.dart';
 import '../services/audio_playback_queue.dart';
 import '../services/backend_api_client.dart';
+import '../services/backend_stt_client.dart';
 import '../services/speech_pipeline.dart';
 import '../services/speech_output_provider.dart';
 import '../services/speech_stt_provider.dart';
@@ -70,6 +71,7 @@ class SpeechController extends ChangeNotifier {
     required this.googleApiKey,
     required String deepgramApiKey,
     BackendApiClient? backendApiClient,
+    BackendSttClient? backendSttClient,
     SpeechPipeline? speechPipeline,
     Duration finalResultGroupingWindow = const Duration(seconds: 2),
     Duration audioPlaybackCompletionTimeout = const Duration(seconds: 30),
@@ -79,6 +81,7 @@ class SpeechController extends ChangeNotifier {
              googleApiKey: googleApiKey,
              deepgramApiKey: deepgramApiKey,
              backendApiClient: backendApiClient,
+             backendSttClient: backendSttClient,
            ),
        _finalResultGroupingWindow = finalResultGroupingWindow,
        _audioPlaybackCompletionTimeout = audioPlaybackCompletionTimeout;
@@ -441,7 +444,9 @@ class SpeechController extends ChangeNotifier {
     try {
       if (msg.groups.isEmpty) return;
       final translated = await _translateText(msg.groups.last.original);
-      logger.finer('Translation result for "${msg.groups.last.original}": $translated');
+      logger.finer(
+        'Translation result for "${msg.groups.last.original}": $translated',
+      );
       if (translated == null) return;
       _applyQueuedTranslationToCommittedMessage(msg, translated);
       notifyListeners();

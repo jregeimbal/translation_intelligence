@@ -6,6 +6,8 @@ class AppConfig {
     required this.host,
     required this.port,
     required this.allowedOrigins,
+    required this.httpRateLimitPerMinute,
+    required this.websocketSessionRateLimitPerMinute,
     required this.firebaseProjectId,
     required this.firebaseWebApiKey,
     required this.googleServiceAccountJson,
@@ -15,6 +17,8 @@ class AppConfig {
   final String host;
   final int port;
   final Set<String> allowedOrigins;
+  final int httpRateLimitPerMinute;
+  final int websocketSessionRateLimitPerMinute;
   final String firebaseProjectId;
   final String firebaseWebApiKey;
   final String googleServiceAccountJson;
@@ -24,7 +28,17 @@ class AppConfig {
     final host = Platform.environment['SERVER_HOST'] ?? '0.0.0.0';
     final port = int.tryParse(Platform.environment['PORT'] ?? '') ?? 8080;
     final allowedOriginsRaw =
-        Platform.environment['ALLOWED_ORIGINS'] ?? 'http://localhost:55555';
+        Platform.environment['ALLOWED_ORIGINS'] ?? 'http://localhost:8000';
+    final httpRateLimitPerMinute =
+        int.tryParse(
+          Platform.environment['HTTP_RATE_LIMIT_PER_MINUTE'] ?? '',
+        ) ??
+        120;
+    final websocketSessionRateLimitPerMinute =
+        int.tryParse(
+          Platform.environment['WEBSOCKET_SESSION_RATE_LIMIT_PER_MINUTE'] ?? '',
+        ) ??
+        30;
     final firebaseProjectId = _requireEnv('FIREBASE_PROJECT_ID');
     final firebaseWebApiKey = _requireEnv('FIREBASE_WEB_API_KEY');
     final deepgramApiKey = _requireEnv('DEEPGRAM_API_KEY');
@@ -40,6 +54,8 @@ class AppConfig {
       host: host,
       port: port,
       allowedOrigins: allowedOrigins,
+      httpRateLimitPerMinute: httpRateLimitPerMinute,
+      websocketSessionRateLimitPerMinute: websocketSessionRateLimitPerMinute,
       firebaseProjectId: firebaseProjectId,
       firebaseWebApiKey: firebaseWebApiKey,
       googleServiceAccountJson: googleServiceAccountJson,

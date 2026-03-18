@@ -14,6 +14,7 @@ import 'firebase_options.dart';
 import 'models/provider_settings_selection.dart';
 import 'models/playback_device.dart';
 import 'services/backend_api_client.dart';
+import 'services/backend_stt_client.dart';
 import 'services/deepgram_service.dart';
 import 'services/firebase_auth_session.dart';
 import 'services/runtime_config.dart';
@@ -625,13 +626,13 @@ class _MyHomePageState extends State<MyHomePage> {
   late TwoWayChatController _twoWayController;
   late FirebaseAuthSession _authSession;
   late BackendApiClient _backendApiClient;
+  late BackendSttClient _backendSttClient;
   StreamSubscription<String>? _listeningDeviceUpdateSub;
   late final DebouncedMessageDispatcher _listeningDeviceSnackBarDebouncer;
   bool _initializing = true;
   bool _controllersReady = false;
   bool _backendClientReady = false;
   String _initializationError = '';
-  String _deepgramApiKey = '';
   int _selectedSection = 0;
   SpeechOutputProvider _outputProvider = SpeechOutputProvider.google;
   SpeechSttProvider _sttProvider = SpeechSttProvider.deepgram;
@@ -1186,12 +1187,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
       try {
         final runtimeConfig = RuntimeConfig.fromDotEnv(dotenv);
-        _deepgramApiKey = runtimeConfig.deepgramApiKey;
         _authSession = FirebaseAuthSession(
           options: DefaultFirebaseOptions.currentPlatform,
         );
         await _authSession.initialize();
         _backendApiClient = BackendApiClient(
+          baseUrl: runtimeConfig.apiBaseUrl,
+          authTokenProvider: _authSession.getIdToken,
+        );
+        _backendSttClient = BackendSttClient(
           baseUrl: runtimeConfig.apiBaseUrl,
           authTokenProvider: _authSession.getIdToken,
         );
@@ -1209,8 +1213,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
       _controller = SpeechController(
         googleApiKey: '',
-        deepgramApiKey: _deepgramApiKey,
+        deepgramApiKey: '',
         backendApiClient: _backendApiClient,
+        backendSttClient: _backendSttClient,
       );
       _bindListeningDeviceNotifications();
       _controller.setSttProvider(_sttProvider);
@@ -1222,8 +1227,9 @@ class _MyHomePageState extends State<MyHomePage> {
       );
       _twoWayController = TwoWayChatController(
         googleApiKey: '',
-        deepgramApiKey: _deepgramApiKey,
+        deepgramApiKey: '',
         backendApiClient: _backendApiClient,
+        backendSttClient: _backendSttClient,
       );
       _controllersReady = true;
       _twoWayController.setSttProvider(_sttProvider);

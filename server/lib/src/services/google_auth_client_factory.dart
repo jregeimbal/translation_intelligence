@@ -6,11 +6,20 @@ class GoogleAuthClientFactory {
   GoogleAuthClientFactory({required Map<String, dynamic> serviceAccountJson})
     : _credentials = ServiceAccountCredentials.fromJson(serviceAccountJson);
 
-  final ServiceAccountCredentials _credentials;
+  GoogleAuthClientFactory.testing() : _credentials = null;
+
+  final ServiceAccountCredentials? _credentials;
   AuthClient? _client;
 
   Future<AuthClient> getClient(List<String> scopes) async {
-    _client ??= await clientViaServiceAccount(_credentials, scopes);
+    final credentials = _credentials;
+    if (credentials == null) {
+      throw StateError(
+        'GoogleAuthClientFactory testing instance has no credentials',
+      );
+    }
+
+    _client ??= await clientViaServiceAccount(credentials, scopes);
     return _client!;
   }
 
