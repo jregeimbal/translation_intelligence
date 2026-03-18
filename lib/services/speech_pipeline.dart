@@ -12,7 +12,7 @@ import '../models/speech_recognition_session.dart';
 import 'backend_api_client.dart';
 import 'backend_stt_client.dart';
 import 'deepgram_service.dart';
-import 'google_speech_service.dart';
+import 'deepgram_recognition_catalog.dart';
 import 'mlkit_translation_service.dart';
 import 'speech_to_text_service.dart';
 import 'speech_output_provider.dart';
@@ -39,11 +39,9 @@ class SpeechPipeline {
     16000,
   ];
 
-  final DeepgramService _recognitionService;
-  final DeepgramService _deepgramSpeechService;
-  final GoogleSpeechService _googleSpeechService;
   final BackendApiClient? _backendApiClient;
   final BackendSttClient? _backendSttClient;
+  final DeepgramService? _recognitionService;
   final SpeechToTextService _speechToTextService;
   final MlKitTranslationService _mlKitTranslationService;
   SpeechOutputProvider _outputProvider;
@@ -57,37 +55,30 @@ class SpeechPipeline {
   String? _playbackDeviceId;
 
   SpeechPipeline({
-    required String deepgramApiKey,
     String googleApiKey = '',
+    String deepgramApiKey = '',
+    BackendApiClient? backendApiClient,
+    BackendSttClient? backendSttClient,
+    DeepgramService? recognitionService,
     SpeechOutputProvider initialOutputProvider = SpeechOutputProvider.google,
     SpeechSttProvider initialSttProvider = SpeechSttProvider.deepgram,
     SpeechTranslationProvider initialTranslationProvider =
         SpeechTranslationProvider.google,
-    BackendApiClient? backendApiClient,
-    BackendSttClient? backendSttClient,
-    DeepgramService? recognitionService,
-    DeepgramService? deepgramSpeechService,
-    GoogleSpeechService? googleSpeechService,
     SpeechToTextService? speechToTextService,
     MlKitTranslationService? mlKitTranslationService,
-  }) : _recognitionService =
-           recognitionService ?? DeepgramService(apiKey: deepgramApiKey),
-       _deepgramSpeechService =
-           deepgramSpeechService ?? DeepgramService(apiKey: deepgramApiKey),
-       _googleSpeechService =
-           googleSpeechService ??
-           GoogleSpeechService(googleApiKey: googleApiKey),
-       _backendApiClient = backendApiClient,
+  }) : _backendApiClient = backendApiClient,
        _backendSttClient = backendSttClient,
+       _recognitionService = recognitionService,
        _speechToTextService = speechToTextService ?? SpeechToTextService(),
        _mlKitTranslationService =
            mlKitTranslationService ?? MlKitTranslationService(),
        _outputProvider = initialOutputProvider,
        _sttProvider = initialSttProvider,
        _translationProvider = initialTranslationProvider,
-       _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel,
+       _deepgramRecognitionModel =
+           DeepgramRecognitionCatalog.defaultRecognitionModel,
        _deepgramRecognitionLanguage =
-           DeepgramService.defaultRecognitionLanguage,
+           DeepgramRecognitionCatalog.defaultRecognitionLanguage,
        _speechToTextRecognitionLocale =
            SpeechToTextService.defaultRecognitionLanguage,
        _speechToTextRecognitionLocales = const {
@@ -101,9 +92,11 @@ class SpeechPipeline {
   String get deepgramRecognitionLanguage => _deepgramRecognitionLanguage;
   String get speechToTextRecognitionLocale => _speechToTextRecognitionLocale;
   List<String> get deepgramRecognitionModels =>
-      DeepgramService.supportedRecognitionModels;
-  Map<String, String> get deepgramRecognitionLanguages => _recognitionService
-      .supportedRecognitionLanguagesForModel(_deepgramRecognitionModel);
+      DeepgramRecognitionCatalog.supportedRecognitionModels;
+  Map<String, String> get deepgramRecognitionLanguages =>
+      DeepgramRecognitionCatalog.supportedRecognitionLanguagesForModel(
+        _deepgramRecognitionModel,
+      );
   Map<String, String> get speechToTextRecognitionLocales =>
       _speechToTextRecognitionLocales;
   String? get listeningDeviceId => _listeningDeviceId;
@@ -122,13 +115,29 @@ class SpeechPipeline {
   }
 
   void setDeepgramRecognitionModel(String model) {
-    _recognitionService.setRecognitionModel(model);
-    _deepgramRecognitionModel = _recognitionService.recognitionModel;
+    if (!DeepgramRecognitionCatalog.supportedRecognitionModels.contains(
+      model,
+    )) {
+      return;
+    }
+    _deepgramRecognitionModel = model;
+    if (!DeepgramRecognitionCatalog.isRecognitionLanguageSupportedForModel(
+      model,
+      _deepgramRecognitionLanguage,
+    )) {
+      _deepgramRecognitionLanguage =
+          DeepgramRecognitionCatalog.defaultRecognitionLanguageForModel(model);
+    }
   }
 
   void setDeepgramRecognitionLanguage(String language) {
-    _recognitionService.setRecognitionLanguage(language);
-    _deepgramRecognitionLanguage = _recognitionService.recognitionLanguage;
+    if (!DeepgramRecognitionCatalog.isRecognitionLanguageSupportedForModel(
+      _deepgramRecognitionModel,
+      language,
+    )) {
+      return;
+    }
+    _deepgramRecognitionLanguage = language;
   }
 
   Future<void> refreshSpeechToTextRecognitionLocales() async {
@@ -254,12 +263,15 @@ class SpeechPipeline {
   Future<bool> isSpeechApiKeyValid() async {
     switch (_sttProvider) {
       case SpeechSttProvider.deepgram:
-        final backendSttClient = _backendSttClient;
-        final backendApiClient = _backendApiClient;
-        if (backendSttClient != null && backendApiClient != null) {
-          return backendApiClient.isAuthenticated();
+        final recognitionService = _recognitionService;
+        if (recognitionService != null) {
+          return recognitionService.isApiKeyValid();
         }
-        return _recognitionService.isApiKeyValid();
+        final backendApiClient = _backendApiClient;
+        if (backendApiClient == null) {
+          return false;
+        }
+        return backendApiClient.isAuthenticated();
       case SpeechSttProvider.google:
         await refreshSpeechToTextRecognitionLocales();
         return _speechToTextService.initialize(
@@ -302,6 +314,7 @@ class SpeechPipeline {
             listeningDeviceId: _listeningDeviceId,
           );
         }
+
         final resultStream = startLiveRecognition(
           capture.audioStream,
           sourceLanguage: sourceLanguage,
@@ -503,7 +516,12 @@ class SpeechPipeline {
     bool smartFormat = false,
     bool detectLanguage = false,
   }) {
-    return _recognitionService.startLiveRecognition(
+    final recognitionService = _recognitionService;
+    if (recognitionService == null) {
+      return const Stream<SpeechRecognitionResult>.empty();
+    }
+
+    return recognitionService.startLiveRecognition(
       audioStream,
       sourceLanguage: sourceLanguage,
       model: model,
@@ -525,34 +543,28 @@ class SpeechPipeline {
     bool throwOnMissingApiKey = false,
     bool nullWhenUnchanged = false,
   }) async {
-    switch (_translationProvider) {
-      case SpeechTranslationProvider.google:
-        final backendClient = _backendApiClient;
-        if (backendClient != null) {
-          return backendClient.translateText(
-            text: text,
-            sourceLanguage: sourceLanguage,
-            targetLanguage: targetLanguage,
-            returnOriginalOnFailure: returnOriginalOnFailure,
-            nullWhenUnchanged: nullWhenUnchanged,
-          );
-        }
-        return _googleSpeechService.translateText(
-          text: text,
-          targetLanguage: targetLanguage,
-          returnOriginalOnFailure: returnOriginalOnFailure,
-          throwOnMissingApiKey: throwOnMissingApiKey,
-          nullWhenUnchanged: nullWhenUnchanged,
-        );
-      case SpeechTranslationProvider.googleMlKit:
-        return _mlKitTranslationService.translateText(
-          text: text,
-          targetLanguage: targetLanguage,
-          sourceLanguage: sourceLanguage,
-          returnOriginalOnFailure: returnOriginalOnFailure,
-          nullWhenUnchanged: nullWhenUnchanged,
-        );
+    if (_translationProvider == SpeechTranslationProvider.googleMlKit) {
+      return _mlKitTranslationService.translateText(
+        text: text,
+        targetLanguage: targetLanguage,
+        sourceLanguage: sourceLanguage,
+        returnOriginalOnFailure: returnOriginalOnFailure,
+        nullWhenUnchanged: nullWhenUnchanged,
+      );
     }
+
+    final backendApiClient = _backendApiClient;
+    if (backendApiClient == null) {
+      return returnOriginalOnFailure ? text : null;
+    }
+
+    return backendApiClient.translateText(
+      text: text,
+      sourceLanguage: sourceLanguage,
+      targetLanguage: targetLanguage,
+      returnOriginalOnFailure: returnOriginalOnFailure,
+      nullWhenUnchanged: nullWhenUnchanged,
+    );
   }
 
   Future<Uint8List> synthesizeSpeech({
@@ -560,34 +572,48 @@ class SpeechPipeline {
     String languageCode = 'en-US',
     String ssmlGender = 'NEUTRAL',
   }) async {
-    final backendClient = _backendApiClient;
-    if (backendClient != null) {
-      return backendClient.synthesizeSpeech(
-        text: text,
-        provider: _outputProvider,
-        languageCode: languageCode,
-      );
+    final backendApiClient = _backendApiClient;
+    if (backendApiClient == null) {
+      return Uint8List(0);
     }
 
-    switch (_outputProvider) {
-      case SpeechOutputProvider.google:
-        return _googleSpeechService.synthesizeSpeech(
-          text: text,
-          languageCode: languageCode,
-          ssmlGender: ssmlGender,
-        );
-      case SpeechOutputProvider.deepgram:
-        return _deepgramSpeechService.synthesizeSpeech(
-          text: text,
-          languageCode: languageCode,
-        );
-    }
+    return backendApiClient.synthesizeSpeech(
+      text: text,
+      provider: _outputProvider,
+      languageCode: languageCode,
+    );
   }
 
   String ttsLanguageCodeForAppLanguage(String appLang) {
     switch (_outputProvider) {
       case SpeechOutputProvider.google:
-        return _googleSpeechService.ttsLanguageCodeForAppLanguage(appLang);
+        switch (appLang) {
+          case 'en':
+            return 'en-US';
+          case 'es':
+            return 'es-ES';
+          case 'fr':
+            return 'fr-FR';
+          case 'de':
+            return 'de-DE';
+          case 'zh-CN':
+          case 'zh':
+            return 'cmn-CN';
+          case 'ja':
+            return 'ja-JP';
+          case 'ko':
+            return 'ko-KR';
+          case 'pt':
+            return 'pt-BR';
+          case 'ru':
+            return 'ru-RU';
+          case 'ar':
+            return 'ar-XA';
+          case 'hi':
+            return 'hi-IN';
+          default:
+            return appLang.contains('-') ? appLang : '$appLang-US';
+        }
       case SpeechOutputProvider.deepgram:
         return appLang;
     }

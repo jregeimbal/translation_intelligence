@@ -15,7 +15,7 @@ import 'models/provider_settings_selection.dart';
 import 'models/playback_device.dart';
 import 'services/backend_api_client.dart';
 import 'services/backend_stt_client.dart';
-import 'services/deepgram_service.dart';
+import 'services/deepgram_recognition_catalog.dart';
 import 'services/firebase_auth_session.dart';
 import 'services/runtime_config.dart';
 import 'services/speech_to_text_service.dart';
@@ -227,9 +227,10 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     final deepgramLanguages =
-        DeepgramService
+        DeepgramRecognitionCatalog
             .supportedRecognitionLanguagesByModel[_selectedDeepgramRecognitionModel] ??
-        DeepgramService.supportedRecognitionLanguagesByModel[DeepgramService
+        DeepgramRecognitionCatalog
+            .supportedRecognitionLanguagesByModel[DeepgramRecognitionCatalog
             .defaultRecognitionModel]!;
 
     return DefaultTabController(
@@ -296,7 +297,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 setState(() {
                                   _selectedDeepgramRecognitionModel = value;
                                   final supportedValues =
-                                      (DeepgramService
+                                      (DeepgramRecognitionCatalog
                                                   .supportedRecognitionLanguagesByModel[value] ??
                                               const <String, String>{})
                                           .values
@@ -305,13 +306,14 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                     _selectedDeepgramRecognitionLanguage,
                                   )) {
                                     _selectedDeepgramRecognitionLanguage =
-                                        DeepgramService.defaultRecognitionLanguageForModel(
+                                        DeepgramRecognitionCatalog.defaultRecognitionLanguageForModel(
                                           value,
                                         );
                                   }
                                 });
                               },
-                              items: DeepgramService.supportedRecognitionModels
+                              items: DeepgramRecognitionCatalog
+                                  .supportedRecognitionModels
                                   .map(
                                     (model) => DropdownMenuItem<String>(
                                       value: model,
@@ -638,9 +640,10 @@ class _MyHomePageState extends State<MyHomePage> {
   SpeechSttProvider _sttProvider = SpeechSttProvider.deepgram;
   SpeechTranslationProvider _translationProvider =
       SpeechTranslationProvider.google;
-  String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
+  String _deepgramRecognitionModel =
+      DeepgramRecognitionCatalog.defaultRecognitionModel;
   String _deepgramRecognitionLanguage =
-      DeepgramService.defaultRecognitionLanguage;
+      DeepgramRecognitionCatalog.defaultRecognitionLanguage;
   String _speechToTextRecognitionLocale =
       SpeechToTextService.defaultRecognitionLanguage;
   Map<String, String> _speechToTextRecognitionLocales = const {
@@ -1212,8 +1215,6 @@ class _MyHomePageState extends State<MyHomePage> {
       if (!mounted) return;
 
       _controller = SpeechController(
-        googleApiKey: '',
-        deepgramApiKey: '',
         backendApiClient: _backendApiClient,
         backendSttClient: _backendSttClient,
       );
@@ -1226,8 +1227,6 @@ class _MyHomePageState extends State<MyHomePage> {
         _speechToTextRecognitionLocale,
       );
       _twoWayController = TwoWayChatController(
-        googleApiKey: '',
-        deepgramApiKey: '',
         backendApiClient: _backendApiClient,
         backendSttClient: _backendSttClient,
       );
