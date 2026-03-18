@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import '../models/playback_device.dart';
 import '../models/speech_recognition_models.dart';
 import '../models/speech_recognition_session.dart';
+import 'backend_api_client.dart';
 import 'deepgram_service.dart';
 import 'google_speech_service.dart';
 import 'mlkit_translation_service.dart';
@@ -24,10 +25,10 @@ export '../models/speech_recognition_session.dart'
 
 class SpeechPipeline {
   static const MethodChannel _audioRecordChannel = MethodChannel(
-    'com.example.translation_intelligence/audio_record',
+    'com.speechlogic.tuttilingo/audio_record',
   );
   static const EventChannel _audioRouteEventChannel = EventChannel(
-    'com.example.translation_intelligence/audio_route_events',
+    'com.speechlogic.tuttilingo/audio_route_events',
   );
 
   static const List<int> _sampleRateFallbackOrder = <int>[
@@ -40,6 +41,7 @@ class SpeechPipeline {
   final DeepgramService _recognitionService;
   final DeepgramService _deepgramSpeechService;
   final GoogleSpeechService _googleSpeechService;
+  final BackendApiClient? _backendApiClient;
   final SpeechToTextService _speechToTextService;
   final MlKitTranslationService _mlKitTranslationService;
   SpeechOutputProvider _outputProvider;
@@ -53,12 +55,13 @@ class SpeechPipeline {
   String? _playbackDeviceId;
 
   SpeechPipeline({
-    required String googleApiKey,
     required String deepgramApiKey,
+    String googleApiKey = '',
     SpeechOutputProvider initialOutputProvider = SpeechOutputProvider.google,
     SpeechSttProvider initialSttProvider = SpeechSttProvider.deepgram,
     SpeechTranslationProvider initialTranslationProvider =
         SpeechTranslationProvider.google,
+    BackendApiClient? backendApiClient,
     DeepgramService? recognitionService,
     DeepgramService? deepgramSpeechService,
     GoogleSpeechService? googleSpeechService,
@@ -71,6 +74,7 @@ class SpeechPipeline {
        _googleSpeechService =
            googleSpeechService ??
            GoogleSpeechService(googleApiKey: googleApiKey),
+       _backendApiClient = backendApiClient,
        _speechToTextService = speechToTextService ?? SpeechToTextService(),
        _mlKitTranslationService =
            mlKitTranslationService ?? MlKitTranslationService(),
@@ -496,6 +500,16 @@ class SpeechPipeline {
   }) async {
     switch (_translationProvider) {
       case SpeechTranslationProvider.google:
+        final backendClient = _backendApiClient;
+        if (backendClient != null) {
+          return backendClient.translateText(
+            text: text,
+            sourceLanguage: sourceLanguage,
+            targetLanguage: targetLanguage,
+            returnOriginalOnFailure: returnOriginalOnFailure,
+            nullWhenUnchanged: nullWhenUnchanged,
+          );
+        }
         return _googleSpeechService.translateText(
           text: text,
           targetLanguage: targetLanguage,
@@ -519,6 +533,15 @@ class SpeechPipeline {
     String languageCode = 'en-US',
     String ssmlGender = 'NEUTRAL',
   }) async {
+    final backendClient = _backendApiClient;
+    if (backendClient != null) {
+      return backendClient.synthesizeSpeech(
+        text: text,
+        provider: _outputProvider,
+        languageCode: languageCode,
+      );
+    }
+
     switch (_outputProvider) {
       case SpeechOutputProvider.google:
         return _googleSpeechService.synthesizeSpeech(

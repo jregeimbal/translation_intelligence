@@ -6,6 +6,7 @@ import 'package:record/record.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../models/two_way_message.dart';
+import '../services/backend_api_client.dart';
 import '../services/speech_pipeline.dart';
 import '../services/speech_output_provider.dart';
 import '../services/speech_stt_provider.dart';
@@ -42,9 +43,11 @@ class TwoWayChatController extends ChangeNotifier {
   TwoWayChatController({
     required this.googleApiKey,
     required String deepgramApiKey,
+    BackendApiClient? backendApiClient,
   }) : _speechPipeline = SpeechPipeline(
          googleApiKey: googleApiKey,
          deepgramApiKey: deepgramApiKey,
+         backendApiClient: backendApiClient,
        );
 
   final String googleApiKey;

@@ -10,9 +10,13 @@ import 'package:record/record.dart';
 
 import 'controllers/speech_controller.dart';
 import 'controllers/two_way_chat_controller.dart';
+import 'firebase_options.dart';
 import 'models/provider_settings_selection.dart';
 import 'models/playback_device.dart';
+import 'services/backend_api_client.dart';
 import 'services/deepgram_service.dart';
+import 'services/firebase_auth_session.dart';
+import 'services/runtime_config.dart';
 import 'services/speech_to_text_service.dart';
 import 'services/speech_output_provider.dart';
 import 'services/speech_stt_provider.dart';
@@ -25,6 +29,7 @@ import 'widgets/footer.dart';
 import 'widgets/two_way_chat.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
 
   Logger.root.level =
@@ -618,12 +623,15 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
 class _MyHomePageState extends State<MyHomePage> {
   late SpeechController _controller;
   late TwoWayChatController _twoWayController;
+  late FirebaseAuthSession _authSession;
+  late BackendApiClient _backendApiClient;
   StreamSubscription<String>? _listeningDeviceUpdateSub;
   late final DebouncedMessageDispatcher _listeningDeviceSnackBarDebouncer;
-  bool _missingKeys = false;
   bool _initializing = true;
+  bool _controllersReady = false;
+  bool _backendClientReady = false;
+  String _initializationError = '';
   String _deepgramApiKey = '';
-  String _googleApiKey = '';
   int _selectedSection = 0;
   SpeechOutputProvider _outputProvider = SpeechOutputProvider.google;
   SpeechSttProvider _sttProvider = SpeechSttProvider.deepgram;
@@ -1169,25 +1177,40 @@ class _MyHomePageState extends State<MyHomePage> {
           );
       },
     );
-    // supply your Google Cloud API key and a Deepgram API key via
-    // environment variables.  For example:
-    //   flutter run \
-    //     --dart-define=GOOGLE_API_KEY=your_key \
-    //     --dart-define=DEEPGRAM_API_KEY=your_key
-    _deepgramApiKey = dotenv.get("DEEPGRAM_API_KEY", fallback: "");
-    _googleApiKey = dotenv.get("GOOGLE_API_KEY", fallback: "");
 
-    if (_deepgramApiKey.isEmpty || _googleApiKey.isEmpty) {
-      _missingKeys = true;
-    }
-
-    void createController() {
+    Future<void> createController() async {
       setState(() {
         _initializing = true;
+        _initializationError = '';
       });
+
+      try {
+        final runtimeConfig = RuntimeConfig.fromDotEnv(dotenv);
+        _deepgramApiKey = runtimeConfig.deepgramApiKey;
+        _authSession = FirebaseAuthSession(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        await _authSession.initialize();
+        _backendApiClient = BackendApiClient(
+          baseUrl: runtimeConfig.apiBaseUrl,
+          authTokenProvider: _authSession.getIdToken,
+        );
+        _backendClientReady = true;
+      } catch (error) {
+        if (!mounted) return;
+        setState(() {
+          _initializationError = '$error';
+          _initializing = false;
+        });
+        return;
+      }
+
+      if (!mounted) return;
+
       _controller = SpeechController(
-        googleApiKey: _googleApiKey,
+        googleApiKey: '',
         deepgramApiKey: _deepgramApiKey,
+        backendApiClient: _backendApiClient,
       );
       _bindListeningDeviceNotifications();
       _controller.setSttProvider(_sttProvider);
@@ -1198,9 +1221,11 @@ class _MyHomePageState extends State<MyHomePage> {
         _speechToTextRecognitionLocale,
       );
       _twoWayController = TwoWayChatController(
-        googleApiKey: _googleApiKey,
+        googleApiKey: '',
         deepgramApiKey: _deepgramApiKey,
+        backendApiClient: _backendApiClient,
       );
+      _controllersReady = true;
       _twoWayController.setSttProvider(_sttProvider);
       _twoWayController.setTranslationProvider(_translationProvider);
       _twoWayController.setDeepgramRecognitionModel(_deepgramRecognitionModel);
@@ -1226,66 +1251,20 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
 
-    if (_missingKeys) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showDialog(
-          context: context,
-          builder: (context) {
-            final deepgramField = TextEditingController(text: _deepgramApiKey);
-            final googleField = TextEditingController(text: _googleApiKey);
-            return AlertDialog(
-              title: Text('Missing API Keys'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Please provide both Deepgram and Google API keys to continue.',
-                  ),
-                  TextField(
-                    controller: deepgramField,
-                    decoration: InputDecoration(labelText: 'Deepgram API Key'),
-                  ),
-                  TextField(
-                    controller: googleField,
-                    decoration: InputDecoration(labelText: 'Google API Key'),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _deepgramApiKey = deepgramField.text.trim();
-                      _googleApiKey = googleField.text.trim();
-                      _missingKeys = false;
-                    });
-                    createController();
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
-      });
-    } else {
-      createController();
-    }
+    createController();
   }
 
   @override
   void dispose() {
     _listeningDeviceUpdateSub?.cancel();
     _listeningDeviceSnackBarDebouncer.dispose();
-    _controller.dispose();
-    _twoWayController.dispose();
+    if (_backendClientReady) {
+      _backendApiClient.close();
+    }
+    if (_controllersReady) {
+      _controller.dispose();
+      _twoWayController.dispose();
+    }
     super.dispose();
   }
 
@@ -1298,6 +1277,21 @@ class _MyHomePageState extends State<MyHomePage> {
     final theme = Theme.of(context);
     final textRoles = resolveAppThemeTextRoles(theme);
     final tokens = resolveAppThemeTokens(theme);
+
+    if (_initializationError.isNotEmpty) {
+      return Material(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Initialization failed: $_initializationError',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(

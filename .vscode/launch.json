@@ -5,12 +5,27 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "translation_intelligence (dev mode)",
+            "name": "Server (Debug)",
+            "type": "dart",
+            "request": "launch",
+            "program": "server/bin/server.dart",
+            "env": {
+                "DEEPGRAM_API_KEY": "REDACTED_DEEPGRAM_API_KEY",
+                "FIREBASE_PROJECT_ID": "tutti-lingo",
+                "FIREBASE_WEB_API_KEY": "AIzaSyBDCTRkDbXpsnLzfpewRaOEo3-LOgxv-p8",
+                "GOOGLE_SERVICE_ACCOUNT_JSON_PATH": "tutti-lingo-google-cloud-service-account.json"
+            },
+            "vmAdditionalArgs": ["--observe"]
+        },
+        {
+            "name": "App (Debug)",
             "request": "launch",
             "type": "dart",
             "args": [
+                "--web-hostname=localhost",
+                "--web-port=55555",
                 "--dart-define", "GOOGLE_API_KEY=AIzaSyBWRL9u_XeJceL4kjL_82gOVfEhCeloqrI",
-                "--dart-define", "DEEPGRAM_API_KEY=REDACTED_DEEPGRAM_API_KEY"
+                "--dart-define", "DEEPGRAM_API_KEY=REDACTED_DEEPGRAM_API_KEY",
             ],
         },
         {
@@ -33,5 +48,12 @@
                 "--dart-define", "DEEPGRAM_API_KEY=REDACTED_DEEPGRAM_API_KEY"
             ],
         }
-    ]
+    ],
+    "compounds": [
+    {
+      "name": "Server & App",
+      "configurations": ["Server (Debug)", "App (Debug)"],
+      "stopAll": true
+    }
+  ]
 }
