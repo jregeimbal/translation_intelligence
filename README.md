@@ -1,28 +1,55 @@
 # Translation Intelligence
 
-This Flutter demo streams Spanish speech to Deepgram for recognition,
-displays the transcript, translates each message to English using the Google
-Cloud Translation API, and plays back the English translation with the Google
-Cloud Text‑to‑Speech API.  Translations are rendered under the original chat
-message and also spoken aloud for the user.
+This Flutter app captures speech locally, uses Deepgram for live recognition,
+and now sends translation and text-to-speech requests through a Dart backend.
+The backend keeps Google Cloud and Deepgram TTS credentials outside the app
+binary and protects its endpoints with Firebase Anonymous Auth.
 
 ## Requirements
 
 * Flutter SDK
-* A Google Cloud API key with the **Translation API** and **Text‑to‑Speech API**
-enabled
-* A Deepgram API key (set `DEEPGRAM_API_KEY`) for speech recognition
+* Flutter SDK
+* Dart SDK
+* A Firebase project with Anonymous Auth enabled
+* A Google Cloud service account with Translation and Text-to-Speech access
+* A Deepgram API key for speech recognition and Deepgram TTS
 
 ## Setup & Run
 
-Provide the API keys when launching the app (dart-define is used
-here):
+Configure the Flutter app with a `.env` file:
+
+```bash
+API_BASE_URL=https://your-api.example.com
+DEEPGRAM_API_KEY=your_deepgram_key
+```
+```
+
+Run the app:
 
 ```bash
 flutter pub get
-flutter run \
-  --dart-define=GOOGLE_API_KEY=your_key_here \
-  --dart-define=DEEPGRAM_API_KEY=your_key_here
+flutter run
+```
+
+Firebase client configuration should be generated with FlutterFire and committed
+via files like `lib/firebase_options.dart` and `android/app/google-services.json`.
+
+Configure the backend with environment variables:
+
+```bash
+export FIREBASE_PROJECT_ID=your_project_id
+export FIREBASE_WEB_API_KEY=your_firebase_web_api_key
+export DEEPGRAM_API_KEY=your_deepgram_key
+export GOOGLE_SERVICE_ACCOUNT_JSON_PATH=/absolute/path/to/service-account.json
+export ALLOWED_ORIGINS=https://your-app.example.com,http://localhost:3000
+```
+
+Run the backend:
+
+```bash
+cd server
+dart pub get
+dart run bin/server.dart
 ```
 
 ## Testing with coverage
@@ -41,8 +68,8 @@ and prints output in this format:
 Total coverage: 87.42% (312/357 lines)
 ```
 
-If the key is missing or invalid the app continues to recognize speech but
-skips the translation/tts steps.
+If backend initialization fails, the app shows a startup error instead of
+shipping or asking for cloud credentials locally.
 
 ## Theme selection
 
@@ -75,7 +102,11 @@ If omitted, the app uses `HyperListenTheme`.
   immediately above the footer, keeping the footer focused on recording.
 * A language selector in the app bar allows translating into any supported Nova‑3
   language; the default target is English (`en`).
-* API interactions are implemented with plain HTTP calls for simplicity;
-  you may substitute the official Google Cloud client libraries if desired.
+* Phase 1 moves Google Translation, Google TTS, and Deepgram TTS behind the
+  backend. Live Deepgram STT still runs directly from the app for now.
+* The backend exposes `GET /v1/health`, `GET /v1/capabilities`,
+  `POST /v1/translate`, and `POST /v1/tts`.
+* The app authenticates to the backend with Firebase Anonymous Auth bearer
+  tokens.
 
 ---
