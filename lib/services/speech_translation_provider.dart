@@ -4,9 +4,9 @@ extension SpeechTranslationProviderLabel on SpeechTranslationProvider {
   String get label {
     switch (this) {
       case SpeechTranslationProvider.google:
-        return 'Google Cloud';
+        return 'Google Cloud (Backend)';
       case SpeechTranslationProvider.googleMlKit:
-        return 'Google ML Kit';
+        return 'Google ML Kit (Legacy)';
     }
   }
 }

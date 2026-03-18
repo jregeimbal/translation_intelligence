@@ -35,7 +35,6 @@ class SpeechController extends ChangeNotifier {
   AudioPlayer? _audioPlayer;
   final AudioPlaybackQueue _audioPlaybackQueue = AudioPlaybackQueue();
   final String googleApiKey;
-
   bool _speechEnabled = false; // speech service + permission
   bool _isListening = false;
   bool _audioPlaybackEnabled = true;
@@ -68,8 +67,8 @@ class SpeechController extends ChangeNotifier {
   int? preferredSpeaker;
 
   SpeechController({
-    required this.googleApiKey,
-    required String deepgramApiKey,
+    this.googleApiKey = '',
+    String deepgramApiKey = '',
     BackendApiClient? backendApiClient,
     BackendSttClient? backendSttClient,
     SpeechPipeline? speechPipeline,

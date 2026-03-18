@@ -75,6 +75,10 @@ The backend is Cloud Run-hardened with structured JSON logging, request IDs,
 Cloud Trace correlation from `x-cloud-trace-context`, per-instance rate limits,
 and websocket session metrics for `/v1/stt/live`.
 
+The production app now routes cloud STT, translation, and TTS through the
+backend. Legacy on-device/test compatibility paths may still exist in code, but
+the shipped app no longer depends on bundled Deepgram or Google cloud secrets.
+
 ## Theme selection
 
 Set `APP_THEME` in your `.env` file to choose the app theme:

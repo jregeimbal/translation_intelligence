@@ -6,7 +6,7 @@ import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/models/speech_recognition_models.dart';
-import 'package:translation_intelligence/services/deepgram_service.dart';
+import 'package:translation_intelligence/services/deepgram_recognition_catalog.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_to_text_service.dart';
@@ -40,9 +40,10 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   SpeechSttProvider _sttProvider = SpeechSttProvider.deepgram;
   SpeechTranslationProvider _translationProvider =
       SpeechTranslationProvider.google;
-  String _deepgramRecognitionModel = DeepgramService.defaultRecognitionModel;
+  String _deepgramRecognitionModel =
+      DeepgramRecognitionCatalog.defaultRecognitionModel;
   String _deepgramRecognitionLanguage =
-      DeepgramService.defaultRecognitionLanguage;
+      DeepgramRecognitionCatalog.defaultRecognitionLanguage;
   String _speechToTextRecognitionLocale =
       SpeechToTextService.defaultRecognitionLanguage;
   Map<String, String> _speechToTextRecognitionLocales = const {
@@ -125,11 +126,11 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
 
   @override
   List<String> get deepgramRecognitionModels =>
-      DeepgramService.supportedRecognitionModels;
+      DeepgramRecognitionCatalog.supportedRecognitionModels;
 
   @override
   Map<String, String> get deepgramRecognitionLanguages =>
-      DeepgramService
+      DeepgramRecognitionCatalog
           .supportedRecognitionLanguagesByModel[_deepgramRecognitionModel] ??
       const <String, String>{};
 

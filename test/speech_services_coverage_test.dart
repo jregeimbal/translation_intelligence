@@ -10,6 +10,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text_platform_interface/speech_to_text_platform_interface.dart';
+import 'package:translation_intelligence/services/deepgram_recognition_catalog.dart';
 import 'package:translation_intelligence/services/deepgram_service.dart';
 import 'package:translation_intelligence/services/google_speech_service.dart';
 import 'package:translation_intelligence/services/mlkit_translation_service.dart';
@@ -554,18 +555,18 @@ void main() {
     });
 
     test('supported recognition options expose defaults and choices', () {
-      expect(DeepgramService.supportedRecognitionModels, contains('nova-3'));
+      expect(DeepgramRecognitionCatalog.supportedRecognitionModels, contains('nova-3'));
       expect(
-        DeepgramService.supportedRecognitionModels,
+        DeepgramRecognitionCatalog.supportedRecognitionModels,
         contains('nova-3-medical'),
       );
       expect(
-        DeepgramService
+        DeepgramRecognitionCatalog
             .supportedRecognitionLanguagesByModel['nova-3']?['Multi'],
         equals('multi'),
       );
       expect(
-        DeepgramService
+        DeepgramRecognitionCatalog
             .supportedRecognitionLanguagesByModel['nova-3-medical']?['English'],
         equals('en'),
       );
@@ -875,11 +876,11 @@ void main() {
       );
       expect(
         pipeline.deepgramRecognitionModel,
-        equals(DeepgramService.defaultRecognitionModel),
+        equals(DeepgramRecognitionCatalog.defaultRecognitionModel),
       );
       expect(
         pipeline.deepgramRecognitionLanguage,
-        equals(DeepgramService.defaultRecognitionLanguage),
+        equals(DeepgramRecognitionCatalog.defaultRecognitionLanguage),
       );
       expect(pipeline.deepgramRecognitionModels, contains('nova-3-medical'));
 
@@ -891,7 +892,7 @@ void main() {
 
       pipeline.setDeepgramRecognitionModel('nova-3-medical');
       expect(pipeline.deepgramRecognitionModel, equals('nova-3-medical'));
-      expect(pipeline.deepgramRecognitionLanguage, equals('multi'));
+      expect(pipeline.deepgramRecognitionLanguage, equals('en'));
 
       pipeline.setDeepgramRecognitionLanguage('en-GB');
       expect(pipeline.deepgramRecognitionLanguage, equals('en-GB'));

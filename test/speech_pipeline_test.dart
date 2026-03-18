@@ -5,13 +5,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
+import 'package:translation_intelligence/services/backend_api_client.dart';
+import 'package:translation_intelligence/services/backend_stt_client.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
 
 class _FakeSpeechPipeline extends SpeechPipeline {
-  _FakeSpeechPipeline() : super(googleApiKey: '', deepgramApiKey: '');
+  _FakeSpeechPipeline()
+    : super(
+        backendApiClient: BackendApiClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token',
+        ),
+        backendSttClient: BackendSttClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token',
+        ),
+      );
 
   bool apiKeyValid = true;
   int startRecognitionCalls = 0;
@@ -81,8 +93,14 @@ void main() {
     setUp(() {
       hasPermission = true;
       controller = SpeechController(
-        googleApiKey: '',
-        deepgramApiKey: 'test-key',
+        backendApiClient: BackendApiClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token',
+        ),
+        backendSttClient: BackendSttClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token',
+        ),
       );
     });
 
@@ -184,10 +202,10 @@ void main() {
 
       controller.setOutputProvider(SpeechOutputProvider.deepgram);
       controller.setSttProvider(SpeechSttProvider.google);
-      controller.setTranslationProvider(SpeechTranslationProvider.googleMlKit);
+      controller.setTranslationProvider(SpeechTranslationProvider.google);
       controller.setDeepgramRecognitionModel('nova-3-medical');
       controller.setDeepgramRecognitionLanguage('en-US');
-      expect(notifications, equals(5));
+      expect(notifications, equals(4));
     });
 
     test(
@@ -204,8 +222,14 @@ void main() {
     test('init sets speechError when API key validation fails', () async {
       final fakePipeline = _FakeSpeechPipeline()..apiKeyValid = false;
       final localController = SpeechController(
-        googleApiKey: '',
-        deepgramApiKey: 'test-key',
+        backendApiClient: BackendApiClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token',
+        ),
+        backendSttClient: BackendSttClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token',
+        ),
         speechPipeline: fakePipeline,
       );
       addTearDown(localController.dispose);
@@ -228,8 +252,14 @@ void main() {
             stop: () async {},
           );
         final localController = SpeechController(
-          googleApiKey: '',
-          deepgramApiKey: 'test-key',
+          backendApiClient: BackendApiClient(
+            baseUrl: 'https://api.example.com',
+            authTokenProvider: () async => 'token',
+          ),
+          backendSttClient: BackendSttClient(
+            baseUrl: 'https://api.example.com',
+            authTokenProvider: () async => 'token',
+          ),
           speechPipeline: fakePipeline,
         );
         addTearDown(() async {
@@ -256,8 +286,14 @@ void main() {
       () async {
         final fakePipeline = _FakeSpeechPipeline();
         final localController = SpeechController(
-          googleApiKey: '',
-          deepgramApiKey: 'test-key',
+          backendApiClient: BackendApiClient(
+            baseUrl: 'https://api.example.com',
+            authTokenProvider: () async => 'token',
+          ),
+          backendSttClient: BackendSttClient(
+            baseUrl: 'https://api.example.com',
+            authTokenProvider: () async => 'token',
+          ),
           speechPipeline: fakePipeline,
         );
         addTearDown(localController.dispose);
