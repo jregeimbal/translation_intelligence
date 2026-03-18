@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:translation_intelligence/services/deepgram_service.dart';
 
@@ -13,11 +12,14 @@ const _runDeepgramE2E = bool.fromEnvironment(
 );
 
 const _sampleEnWavPath = 'assets/OSR_us_000_0010_8k.wav';
-const _sampleEnWavContent = 'the birch canoe slid on the smooth planks. glue the sheet to the dark blue background. it is easy to tell the depth of a well. these days a chicken leg is a rare dish. rice is often served in round bowls. the juice of lemons makes fine punch. the box was thrown beside the park truck. the hogs were fed chopped corn and garbage. four hours of steady work faced us. a large size in stockings is hard to sell.';
+const _sampleEnWavContent =
+    'the birch canoe slid on the smooth planks. glue the sheet to the dark blue background. it is easy to tell the depth of a well. these days a chicken leg is a rare dish. rice is often served in round bowls. the juice of lemons makes fine punch. the box was thrown beside the park truck. the hogs were fed chopped corn and garbage. four hours of steady work faced us. a large size in stockings is hard to sell.';
 const _sampleFrWavPath = 'assets/OSR_fr_000_0041_8k.wav';
-const _sampleFrWavContent = 'pourrais-je avoir un verre d\'eau. la s n c f assurera un train sur trois. les coupoles de l\'immense palais s\'écroulèrent. on apercevait la voile blanche du petit bateau. ils ne sont-ils ni douleurs ni scousses. sois toujours plus têtu que la mer tu gagneras. les langues vont bon train. le soleil joue à cache-cache avec les nuages. l\'animal le regarde avec reconnaissance. ils sont juste en face sur le toit. parfois ils me questionnent sur ma vie. je garde un souvenir ému de lui. la brebis est dans sa litière sèche. c\'est véritablement le nerf de la guerre. d\'habitude j\'ai des outils pour faire ça. nous nous sentions tristes et très abattus. sa discrétion m\'étonna énormément. comprenez-vous ma joie.';
+const _sampleFrWavContent =
+    'pourrais-je avoir un verre d\'eau. la s n c f assurera un train sur trois. les coupoles de l\'immense palais s\'écroulèrent. on apercevait la voile blanche du petit bateau. ils ne sont-ils ni douleurs ni scousses. sois toujours plus têtu que la mer tu gagneras. les langues vont bon train. le soleil joue à cache-cache avec les nuages. l\'animal le regarde avec reconnaissance. ils sont juste en face sur le toit. parfois ils me questionnent sur ma vie. je garde un souvenir ému de lui. la brebis est dans sa litière sèche. c\'est véritablement le nerf de la guerre. d\'habitude j\'ai des outils pour faire ça. nous nous sentions tristes et très abattus. sa discrétion m\'étonna énormément. comprenez-vous ma joie.';
 const _sampleHiWavPath = 'assets/OSR_in_000_0062_16k.wav';
-const _sampleHiWavContent = 'the birch canoe slid on the smooth planks. glue the sheet to the dark blue background. it is easy to tell the depth of a well. these days a chicken leg is a rare dish. rice is often served in round bowls. the juice of lemons makes fine punch. the box was thrown beside the park truck. the hogs were fed chopped corn and garbage. four hours of steady work faced us. a large size in stockings is hard to sell.';
+const _sampleHiWavContent =
+    'the birch canoe slid on the smooth planks. glue the sheet to the dark blue background. it is easy to tell the depth of a well. these days a chicken leg is a rare dish. rice is often served in round bowls. the juice of lemons makes fine punch. the box was thrown beside the park truck. the hogs were fed chopped corn and garbage. four hours of steady work faced us. a large size in stockings is hard to sell.';
 
 Stream<Uint8List> _generatePcmSineWaveStream({
   int sampleRate = 16000,
@@ -37,10 +39,10 @@ Stream<Uint8List> _generatePcmSineWaveStream({
 
     for (var i = 0; i < count; i++) {
       final t = (sampleIndex + i) / sampleRate;
-      final sample = (math.sin(2 * math.pi * frequencyHz * t) *
-              (32767 * amplitude))
-          .round()
-          .clamp(-32768, 32767);
+      final sample =
+          (math.sin(2 * math.pi * frequencyHz * t) * (32767 * amplitude))
+              .round()
+              .clamp(-32768, 32767);
       view.setInt16(i * 2, sample, Endian.little);
     }
 
@@ -105,15 +107,14 @@ void main() {
   late DeepgramService service;
 
   setUpAll(() async {
-    await dotenv.load();
-    apiKey = dotenv.get('DEEPGRAM_API_KEY', fallback: '').trim();
+    apiKey = Platform.environment['DEEPGRAM_API_KEY']?.trim() ?? '';
     service = DeepgramService(apiKey: apiKey);
   });
 
   group('DeepgramService E2E', () {
     void ensureApiKeyPresent() {
       if (apiKey.isEmpty) {
-        fail('DEEPGRAM_API_KEY is missing in .env');
+        fail('DEEPGRAM_API_KEY is missing in the environment');
       }
     }
 
@@ -179,7 +180,8 @@ void main() {
         ensureApiKeyPresent();
         await ensureApiKeyAuthenticates();
         final bytes = await service.synthesizeSpeech(
-          text: 'Esta es una prueba de Deepgram de extremo a extremo en español.',
+          text:
+              'Esta es una prueba de Deepgram de extremo a extremo en español.',
           languageCode: 'es-ES',
         );
 
@@ -241,20 +243,23 @@ void main() {
           sampleRate: '8000',
           interimResults: false,
           punctuate: true,
-          smartFormat: true
+          smartFormat: true,
         );
 
         final results = await recognitionStream
             .timeout(const Duration(seconds: 40))
             .toList();
 
-        final resultsAsText = '${results.map((r) => r.wordsToText()).where((r) => r.isNotEmpty).join('. ')}.';
+        final resultsAsText =
+            '${results.map((r) => r.wordsToText()).where((r) => r.isNotEmpty).join('. ')}.';
         expect(resultsAsText, equals(_sampleEnWavContent));
       },
       skip: !_runDeepgramE2E
           ? 'Set RUN_DEEPGRAM_E2E=true to run live Deepgram API tests.'
           : false,
-      timeout: const Timeout(Duration(seconds: 60)), // timeout: const Timeout(Duration(seconds: 60))},
+      timeout: const Timeout(
+        Duration(seconds: 60),
+      ), // timeout: const Timeout(Duration(seconds: 60))},
     );
 
     test(
@@ -281,20 +286,23 @@ void main() {
           model: 'nova-3',
           language: 'fr',
           sampleRate: '8000',
-          interimResults: false
+          interimResults: false,
         );
 
         final results = await recognitionStream
             .timeout(const Duration(seconds: 40))
             .toList();
 
-        final resultsAsText = '${results.map((r) => r.wordsToText()).where((r) => r.isNotEmpty).join('. ')}.';
+        final resultsAsText =
+            '${results.map((r) => r.wordsToText()).where((r) => r.isNotEmpty).join('. ')}.';
         expect(resultsAsText, equals(_sampleFrWavContent));
       },
       skip: !_runDeepgramE2E
           ? 'Set RUN_DEEPGRAM_E2E=true to run live Deepgram API tests.'
           : false,
-      timeout: const Timeout(Duration(seconds: 90)), // timeout: const Timeout(Duration(seconds: 60))},
+      timeout: const Timeout(
+        Duration(seconds: 90),
+      ), // timeout: const Timeout(Duration(seconds: 60))},
     );
 
     test(
@@ -321,20 +329,23 @@ void main() {
           model: 'nova-3',
           language: 'hi',
           sampleRate: '16000',
-          interimResults: false
+          interimResults: false,
         );
 
         final results = await recognitionStream
             .timeout(const Duration(seconds: 40))
             .toList();
 
-        final resultsAsText = '${results.map((r) => r.wordsToText()).where((r) => r.isNotEmpty).join('. ')}.';
+        final resultsAsText =
+            '${results.map((r) => r.wordsToText()).where((r) => r.isNotEmpty).join('. ')}.';
         expect(resultsAsText, equals(_sampleHiWavContent));
       },
       skip: !_runDeepgramE2E
           ? 'Set RUN_DEEPGRAM_E2E=true to run live Deepgram API tests.'
           : 'Not passing, need to debug',
-      timeout: const Timeout(Duration(seconds: 40)), // timeout: const Timeout(Duration(seconds: 60))},
+      timeout: const Timeout(
+        Duration(seconds: 40),
+      ), // timeout: const Timeout(Duration(seconds: 60))},
     );
   });
 }

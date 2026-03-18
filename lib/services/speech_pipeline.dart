@@ -10,6 +10,7 @@ import '../models/playback_device.dart';
 import '../models/speech_recognition_models.dart';
 import '../models/speech_recognition_session.dart';
 import 'backend_api_client.dart';
+import 'backend_stt_client.dart';
 import 'deepgram_service.dart';
 import 'google_speech_service.dart';
 import 'mlkit_translation_service.dart';
@@ -42,6 +43,7 @@ class SpeechPipeline {
   final DeepgramService _deepgramSpeechService;
   final GoogleSpeechService _googleSpeechService;
   final BackendApiClient? _backendApiClient;
+  final BackendSttClient? _backendSttClient;
   final SpeechToTextService _speechToTextService;
   final MlKitTranslationService _mlKitTranslationService;
   SpeechOutputProvider _outputProvider;
@@ -62,6 +64,7 @@ class SpeechPipeline {
     SpeechTranslationProvider initialTranslationProvider =
         SpeechTranslationProvider.google,
     BackendApiClient? backendApiClient,
+    BackendSttClient? backendSttClient,
     DeepgramService? recognitionService,
     DeepgramService? deepgramSpeechService,
     GoogleSpeechService? googleSpeechService,
@@ -75,6 +78,7 @@ class SpeechPipeline {
            googleSpeechService ??
            GoogleSpeechService(googleApiKey: googleApiKey),
        _backendApiClient = backendApiClient,
+       _backendSttClient = backendSttClient,
        _speechToTextService = speechToTextService ?? SpeechToTextService(),
        _mlKitTranslationService =
            mlKitTranslationService ?? MlKitTranslationService(),
@@ -250,6 +254,11 @@ class SpeechPipeline {
   Future<bool> isSpeechApiKeyValid() async {
     switch (_sttProvider) {
       case SpeechSttProvider.deepgram:
+        final backendSttClient = _backendSttClient;
+        final backendApiClient = _backendApiClient;
+        if (backendSttClient != null && backendApiClient != null) {
+          return backendApiClient.isAuthenticated();
+        }
         return _recognitionService.isApiKeyValid();
       case SpeechSttProvider.google:
         await refreshSpeechToTextRecognitionLocales();
@@ -275,6 +284,24 @@ class SpeechPipeline {
     switch (_sttProvider) {
       case SpeechSttProvider.deepgram:
         final capture = await startMicrophoneCapture(recorder);
+        final backendSttClient = _backendSttClient;
+        if (backendSttClient != null) {
+          return backendSttClient.startRecognitionSession(
+            audioStream: capture.audioStream,
+            amplitudeStream: capture.amplitudeStream,
+            stopCapture: capture.stop,
+            sampleRate: capture.sampleRate,
+            sourceLanguage: sourceLanguage,
+            model: _deepgramRecognitionModel,
+            language: _deepgramRecognitionLanguage,
+            diarize: diarize,
+            utterances: utterances,
+            punctuate: punctuate,
+            smartFormat: smartFormat,
+            detectLanguage: detectLanguage,
+            listeningDeviceId: _listeningDeviceId,
+          );
+        }
         final resultStream = startLiveRecognition(
           capture.audioStream,
           sourceLanguage: sourceLanguage,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
@@ -31,9 +32,25 @@ Future<void> main() async {
 void _configureLogging() {
   Logger.root.level = Level.INFO;
   Logger.root.onRecord.listen((record) {
+    final message = record.message;
+    if (_looksLikeJson(message)) {
+      stderr.writeln(message);
+      return;
+    }
+
     stderr.writeln(
-      '${record.time.toIso8601String()} ${record.level.name} '
-      '${record.loggerName}: ${record.message}',
+      jsonEncode({
+        'timestamp': record.time.toIso8601String(),
+        'severity': record.level.name,
+        'logger': record.loggerName,
+        'message': message,
+        if (record.error != null) 'error': '${record.error}',
+      }),
     );
   });
+}
+
+bool _looksLikeJson(String message) {
+  final trimmed = message.trimLeft();
+  return trimmed.startsWith('{') && trimmed.endsWith('}');
 }

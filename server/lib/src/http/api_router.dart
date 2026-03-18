@@ -21,7 +21,6 @@ class ApiRouter {
   final TranslationService _translationService;
   final TtsService _googleTtsService;
   final TtsService _deepgramTtsService;
-
   Router get router {
     final router = Router();
     router.get('/v1/health', _health);
@@ -39,6 +38,7 @@ class ApiRouter {
     return jsonResponse({
       'translationProviders': ['google'],
       'ttsProviders': ['google', 'deepgram'],
+      'sttProviders': ['deepgram', 'google'],
       'status': 'ok',
     });
   }

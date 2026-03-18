@@ -20,8 +20,6 @@ Configure the Flutter app with a `.env` file:
 
 ```bash
 API_BASE_URL=https://your-api.example.com
-DEEPGRAM_API_KEY=your_deepgram_key
-```
 ```
 
 Run the app:
@@ -42,6 +40,8 @@ export FIREBASE_WEB_API_KEY=your_firebase_web_api_key
 export DEEPGRAM_API_KEY=your_deepgram_key
 export GOOGLE_SERVICE_ACCOUNT_JSON_PATH=/absolute/path/to/service-account.json
 export ALLOWED_ORIGINS=https://your-app.example.com,http://localhost:3000
+export HTTP_RATE_LIMIT_PER_MINUTE=120
+export WEBSOCKET_SESSION_RATE_LIMIT_PER_MINUTE=30
 ```
 
 Run the backend:
@@ -70,6 +70,10 @@ Total coverage: 87.42% (312/357 lines)
 
 If backend initialization fails, the app shows a startup error instead of
 shipping or asking for cloud credentials locally.
+
+The backend is Cloud Run-hardened with structured JSON logging, request IDs,
+Cloud Trace correlation from `x-cloud-trace-context`, per-instance rate limits,
+and websocket session metrics for `/v1/stt/live`.
 
 ## Theme selection
 
