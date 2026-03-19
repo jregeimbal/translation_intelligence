@@ -85,9 +85,6 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   List<ChatMessage> get chatMessages => List.unmodifiable(_chatMessages);
 
   @override
-  String get googleApiKey => '';
-
-  @override
   bool get isListening => _isListening;
 
   @override
