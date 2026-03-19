@@ -20,8 +20,7 @@ class _FakeTtsSpeechPipeline extends SpeechPipeline {
   int translateCallCount = 0;
   Uint8List synthesizeBytes = Uint8List(0);
 
-  _FakeTtsSpeechPipeline()
-    : super(googleApiKey: 'test-google', deepgramApiKey: 'test-deepgram');
+  _FakeTtsSpeechPipeline() : super(deepgramApiKey: 'test-deepgram');
 
   @override
   Future<bool> isSpeechApiKeyValid() async => true;
@@ -135,7 +134,6 @@ void main() {
     setUp(() {
       pipeline = _FakeTtsSpeechPipeline();
       controller = SpeechController(
-        googleApiKey: 'test-google',
         deepgramApiKey: 'test-deepgram',
         speechPipeline: pipeline,
         finalResultGroupingWindow: Duration.zero,
@@ -227,7 +225,6 @@ void main() {
       () async {
         final groupedPipeline = _FakeTtsSpeechPipeline();
         final groupedController = SpeechController(
-          googleApiKey: 'test-google',
           deepgramApiKey: 'test-deepgram',
           speechPipeline: groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 120),
@@ -279,7 +276,6 @@ void main() {
       () async {
         final groupedPipeline = _FakeTtsSpeechPipeline();
         final groupedController = SpeechController(
-          googleApiKey: 'test-google',
           deepgramApiKey: 'test-deepgram',
           speechPipeline: groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 250),
@@ -337,7 +333,6 @@ void main() {
       () async {
         final groupedPipeline = _FakeTtsSpeechPipeline();
         final groupedController = SpeechController(
-          googleApiKey: 'test-google',
           deepgramApiKey: 'test-deepgram',
           speechPipeline: groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 120),
@@ -377,7 +372,6 @@ void main() {
         groupedPipeline.synthesizeBytes = Uint8List.fromList([1, 2, 3]);
 
         final groupedController = SpeechController(
-          googleApiKey: 'test-google',
           deepgramApiKey: 'test-deepgram',
           speechPipeline: groupedPipeline,
           finalResultGroupingWindow: Duration.zero,
@@ -421,7 +415,6 @@ void main() {
         groupedPipeline.synthesizeBytes = Uint8List.fromList([1, 2, 3]);
 
         final groupedController = SpeechController(
-          googleApiKey: 'test-google',
           deepgramApiKey: 'test-deepgram',
           speechPipeline: groupedPipeline,
           finalResultGroupingWindow: Duration.zero,

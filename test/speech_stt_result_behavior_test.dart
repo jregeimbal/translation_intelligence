@@ -14,11 +14,7 @@ class _FakeSpeechPipeline extends SpeechPipeline {
 
   int synthesizeCallCount = 0;
 
-  _FakeSpeechPipeline()
-      : super(
-          googleApiKey: 'test-google',
-          deepgramApiKey: 'test-deepgram',
-        );
+  _FakeSpeechPipeline() : super(deepgramApiKey: 'test-deepgram');
 
   @override
   Future<bool> isSpeechApiKeyValid() async => true;
@@ -80,21 +76,21 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(audioGlobalChannel, (call) async {
-      return null;
-    });
+          return null;
+        });
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(recordChannel, (call) async {
-      if (call.method == 'hasPermission') {
-        return true;
-      }
-      return null;
-    });
+          if (call.method == 'hasPermission') {
+            return true;
+          }
+          return null;
+        });
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(wakelockChannel, (call) async {
-      return null;
-    });
+          return null;
+        });
   });
 
   tearDownAll(() {
@@ -113,7 +109,6 @@ void main() {
     setUp(() {
       pipeline = _FakeSpeechPipeline();
       controller = SpeechController(
-        googleApiKey: 'test-google',
         deepgramApiKey: 'test-deepgram',
         speechPipeline: pipeline,
         finalResultGroupingWindow: Duration.zero,
@@ -126,54 +121,60 @@ void main() {
       await pipeline.disposeFake();
     });
 
-    test('partial recognition updates transcript without creating message', () async {
-      await controller.init();
-      await controller.startListening();
+    test(
+      'partial recognition updates transcript without creating message',
+      () async {
+        await controller.init();
+        await controller.startListening();
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'hello partial',
-          isFinal: false,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hello partial',
+            isFinal: false,
+          ),
+        );
 
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'hello partial',
-          isFinal: false,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hello partial',
+            isFinal: false,
+          ),
+        );
 
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      final optimistic = controller.getOptimisticMessages();
-      expect(optimistic.length, equals(1));
-      expect(optimistic.first.original, equals('hello partial'));
-      expect(controller.chatMessages, isEmpty);
-      expect(pipeline.synthesizeCallCount, equals(0));
-    });
+        final optimistic = controller.getOptimisticMessages();
+        expect(optimistic.length, equals(1));
+        expect(optimistic.first.original, equals('hello partial'));
+        expect(controller.chatMessages, isEmpty);
+        expect(pipeline.synthesizeCallCount, equals(0));
+      },
+    );
 
-    test('final recognition commits message and clears live transcript', () async {
-      await controller.init();
-      await controller.startListening();
+    test(
+      'final recognition commits message and clears live transcript',
+      () async {
+        await controller.init();
+        await controller.startListening();
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'hello final',
-          isFinal: true,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hello final',
+            isFinal: true,
+          ),
+        );
 
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(controller.chatMessages.length, equals(1));
-      expect(controller.chatMessages.first.original, equals('hello final.'));
-      expect(controller.getOptimisticMessages(), isEmpty);
-      expect(pipeline.synthesizeCallCount, equals(1));
-    });
+        expect(controller.chatMessages.length, equals(1));
+        expect(controller.chatMessages.first.original, equals('hello final.'));
+        expect(controller.getOptimisticMessages(), isEmpty);
+        expect(pipeline.synthesizeCallCount, equals(1));
+      },
+    );
 
     test('speechFinal advances non-final words to queue and commits', () async {
       await controller.init();
@@ -191,7 +192,10 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(controller.chatMessages.length, equals(1));
-      expect(controller.chatMessages.first.original, equals('hello speech final.'));
+      expect(
+        controller.chatMessages.first.original,
+        equals('hello speech final.'),
+      );
       expect(controller.getOptimisticMessages(), isEmpty);
       expect(pipeline.synthesizeCallCount, equals(1));
     });
@@ -220,7 +224,10 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(controller.chatMessages.length, equals(1));
-      expect(controller.chatMessages.first.original, equals('buffered partial.'));
+      expect(
+        controller.chatMessages.first.original,
+        equals('buffered partial.'),
+      );
       expect(controller.getOptimisticMessages(), isEmpty);
       expect(pipeline.synthesizeCallCount, equals(1));
     });
@@ -228,7 +235,6 @@ void main() {
     test('speechFinal result is committed after grouping window', () async {
       final groupedPipeline = _FakeSpeechPipeline();
       final groupedController = SpeechController(
-        googleApiKey: 'test-google',
         deepgramApiKey: 'test-deepgram',
         speechPipeline: groupedPipeline,
         finalResultGroupingWindow: const Duration(milliseconds: 30),
@@ -249,7 +255,10 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 40));
 
       expect(groupedController.chatMessages.length, equals(1));
-      expect(groupedController.chatMessages.first.original, equals('hello final.'));
+      expect(
+        groupedController.chatMessages.first.original,
+        equals('hello final.'),
+      );
       expect(groupedController.getOptimisticMessages(), isEmpty);
       expect(groupedPipeline.synthesizeCallCount, equals(1));
 
@@ -266,43 +275,49 @@ void main() {
       await groupedPipeline.disposeFake();
     });
 
-    test('stopping with partial transcript commits pending STT words', () async {
-      await controller.init();
-      await controller.startListening();
+    test(
+      'stopping with partial transcript commits pending STT words',
+      () async {
+        await controller.init();
+        await controller.startListening();
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'pending partial',
-          isFinal: false,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'pending partial',
+            isFinal: false,
+          ),
+        );
 
-      await Future<void>.delayed(Duration.zero);
-      await controller.stopListening();
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        await controller.stopListening();
+        await Future<void>.delayed(Duration.zero);
 
-      expect(controller.chatMessages.length, equals(1));
-      expect(controller.chatMessages.first.original, equals('pending partial.'));
-      expect(controller.getOptimisticMessages(), isEmpty);
-    });
+        expect(controller.chatMessages.length, equals(1));
+        expect(
+          controller.chatMessages.first.original,
+          equals('pending partial.'),
+        );
+        expect(controller.getOptimisticMessages(), isEmpty);
+      },
+    );
 
-    test('empty final result does not create messages or trigger TTS', () async {
-      await controller.init();
-      await controller.startListening();
+    test(
+      'empty final result does not create messages or trigger TTS',
+      () async {
+        await controller.init();
+        await controller.startListening();
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: '',
-          isFinal: true,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(transcript: '', isFinal: true),
+        );
 
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(controller.chatMessages, isEmpty);
-      expect(controller.getOptimisticMessages(), isEmpty);
-      expect(pipeline.synthesizeCallCount, equals(0));
-    });
+        expect(controller.chatMessages, isEmpty);
+        expect(controller.getOptimisticMessages(), isEmpty);
+        expect(pipeline.synthesizeCallCount, equals(0));
+      },
+    );
 
     test('later partial result replaces earlier partial transcript', () async {
       await controller.init();
@@ -381,79 +396,82 @@ void main() {
       expect(controller.chatMessages.first.original, equals('actual words.'));
     });
 
-    test('optimistic messages expose pending final transcript before commit', () async {
-      final groupedPipeline = _FakeSpeechPipeline();
-      final groupedController = SpeechController(
-        googleApiKey: 'test-google',
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
-        finalResultGroupingWindow: const Duration(milliseconds: 120),
-      );
+    test(
+      'optimistic messages expose pending final transcript before commit',
+      () async {
+        final groupedPipeline = _FakeSpeechPipeline();
+        final groupedController = SpeechController(
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 120),
+        );
 
-      await groupedController.init();
-      await groupedController.startListening();
+        await groupedController.init();
+        await groupedController.startListening();
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'buffered final',
-          isFinal: true,
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'buffered final',
+            isFinal: true,
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      final optimistic = groupedController.getOptimisticMessages();
-      expect(groupedController.chatMessages, isEmpty);
-      expect(optimistic.length, equals(1));
-      expect(optimistic.first.original, equals('buffered final'));
+        final optimistic = groupedController.getOptimisticMessages();
+        expect(groupedController.chatMessages, isEmpty);
+        expect(optimistic.length, equals(1));
+        expect(optimistic.first.original, equals('buffered final'));
 
-      await groupedController.stopListening();
-      groupedController.dispose();
-      await groupedPipeline.disposeFake();
-    });
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
 
-    test('optimistic messages expose pending diarized finals by speaker', () async {
-      final groupedPipeline = _FakeSpeechPipeline();
-      final groupedController = SpeechController(
-        googleApiKey: 'test-google',
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
-        finalResultGroupingWindow: const Duration(milliseconds: 120),
-      );
+    test(
+      'optimistic messages expose pending diarized finals by speaker',
+      () async {
+        final groupedPipeline = _FakeSpeechPipeline();
+        final groupedController = SpeechController(
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 120),
+        );
 
-      await groupedController.init();
-      await groupedController.startListening();
+        await groupedController.init();
+        await groupedController.startListening();
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult(
-          isFinal: true,
-          words: [
-            SpeechRecognitionWord(word: 'hello', speaker: 0),
-            SpeechRecognitionWord(word: 'there', speaker: 0),
-            SpeechRecognitionWord(word: 'general', speaker: 1),
-          ],
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: true,
+            words: [
+              SpeechRecognitionWord(word: 'hello', speaker: 0),
+              SpeechRecognitionWord(word: 'there', speaker: 0),
+              SpeechRecognitionWord(word: 'general', speaker: 1),
+            ],
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      final optimistic = groupedController.getOptimisticMessages();
-      expect(groupedController.chatMessages, isEmpty);
-      expect(optimistic.length, equals(2));
-      expect(optimistic[0].original, equals('hello there'));
-      expect(optimistic[0].speaker, equals(0));
-      expect(optimistic[1].original, equals('general'));
-      expect(optimistic[1].speaker, equals(1));
+        final optimistic = groupedController.getOptimisticMessages();
+        expect(groupedController.chatMessages, isEmpty);
+        expect(optimistic.length, equals(2));
+        expect(optimistic[0].original, equals('hello there'));
+        expect(optimistic[0].speaker, equals(0));
+        expect(optimistic[1].original, equals('general'));
+        expect(optimistic[1].speaker, equals(1));
 
-      await groupedController.stopListening();
-      groupedController.dispose();
-      await groupedPipeline.disposeFake();
-    });
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
 
     test('consecutive partials overwrite optimistic messages', () async {
       final groupedPipeline = _FakeSpeechPipeline();
       final groupedController = SpeechController(
-        googleApiKey: 'test-google',
         deepgramApiKey: 'test-deepgram',
         speechPipeline: groupedPipeline,
         finalResultGroupingWindow: const Duration(milliseconds: 50),
@@ -502,7 +520,6 @@ void main() {
     test('consecutive final transcripts are grouped within window', () async {
       final groupedPipeline = _FakeSpeechPipeline();
       final groupedController = SpeechController(
-        googleApiKey: 'test-google',
         deepgramApiKey: 'test-deepgram',
         speechPipeline: groupedPipeline,
         finalResultGroupingWindow: const Duration(milliseconds: 50),
@@ -529,405 +546,444 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 80));
 
       expect(groupedController.chatMessages.length, equals(1));
-      expect(groupedController.chatMessages.first.original, equals('hello, there.'));
+      expect(
+        groupedController.chatMessages.first.original,
+        equals('hello, there.'),
+      );
 
       await groupedController.stopListening();
       groupedController.dispose();
       await groupedPipeline.disposeFake();
     });
 
-    test('consecutive final transcripts are grouped within window even when it takes awhile for second message to be final', () async {
-      final groupedPipeline = _FakeSpeechPipeline();
-      final groupedController = SpeechController(
-        googleApiKey: 'test-google',
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
-        finalResultGroupingWindow: const Duration(milliseconds: 50),
-      );
+    test(
+      'consecutive final transcripts are grouped within window even when it takes awhile for second message to be final',
+      () async {
+        final groupedPipeline = _FakeSpeechPipeline();
+        final groupedController = SpeechController(
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 50),
+        );
 
-      await groupedController.init();
-      await groupedController.startListening();
+        await groupedController.init();
+        await groupedController.startListening();
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'hello',
-          isFinal: true,
-        ),
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hello',
+            isFinal: true,
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'how are',
-          isFinal: false,
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'how are',
+            isFinal: false,
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+        await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'how are you today?',
-          isFinal: true,
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'how are you today?',
+            isFinal: true,
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 80));
+        await Future<void>.delayed(const Duration(milliseconds: 80));
 
-      expect(groupedController.chatMessages.length, equals(1));
-      expect(groupedController.chatMessages.first.original, equals('hello, how are you today?'));
+        expect(groupedController.chatMessages.length, equals(1));
+        expect(
+          groupedController.chatMessages.first.original,
+          equals('hello, how are you today?'),
+        );
 
-      await groupedController.stopListening();
-      groupedController.dispose();
-      await groupedPipeline.disposeFake();
-    });
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
 
-    test('consecutive final transcripts exceeding finalResultGroupingWindow are not grouped', () async {
-      final groupedPipeline = _FakeSpeechPipeline();
-      final groupedController = SpeechController(
-        googleApiKey: 'test-google',
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
-        finalResultGroupingWindow: const Duration(milliseconds: 50),
-      );
+    test(
+      'consecutive final transcripts exceeding finalResultGroupingWindow are not grouped',
+      () async {
+        final groupedPipeline = _FakeSpeechPipeline();
+        final groupedController = SpeechController(
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 50),
+        );
 
-      await groupedController.init();
-      await groupedController.startListening();
+        await groupedController.init();
+        await groupedController.startListening();
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'hello',
-          isFinal: true,
-        ),
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 60));
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hello',
+            isFinal: true,
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 60));
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'there',
-          isFinal: true,
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'there',
+            isFinal: true,
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 60));
+        await Future<void>.delayed(const Duration(milliseconds: 60));
 
-      expect(groupedController.chatMessages.length, equals(2));
-      expect(groupedController.chatMessages[0].original, equals('hello.'));
-      expect(groupedController.chatMessages[1].original, equals('there.'));
+        expect(groupedController.chatMessages.length, equals(2));
+        expect(groupedController.chatMessages[0].original, equals('hello.'));
+        expect(groupedController.chatMessages[1].original, equals('there.'));
 
-      await groupedController.stopListening();
-      groupedController.dispose();
-      await groupedPipeline.disposeFake();
-    });
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
 
-    test('consecutive final transcripts with final diarized words are split into speaker messages', () async {
-      await controller.init();
-      await controller.startListening();
-      controller.finalResultGroupingWindow = const Duration(milliseconds: 50);
+    test(
+      'consecutive final transcripts with final diarized words are split into speaker messages',
+      () async {
+        await controller.init();
+        await controller.startListening();
+        controller.finalResultGroupingWindow = const Duration(milliseconds: 50);
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult(
-          words: [
-            SpeechRecognitionWord(word: 'Hello', speaker: 0),
-            SpeechRecognitionWord(word: 'there', speaker: 0),
-            SpeechRecognitionWord(word: 'Help', speaker: 1),
-            SpeechRecognitionWord(word: 'me', speaker: 1),
-            SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
-            SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
-          ],
-          isFinal: false,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            words: [
+              SpeechRecognitionWord(word: 'Hello', speaker: 0),
+              SpeechRecognitionWord(word: 'there', speaker: 0),
+              SpeechRecognitionWord(word: 'Help', speaker: 1),
+              SpeechRecognitionWord(word: 'me', speaker: 1),
+              SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
+              SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
+            ],
+            isFinal: false,
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+        await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult(
-          words: [
-            SpeechRecognitionWord(word: 'Hello', speaker: 0),
-            SpeechRecognitionWord(word: 'there', speaker: 0),
-            SpeechRecognitionWord(word: 'Help', speaker: 1),
-            SpeechRecognitionWord(word: 'me', speaker: 1),
-            SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
-            SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
-            SpeechRecognitionWord(word: 'how', speaker: 0),
-            SpeechRecognitionWord(word: 'are', speaker: 0),
-            SpeechRecognitionWord(word: 'you', speaker: 0),
-            SpeechRecognitionWord(word: 'today?', speaker: 0),
-          ],
-          isFinal: true,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            words: [
+              SpeechRecognitionWord(word: 'Hello', speaker: 0),
+              SpeechRecognitionWord(word: 'there', speaker: 0),
+              SpeechRecognitionWord(word: 'Help', speaker: 1),
+              SpeechRecognitionWord(word: 'me', speaker: 1),
+              SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
+              SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
+              SpeechRecognitionWord(word: 'how', speaker: 0),
+              SpeechRecognitionWord(word: 'are', speaker: 0),
+              SpeechRecognitionWord(word: 'you', speaker: 0),
+              SpeechRecognitionWord(word: 'today?', speaker: 0),
+            ],
+            isFinal: true,
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+        await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult(
-          isFinal: true,
-          words: [
-            SpeechRecognitionWord(word: 'you', speaker: 1),
-            SpeechRecognitionWord(word: 'are', speaker: 1),
-            SpeechRecognitionWord(word: 'my', speaker: 1),
-            SpeechRecognitionWord(word: 'only', speaker: 1),
-            SpeechRecognitionWord(word: 'hope', speaker: 1),
-          ],
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: true,
+            words: [
+              SpeechRecognitionWord(word: 'you', speaker: 1),
+              SpeechRecognitionWord(word: 'are', speaker: 1),
+              SpeechRecognitionWord(word: 'my', speaker: 1),
+              SpeechRecognitionWord(word: 'only', speaker: 1),
+              SpeechRecognitionWord(word: 'hope', speaker: 1),
+            ],
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 60));
+        await Future<void>.delayed(const Duration(milliseconds: 60));
 
-      expect(controller.chatMessages.length, equals(2));
-      expect(controller.chatMessages[0].original, equals('Hello there how are you today?'));
-      expect(controller.chatMessages[0].speaker, equals(0));
-      expect(controller.chatMessages[1].original, equals('Help me Obi-Wan Kenobi, you are my only hope.'));
-      expect(controller.chatMessages[1].speaker, equals(1));
-      expect(controller.preferredSpeaker, equals(0));
-      expect(pipeline.synthesizeCallCount, equals(2));
-      expect(controller.getOptimisticMessages(), isEmpty);
-    });
+        expect(controller.chatMessages.length, equals(2));
+        expect(
+          controller.chatMessages[0].original,
+          equals('Hello there how are you today?'),
+        );
+        expect(controller.chatMessages[0].speaker, equals(0));
+        expect(
+          controller.chatMessages[1].original,
+          equals('Help me Obi-Wan Kenobi, you are my only hope.'),
+        );
+        expect(controller.chatMessages[1].speaker, equals(1));
+        expect(controller.preferredSpeaker, equals(0));
+        expect(pipeline.synthesizeCallCount, equals(2));
+        expect(controller.getOptimisticMessages(), isEmpty);
+      },
+    );
 
-    test('consecutive pending transcripts with final diarized words are split into optimistic speaker messages', () async {
-      await controller.init();
-      await controller.startListening();
-      controller.finalResultGroupingWindow = const Duration(milliseconds: 50);
+    test(
+      'consecutive pending transcripts with final diarized words are split into optimistic speaker messages',
+      () async {
+        await controller.init();
+        await controller.startListening();
+        controller.finalResultGroupingWindow = const Duration(milliseconds: 50);
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult(
-          words: [
-            SpeechRecognitionWord(word: 'Hello', speaker: 0),
-            SpeechRecognitionWord(word: 'there', speaker: 0),
-            SpeechRecognitionWord(word: 'Help', speaker: 1),
-            SpeechRecognitionWord(word: 'me', speaker: 1),
-            SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
-            SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
-          ],
-          isFinal: false,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            words: [
+              SpeechRecognitionWord(word: 'Hello', speaker: 0),
+              SpeechRecognitionWord(word: 'there', speaker: 0),
+              SpeechRecognitionWord(word: 'Help', speaker: 1),
+              SpeechRecognitionWord(word: 'me', speaker: 1),
+              SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
+              SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
+            ],
+            isFinal: false,
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+        await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult(
-          words: [
-            SpeechRecognitionWord(word: 'Hello', speaker: 0),
-            SpeechRecognitionWord(word: 'there', speaker: 0),
-            SpeechRecognitionWord(word: 'Help', speaker: 1),
-            SpeechRecognitionWord(word: 'me', speaker: 1),
-            SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
-            SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
-            SpeechRecognitionWord(word: 'how', speaker: 0),
-            SpeechRecognitionWord(word: 'are', speaker: 0),
-            SpeechRecognitionWord(word: 'you', speaker: 0),
-            SpeechRecognitionWord(word: 'today?', speaker: 0),
-          ],
-          isFinal: true,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            words: [
+              SpeechRecognitionWord(word: 'Hello', speaker: 0),
+              SpeechRecognitionWord(word: 'there', speaker: 0),
+              SpeechRecognitionWord(word: 'Help', speaker: 1),
+              SpeechRecognitionWord(word: 'me', speaker: 1),
+              SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
+              SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
+              SpeechRecognitionWord(word: 'how', speaker: 0),
+              SpeechRecognitionWord(word: 'are', speaker: 0),
+              SpeechRecognitionWord(word: 'you', speaker: 0),
+              SpeechRecognitionWord(word: 'today?', speaker: 0),
+            ],
+            isFinal: true,
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+        await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult(
-          isFinal: true,
-          words: [
-            SpeechRecognitionWord(word: 'you', speaker: 1),
-            SpeechRecognitionWord(word: 'are', speaker: 1),
-            SpeechRecognitionWord(word: 'my', speaker: 1),
-            SpeechRecognitionWord(word: 'only', speaker: 1),
-            SpeechRecognitionWord(word: 'hope', speaker: 1),
-          ],
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: true,
+            words: [
+              SpeechRecognitionWord(word: 'you', speaker: 1),
+              SpeechRecognitionWord(word: 'are', speaker: 1),
+              SpeechRecognitionWord(word: 'my', speaker: 1),
+              SpeechRecognitionWord(word: 'only', speaker: 1),
+              SpeechRecognitionWord(word: 'hope', speaker: 1),
+            ],
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      final optimistic = controller.getOptimisticMessages();
-      expect(controller.chatMessages.length, equals(0));
-      expect(optimistic.length, equals(2));
-      expect(optimistic[0].original, equals('Hello there how are you today?'));
-      expect(optimistic[0].speaker, equals(0));
-      expect(optimistic[1].original, equals('Help me Obi-Wan Kenobi, you are my only hope'));
-      expect(optimistic[1].speaker, equals(1));
-      expect(controller.preferredSpeaker, equals(0));
-      expect(pipeline.synthesizeCallCount, equals(2));
-    });
+        final optimistic = controller.getOptimisticMessages();
+        expect(controller.chatMessages.length, equals(0));
+        expect(optimistic.length, equals(2));
+        expect(
+          optimistic[0].original,
+          equals('Hello there how are you today?'),
+        );
+        expect(optimistic[0].speaker, equals(0));
+        expect(
+          optimistic[1].original,
+          equals('Help me Obi-Wan Kenobi, you are my only hope'),
+        );
+        expect(optimistic[1].speaker, equals(1));
+        expect(controller.preferredSpeaker, equals(0));
+        expect(pipeline.synthesizeCallCount, equals(2));
+      },
+    );
 
-    test('consecutive pending transcripts with final diarized words are split into optimistic speaker messages', () async {
-      await controller.init();
-      await controller.startListening();
-      controller.finalResultGroupingWindow = const Duration(milliseconds: 50);
+    test(
+      'consecutive pending transcripts with final diarized words are split into optimistic speaker messages',
+      () async {
+        await controller.init();
+        await controller.startListening();
+        controller.finalResultGroupingWindow = const Duration(milliseconds: 50);
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult(
-          words: [
-            SpeechRecognitionWord(word: 'Hello', speaker: 0),
-            SpeechRecognitionWord(word: 'there', speaker: 0),
-            SpeechRecognitionWord(word: 'Help', speaker: 1),
-            SpeechRecognitionWord(word: 'me', speaker: 1),
-            SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
-            SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
-          ],
-          isFinal: false,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            words: [
+              SpeechRecognitionWord(word: 'Hello', speaker: 0),
+              SpeechRecognitionWord(word: 'there', speaker: 0),
+              SpeechRecognitionWord(word: 'Help', speaker: 1),
+              SpeechRecognitionWord(word: 'me', speaker: 1),
+              SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
+              SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
+            ],
+            isFinal: false,
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+        await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult(
-          words: [
-            SpeechRecognitionWord(word: 'Hello', speaker: 0),
-            SpeechRecognitionWord(word: 'there', speaker: 0),
-            SpeechRecognitionWord(word: 'Help', speaker: 1),
-            SpeechRecognitionWord(word: 'me', speaker: 1),
-            SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
-            SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
-            SpeechRecognitionWord(word: 'how', speaker: 0),
-            SpeechRecognitionWord(word: 'are', speaker: 0),
-            SpeechRecognitionWord(word: 'you', speaker: 0),
-            SpeechRecognitionWord(word: 'today?', speaker: 0),
-          ],
-          isFinal: true,
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            words: [
+              SpeechRecognitionWord(word: 'Hello', speaker: 0),
+              SpeechRecognitionWord(word: 'there', speaker: 0),
+              SpeechRecognitionWord(word: 'Help', speaker: 1),
+              SpeechRecognitionWord(word: 'me', speaker: 1),
+              SpeechRecognitionWord(word: 'Obi-Wan', speaker: 1),
+              SpeechRecognitionWord(word: 'Kenobi', speaker: 1),
+              SpeechRecognitionWord(word: 'how', speaker: 0),
+              SpeechRecognitionWord(word: 'are', speaker: 0),
+              SpeechRecognitionWord(word: 'you', speaker: 0),
+              SpeechRecognitionWord(word: 'today?', speaker: 0),
+            ],
+            isFinal: true,
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+        await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult(
-          isFinal: true,
-          words: [
-            SpeechRecognitionWord(word: 'you', speaker: 1),
-            SpeechRecognitionWord(word: 'are', speaker: 1),
-            SpeechRecognitionWord(word: 'my', speaker: 1),
-            SpeechRecognitionWord(word: 'only', speaker: 1),
-            SpeechRecognitionWord(word: 'hope', speaker: 1),
-          ],
-        ),
-      );
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: true,
+            words: [
+              SpeechRecognitionWord(word: 'you', speaker: 1),
+              SpeechRecognitionWord(word: 'are', speaker: 1),
+              SpeechRecognitionWord(word: 'my', speaker: 1),
+              SpeechRecognitionWord(word: 'only', speaker: 1),
+              SpeechRecognitionWord(word: 'hope', speaker: 1),
+            ],
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      final optimistic = controller.getOptimisticMessages();
-      expect(controller.chatMessages.length, equals(0));
-      expect(optimistic.length, equals(2));
-      expect(optimistic[0].original, equals('Hello there how are you today?'));
-      expect(optimistic[0].speaker, equals(0));
-      expect(optimistic[1].original, equals('Help me Obi-Wan Kenobi, you are my only hope'));
-      expect(optimistic[1].speaker, equals(1));
-      expect(controller.preferredSpeaker, equals(0));
-      expect(pipeline.synthesizeCallCount, equals(2));
+        final optimistic = controller.getOptimisticMessages();
+        expect(controller.chatMessages.length, equals(0));
+        expect(optimistic.length, equals(2));
+        expect(
+          optimistic[0].original,
+          equals('Hello there how are you today?'),
+        );
+        expect(optimistic[0].speaker, equals(0));
+        expect(
+          optimistic[1].original,
+          equals('Help me Obi-Wan Kenobi, you are my only hope'),
+        );
+        expect(optimistic[1].speaker, equals(1));
+        expect(controller.preferredSpeaker, equals(0));
+        expect(pipeline.synthesizeCallCount, equals(2));
 
-      await Future<void>.delayed(const Duration(milliseconds: 60));
-      await Future<void>.delayed(const Duration(milliseconds: 60));
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+        await Future<void>.delayed(const Duration(milliseconds: 60));
 
-      expect(controller.getOptimisticMessages().length, equals(0));
-      expect(controller.chatMessages.length, equals(2));
-      expect(controller.chatMessages[0].original, equals('Hello there how are you today?'));
-      expect(controller.chatMessages[0].speaker, equals(0));
-      expect(controller.chatMessages[1].original, equals('Help me Obi-Wan Kenobi, you are my only hope.'));
-      expect(controller.chatMessages[1].speaker, equals(1));
-      expect(controller.preferredSpeaker, equals(0));
-      expect(pipeline.synthesizeCallCount, equals(2));
-      expect(controller.getOptimisticMessages(), isEmpty);
-    });
+        expect(controller.getOptimisticMessages().length, equals(0));
+        expect(controller.chatMessages.length, equals(2));
+        expect(
+          controller.chatMessages[0].original,
+          equals('Hello there how are you today?'),
+        );
+        expect(controller.chatMessages[0].speaker, equals(0));
+        expect(
+          controller.chatMessages[1].original,
+          equals('Help me Obi-Wan Kenobi, you are my only hope.'),
+        );
+        expect(controller.chatMessages[1].speaker, equals(1));
+        expect(controller.preferredSpeaker, equals(0));
+        expect(pipeline.synthesizeCallCount, equals(2));
+        expect(controller.getOptimisticMessages(), isEmpty);
+      },
+    );
 
-    test('interleaved speakers flush independently when one continues speaking', () async {
-      final groupedPipeline = _FakeSpeechPipeline();
-      final groupedController = SpeechController(
-        googleApiKey: 'test-google',
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
-        finalResultGroupingWindow: const Duration(milliseconds: 100),
-      );
+    test(
+      'interleaved speakers flush independently when one continues speaking',
+      () async {
+        final groupedPipeline = _FakeSpeechPipeline();
+        final groupedController = SpeechController(
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 100),
+        );
 
-      await groupedController.init();
-      await groupedController.startListening();
+        await groupedController.init();
+        await groupedController.startListening();
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult(
-          isFinal: true,
-          words: [
-            SpeechRecognitionWord(word: 'alpha', speaker: 0),
-          ],
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: true,
+            words: [SpeechRecognitionWord(word: 'alpha', speaker: 0)],
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 60));
+        await Future<void>.delayed(const Duration(milliseconds: 60));
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult(
-          isFinal: true,
-          words: [
-            SpeechRecognitionWord(word: 'bravo', speaker: 1),
-          ],
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: true,
+            words: [SpeechRecognitionWord(word: 'bravo', speaker: 1)],
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 60));
+        await Future<void>.delayed(const Duration(milliseconds: 60));
 
-      expect(groupedController.chatMessages.length, equals(1));
-      expect(groupedController.chatMessages.first.speaker, equals(0));
-      expect(groupedController.chatMessages.first.original, equals('alpha.'));
+        expect(groupedController.chatMessages.length, equals(1));
+        expect(groupedController.chatMessages.first.speaker, equals(0));
+        expect(groupedController.chatMessages.first.original, equals('alpha.'));
 
-      final optimisticMid = groupedController.getOptimisticMessages();
-      expect(optimisticMid.length, equals(1));
-      expect(optimisticMid.first.speaker, equals(1));
-      expect(optimisticMid.first.original, equals('bravo'));
+        final optimisticMid = groupedController.getOptimisticMessages();
+        expect(optimisticMid.length, equals(1));
+        expect(optimisticMid.first.speaker, equals(1));
+        expect(optimisticMid.first.original, equals('bravo'));
 
-      await Future<void>.delayed(const Duration(milliseconds: 70));
+        await Future<void>.delayed(const Duration(milliseconds: 70));
 
-      expect(groupedController.chatMessages.length, equals(2));
-      expect(groupedController.chatMessages[1].speaker, equals(1));
-      expect(groupedController.chatMessages[1].original, equals('bravo.'));
+        expect(groupedController.chatMessages.length, equals(2));
+        expect(groupedController.chatMessages[1].speaker, equals(1));
+        expect(groupedController.chatMessages[1].original, equals('bravo.'));
 
-      await groupedController.stopListening();
-      groupedController.dispose();
-      await groupedPipeline.disposeFake();
-    });
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
 
-    test('partial from another speaker does not delay pending final flush', () async {
-      final groupedPipeline = _FakeSpeechPipeline();
-      final groupedController = SpeechController(
-        googleApiKey: 'test-google',
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
-        finalResultGroupingWindow: const Duration(milliseconds: 100),
-      );
+    test(
+      'partial from another speaker does not delay pending final flush',
+      () async {
+        final groupedPipeline = _FakeSpeechPipeline();
+        final groupedController = SpeechController(
+          deepgramApiKey: 'test-deepgram',
+          speechPipeline: groupedPipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 100),
+        );
 
-      await groupedController.init();
-      await groupedController.startListening();
+        await groupedController.init();
+        await groupedController.startListening();
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult(
-          isFinal: true,
-          words: [
-            SpeechRecognitionWord(word: 'first', speaker: 0),
-          ],
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: true,
+            words: [SpeechRecognitionWord(word: 'first', speaker: 0)],
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      groupedPipeline.resultController.add(
-        SpeechRecognitionResult(
-          isFinal: false,
-          words: [
-            SpeechRecognitionWord(word: 'second', speaker: 1),
-          ],
-        ),
-      );
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: false,
+            words: [SpeechRecognitionWord(word: 'second', speaker: 1)],
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 70));
+        await Future<void>.delayed(const Duration(milliseconds: 70));
 
-      expect(groupedController.chatMessages.length, equals(1));
-      expect(groupedController.chatMessages.first.speaker, equals(0));
-      expect(groupedController.chatMessages.first.original, equals('first.'));
+        expect(groupedController.chatMessages.length, equals(1));
+        expect(groupedController.chatMessages.first.speaker, equals(0));
+        expect(groupedController.chatMessages.first.original, equals('first.'));
 
-      await groupedController.stopListening();
-      groupedController.dispose();
-      await groupedPipeline.disposeFake();
-    });
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
   });
 }

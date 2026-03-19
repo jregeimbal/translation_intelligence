@@ -1,17 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
-
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text_platform_interface/speech_to_text_platform_interface.dart';
 import 'package:translation_intelligence/services/deepgram_recognition_catalog.dart';
-import 'package:translation_intelligence/services/google_speech_service.dart';
 import 'package:translation_intelligence/services/live_recognition_service.dart';
 import 'package:translation_intelligence/services/mlkit_translation_service.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
@@ -186,7 +181,6 @@ class _FakeMlKitTranslationService extends MlKitTranslationService {
 
 class _TestableSpeechPipeline extends SpeechPipeline {
   _TestableSpeechPipeline({
-    required super.googleApiKey,
     required super.deepgramApiKey,
     this.recognitionResults = const Stream<SpeechRecognitionResult>.empty(),
   });
@@ -302,194 +296,6 @@ void main() {
     test('SpeechSttProvider labels are correct', () {
       expect(SpeechSttProvider.deepgram.label, equals('Deepgram'));
       expect(SpeechSttProvider.google.label, equals('Speech to Text'));
-    });
-  });
-
-  group('GoogleSpeechService non-network behavior', () {
-    late GoogleSpeechService service;
-
-    setUp(() {
-      service = GoogleSpeechService(googleApiKey: '');
-    });
-
-    test(
-      'translateText returns original text when key is missing by default',
-      () async {
-        final translated = await service.translateText(
-          text: 'hello',
-          targetLanguage: 'es',
-        );
-
-        expect(translated, equals('hello'));
-      },
-    );
-
-    test(
-      'translateText returns null when key is missing and fallback is disabled',
-      () async {
-        final translated = await service.translateText(
-          text: 'hello',
-          targetLanguage: 'es',
-          returnOriginalOnFailure: false,
-        );
-
-        expect(translated, isNull);
-      },
-    );
-
-    test(
-      'translateText throws when missing key and throwOnMissingApiKey is true',
-      () async {
-        expect(
-          () => service.translateText(
-            text: 'hello',
-            targetLanguage: 'es',
-            throwOnMissingApiKey: true,
-          ),
-          throwsException,
-        );
-      },
-    );
-
-    test('synthesizeSpeech returns empty bytes when key is missing', () async {
-      final bytes = await service.synthesizeSpeech(text: 'hello');
-      expect(bytes, isEmpty);
-    });
-
-    test(
-      'ttsLanguageCodeForAppLanguage maps known values and fallback rules',
-      () {
-        expect(service.ttsLanguageCodeForAppLanguage('es'), equals('es-ES'));
-        expect(service.ttsLanguageCodeForAppLanguage('zh'), equals('cmn-CN'));
-        expect(service.ttsLanguageCodeForAppLanguage('xx'), equals('xx-US'));
-        expect(service.ttsLanguageCodeForAppLanguage('en-GB'), equals('en-GB'));
-      },
-    );
-
-    test(
-      'translateText returns translated value on successful API response',
-      () async {
-        final client = MockClient((request) async {
-          return http.Response(
-            jsonEncode({
-              'data': {
-                'translations': [
-                  {'translatedText': 'hola'},
-                ],
-              },
-            }),
-            200,
-          );
-        });
-        final apiService = GoogleSpeechService(
-          googleApiKey: 'key',
-          httpClient: client,
-        );
-
-        final translated = await apiService.translateText(
-          text: 'hello',
-          targetLanguage: 'es',
-        );
-
-        expect(translated, equals('hola'));
-      },
-    );
-
-    test(
-      'translateText throws when API status is non-200 and fallback disabled',
-      () async {
-        final client = MockClient((request) async => http.Response('bad', 500));
-        final apiService = GoogleSpeechService(
-          googleApiKey: 'key',
-          httpClient: client,
-        );
-
-        expect(
-          () => apiService.translateText(
-            text: 'hello',
-            targetLanguage: 'es',
-            returnOriginalOnFailure: false,
-          ),
-          throwsException,
-        );
-      },
-    );
-
-    test(
-      'translateText throws on invalid response shape when fallback disabled',
-      () async {
-        final client = MockClient((request) async => http.Response('{}', 200));
-        final apiService = GoogleSpeechService(
-          googleApiKey: 'key',
-          httpClient: client,
-        );
-
-        expect(
-          () => apiService.translateText(
-            text: 'hello',
-            targetLanguage: 'es',
-            returnOriginalOnFailure: false,
-          ),
-          throwsException,
-        );
-      },
-    );
-
-    test(
-      'translateText returns null when unchanged and nullWhenUnchanged is true',
-      () async {
-        final client = MockClient((request) async {
-          return http.Response(
-            jsonEncode({
-              'data': {
-                'translations': [
-                  {'translatedText': 'hello'},
-                ],
-              },
-            }),
-            200,
-          );
-        });
-        final apiService = GoogleSpeechService(
-          googleApiKey: 'key',
-          httpClient: client,
-        );
-
-        final translated = await apiService.translateText(
-          text: 'hello',
-          targetLanguage: 'en',
-          nullWhenUnchanged: true,
-        );
-
-        expect(translated, isNull);
-      },
-    );
-
-    test('synthesizeSpeech decodes audioContent when API succeeds', () async {
-      final bytes = Uint8List.fromList(const [1, 2, 3]);
-      final client = MockClient((request) async {
-        return http.Response(
-          jsonEncode({'audioContent': base64Encode(bytes)}),
-          200,
-        );
-      });
-      final apiService = GoogleSpeechService(
-        googleApiKey: 'key',
-        httpClient: client,
-      );
-
-      final result = await apiService.synthesizeSpeech(text: 'hello');
-      expect(result, equals(bytes));
-    });
-
-    test('synthesizeSpeech throws on API error', () async {
-      final client = MockClient((request) async => http.Response('oops', 500));
-      final apiService = GoogleSpeechService(
-        googleApiKey: 'key',
-        httpClient: client,
-      );
-
-      expect(() => apiService.synthesizeSpeech(text: 'hello'), throwsException);
     });
   });
 
@@ -672,7 +478,7 @@ void main() {
     late SpeechPipeline pipeline;
 
     setUp(() {
-      pipeline = SpeechPipeline(googleApiKey: '', deepgramApiKey: '');
+      pipeline = SpeechPipeline(deepgramApiKey: '');
     });
 
     test('provider setters update selected providers', () {
@@ -736,7 +542,6 @@ void main() {
       () async {
         final mlKit = _FakeMlKitTranslationService();
         final routedPipeline = SpeechPipeline(
-          googleApiKey: 'g',
           deepgramApiKey: 'd',
           mlKitTranslationService: mlKit,
         )..setTranslationProvider(SpeechTranslationProvider.googleMlKit);
@@ -776,7 +581,6 @@ void main() {
       final deepgram = _FakeLiveRecognitionService()..apiKeyValid = true;
       final speechToText = _FakeSpeechToTextService(initResult: false);
       final routedPipeline = SpeechPipeline(
-        googleApiKey: 'g',
         deepgramApiKey: 'd',
         recognitionService: deepgram,
         speechToTextService: speechToText,
@@ -801,7 +605,6 @@ void main() {
     test('startRecognitionSession routes to Google STT service', () async {
       final speechToText = _FakeSpeechToTextService(initResult: true);
       final routedPipeline = SpeechPipeline(
-        googleApiKey: 'g',
         deepgramApiKey: 'd',
         speechToTextService: speechToText,
       )..setSttProvider(SpeechSttProvider.google);
@@ -828,7 +631,6 @@ void main() {
 
     test('startRecognitionSession routes to Deepgram live stream', () async {
       final routedPipeline = _TestableSpeechPipeline(
-        googleApiKey: 'g',
         deepgramApiKey: 'd',
         recognitionResults: Stream<SpeechRecognitionResult>.value(
           SpeechRecognitionResult.fromTranscript(
@@ -862,7 +664,6 @@ void main() {
           ),
         );
       final routedPipeline = SpeechPipeline(
-        googleApiKey: 'g',
         deepgramApiKey: 'd',
         recognitionService: deepgram,
       );

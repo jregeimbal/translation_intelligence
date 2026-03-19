@@ -55,7 +55,6 @@ class SpeechPipeline {
   String? _playbackDeviceId;
 
   SpeechPipeline({
-    String googleApiKey = '',
     String deepgramApiKey = '',
     BackendApiClient? backendApiClient,
     BackendSttClient? backendSttClient,

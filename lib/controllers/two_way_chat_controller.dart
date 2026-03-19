@@ -40,15 +40,11 @@ class TwoWayChatController extends ChangeNotifier {
   String _guestLanguage = 'es';
 
   final List<TwoWayMessage> _messages = [];
-  final String googleApiKey;
-
   TwoWayChatController({
-    this.googleApiKey = '',
     String deepgramApiKey = '',
     BackendApiClient? backendApiClient,
     BackendSttClient? backendSttClient,
   }) : _speechPipeline = SpeechPipeline(
-         googleApiKey: googleApiKey,
          deepgramApiKey: deepgramApiKey,
          backendApiClient: backendApiClient,
          backendSttClient: backendSttClient,
