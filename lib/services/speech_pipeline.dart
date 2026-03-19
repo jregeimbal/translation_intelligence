@@ -11,8 +11,8 @@ import '../models/speech_recognition_models.dart';
 import '../models/speech_recognition_session.dart';
 import 'backend_api_client.dart';
 import 'backend_stt_client.dart';
-import 'deepgram_service.dart';
 import 'deepgram_recognition_catalog.dart';
+import 'live_recognition_service.dart';
 import 'mlkit_translation_service.dart';
 import 'speech_to_text_service.dart';
 import 'speech_output_provider.dart';
@@ -41,7 +41,7 @@ class SpeechPipeline {
 
   final BackendApiClient? _backendApiClient;
   final BackendSttClient? _backendSttClient;
-  final DeepgramService? _recognitionService;
+  final LiveRecognitionService? _recognitionService;
   final SpeechToTextService _speechToTextService;
   final MlKitTranslationService _mlKitTranslationService;
   SpeechOutputProvider _outputProvider;
@@ -59,7 +59,7 @@ class SpeechPipeline {
     String deepgramApiKey = '',
     BackendApiClient? backendApiClient,
     BackendSttClient? backendSttClient,
-    DeepgramService? recognitionService,
+    LiveRecognitionService? recognitionService,
     SpeechOutputProvider initialOutputProvider = SpeechOutputProvider.google,
     SpeechSttProvider initialSttProvider = SpeechSttProvider.deepgram,
     SpeechTranslationProvider initialTranslationProvider =

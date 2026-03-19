@@ -11,8 +11,8 @@ import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text_platform_interface/speech_to_text_platform_interface.dart';
 import 'package:translation_intelligence/services/deepgram_recognition_catalog.dart';
-import 'package:translation_intelligence/services/deepgram_service.dart';
 import 'package:translation_intelligence/services/google_speech_service.dart';
+import 'package:translation_intelligence/services/live_recognition_service.dart';
 import 'package:translation_intelligence/services/mlkit_translation_service.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
@@ -91,11 +91,8 @@ class _FakeSpeechToTextPlatform extends SpeechToTextPlatform
   }
 }
 
-class _FakeDeepgramService extends DeepgramService {
-  _FakeDeepgramService() : super(apiKey: 'fake-key');
-
+class _FakeLiveRecognitionService implements LiveRecognitionService {
   bool apiKeyValid = true;
-  List<int> synthBytes = const [9, 8, 7];
   Stream<SpeechRecognitionResult>? liveRecognitionStream;
 
   @override
@@ -117,14 +114,6 @@ class _FakeDeepgramService extends DeepgramService {
   }) {
     return liveRecognitionStream ??
         const Stream<SpeechRecognitionResult>.empty();
-  }
-
-  @override
-  Future<Uint8List> synthesizeSpeech({
-    required String text,
-    String languageCode = 'en',
-  }) async {
-    return Uint8List.fromList(synthBytes);
   }
 }
 
@@ -242,25 +231,6 @@ class _TestableSpeechPipeline extends SpeechPipeline {
   }) {
     return recognitionResults;
   }
-}
-
-class _FakeDeepgramWord {
-  const _FakeDeepgramWord({required this.word, required this.speaker});
-
-  final String word;
-  final int speaker;
-}
-
-class _FakeDeepgramRecognition {
-  const _FakeDeepgramRecognition({
-    required this.transcript,
-    required this.isFinal,
-    required this.words,
-  });
-
-  final String transcript;
-  final bool isFinal;
-  final List<_FakeDeepgramWord> words;
 }
 
 class _FakeAudioRecorder extends AudioRecorder {
@@ -523,39 +493,12 @@ void main() {
     });
   });
 
-  group('DeepgramService non-network behavior', () {
-    late DeepgramService service;
-
-    setUp(() {
-      service = DeepgramService(apiKey: '');
-    });
-
-    test('synthesizeSpeech returns empty bytes when key is missing', () async {
-      final bytes = await service.synthesizeSpeech(
-        text: 'hello',
-        languageCode: 'en-US',
-      );
-      expect(bytes, isEmpty);
-    });
-
-    test('ttsModelForLanguage maps to expected voices', () {
-      expect(service.ttsModelForLanguage('es-ES'), equals('aura-2-carina-es'));
-      expect(service.ttsModelForLanguage('fr-FR'), equals('aura-2-agathe-fr'));
-      expect(service.ttsModelForLanguage('de-DE'), equals('aura-2-julius-de'));
-      expect(
-        service.ttsModelForLanguage('en-US'),
-        equals('aura-2-odysseus-en'),
-      );
-    });
-
-    test('normalizeLanguage handles locale variants', () {
-      expect(service.normalizeLanguage('zh-CN'), equals('zh'));
-      expect(service.normalizeLanguage('pt'), equals('pt'));
-      expect(service.normalizeLanguage('en-US'), equals('en'));
-    });
-
+  group('Deepgram recognition catalog behavior', () {
     test('supported recognition options expose defaults and choices', () {
-      expect(DeepgramRecognitionCatalog.supportedRecognitionModels, contains('nova-3'));
+      expect(
+        DeepgramRecognitionCatalog.supportedRecognitionModels,
+        contains('nova-3'),
+      );
       expect(
         DeepgramRecognitionCatalog.supportedRecognitionModels,
         contains('nova-3-medical'),
@@ -570,155 +513,29 @@ void main() {
             .supportedRecognitionLanguagesByModel['nova-3-medical']?['English'],
         equals('en'),
       );
-      expect(DeepgramService.defaultRecognitionModel, equals('nova-3'));
-      expect(DeepgramService.defaultRecognitionLanguage, equals('multi'));
       expect(
-        DeepgramService.defaultRecognitionLanguageForModel('nova-3-medical'),
+        DeepgramRecognitionCatalog.defaultRecognitionModel,
+        equals('nova-3'),
+      );
+      expect(
+        DeepgramRecognitionCatalog.defaultRecognitionLanguage,
+        equals('multi'),
+      );
+      expect(
+        DeepgramRecognitionCatalog.defaultRecognitionLanguageForModel(
+          'nova-3-medical',
+        ),
         equals('en'),
       );
     });
 
-    test(
-      'synthesizeSpeech returns response bytes on successful API call',
-      () async {
-        final client = MockClient((request) async {
-          expect(request.headers['Authorization'], equals('Token key'));
-          return http.Response.bytes(const [7, 8, 9], 200);
-        });
-        final apiService = DeepgramService(apiKey: 'key', httpClient: client);
-
-        final bytes = await apiService.synthesizeSpeech(
-          text: 'hello',
-          languageCode: 'en-US',
-        );
-        expect(bytes, equals(Uint8List.fromList(const [7, 8, 9])));
-      },
-    );
-
-    test('synthesizeSpeech throws on API error status', () async {
-      final client = MockClient((request) async => http.Response('fail', 500));
-      final apiService = DeepgramService(apiKey: 'key', httpClient: client);
-
+    test('medical model default language is english', () {
       expect(
-        () => apiService.synthesizeSpeech(text: 'hello', languageCode: 'en-US'),
-        throwsException,
+        DeepgramRecognitionCatalog.defaultRecognitionLanguageForModel(
+          'nova-3-medical',
+        ),
+        equals('en'),
       );
-    });
-
-    test('isApiKeyValid uses injected validator when provided', () async {
-      final apiService = DeepgramService(
-        apiKey: 'key',
-        apiKeyValidator: () async => true,
-      );
-
-      expect(await apiService.isApiKeyValid(), isTrue);
-    });
-
-    test(
-      'startLiveRecognition maps transcript, final flag, and speaker words',
-      () async {
-        Map<String, dynamic>? capturedParams;
-        final apiService = DeepgramService(
-          apiKey: 'key',
-          liveRecognizer: (audioStream, queryParams) {
-            capturedParams = queryParams;
-            return Stream<dynamic>.value(
-              const _FakeDeepgramRecognition(
-                transcript: 'hello mapped',
-                isFinal: true,
-                words: [
-                  _FakeDeepgramWord(word: 'hello', speaker: 0),
-                  _FakeDeepgramWord(word: 'mapped', speaker: 1),
-                ],
-              ),
-            );
-          },
-        );
-
-        final result = await apiService
-            .startLiveRecognition(
-              Stream<Uint8List>.value(Uint8List.fromList(const [1, 2])),
-              sourceLanguage: 'en-US',
-              diarize: true,
-              utterances: true,
-            )
-            .first;
-
-        expect(capturedParams?['language'], equals('en'));
-        expect(capturedParams?['diarize'], isTrue);
-        expect(capturedParams?['utterances'], isTrue);
-        expect(_resultText(result), equals('hello mapped'));
-        expect(result.isFinal, isTrue);
-        expect(result.words.length, equals(2));
-        expect(result.words.first.word, equals('hello'));
-        expect(result.words.first.speaker, equals(0));
-        expect(result.words.last.word, equals('mapped'));
-        expect(result.words.last.speaker, equals(1));
-      },
-    );
-
-    test('startLiveRecognition preserves multi language flag', () async {
-      Map<String, dynamic>? capturedParams;
-      final apiService = DeepgramService(
-        apiKey: 'key',
-        liveRecognizer: (audioStream, queryParams) {
-          capturedParams = queryParams;
-          return const Stream<dynamic>.empty();
-        },
-      );
-
-      await apiService
-          .startLiveRecognition(
-            const Stream<Uint8List>.empty(),
-            sourceLanguage: 'multi',
-          )
-          .drain<void>();
-
-      expect(capturedParams?['language'], equals('multi'));
-    });
-
-    test(
-      'startLiveRecognition ignores unsupported model and uses current model params',
-      () async {
-        Map<String, dynamic>? capturedParams;
-        final apiService = DeepgramService(
-          apiKey: 'key',
-          liveRecognizer: (audioStream, queryParams) {
-            capturedParams = queryParams;
-            return const Stream<dynamic>.empty();
-          },
-        );
-
-        apiService.setRecognitionModel('unsupported-model');
-        apiService.setRecognitionLanguage('es');
-
-        await apiService
-            .startLiveRecognition(
-              const Stream<Uint8List>.empty(),
-              sourceLanguage: 'multi',
-              diarize: true,
-              utterances: true,
-            )
-            .drain<void>();
-
-        expect(capturedParams?['model'], equals('nova-3'));
-        expect(capturedParams?['language'], equals('es'));
-        expect(capturedParams?['detect_language'], isFalse);
-        expect(capturedParams?['diarize'], isTrue);
-        expect(capturedParams?['utterances'], isTrue);
-        expect(capturedParams?['interim_results'], isTrue);
-        expect(capturedParams?['punctuate'], isTrue);
-      },
-    );
-
-    test('setRecognitionModel ignores unsupported model', () async {
-      final apiService = DeepgramService(apiKey: 'key');
-      apiService.setRecognitionLanguage('multi');
-
-      apiService.setRecognitionModel('unsupported-model');
-
-      expect(apiService.recognitionModel, equals('nova-3'));
-      expect(apiService.recognitionLanguage, equals('multi'));
     });
   });
 
@@ -956,7 +773,7 @@ void main() {
     });
 
     test('isSpeechApiKeyValid delegates by selected STT provider', () async {
-      final deepgram = _FakeDeepgramService()..apiKeyValid = true;
+      final deepgram = _FakeLiveRecognitionService()..apiKeyValid = true;
       final speechToText = _FakeSpeechToTextService(initResult: false);
       final routedPipeline = SpeechPipeline(
         googleApiKey: 'g',
@@ -1037,7 +854,7 @@ void main() {
     });
 
     test('startLiveRecognition delegates to recognition service', () async {
-      final deepgram = _FakeDeepgramService()
+      final deepgram = _FakeLiveRecognitionService()
         ..liveRecognitionStream = Stream<SpeechRecognitionResult>.value(
           SpeechRecognitionResult.fromTranscript(
             transcript: 'delegated-stream',

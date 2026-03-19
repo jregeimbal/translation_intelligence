@@ -216,7 +216,9 @@ class LiveSttConnectionHandler {
                 'clientIp': clientIp,
                 'uid': userId,
               });
-              await close();
+              if (!audioController.isClosed) {
+                await audioController.close();
+              }
               return;
             }
           }
