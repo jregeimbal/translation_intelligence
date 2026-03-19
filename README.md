@@ -5,6 +5,11 @@ and now sends translation and text-to-speech requests through a Dart backend.
 The backend keeps Google Cloud and Deepgram TTS credentials outside the app
 binary and protects its endpoints with Firebase Anonymous Auth.
 
+Server docs:
+
+- API reference: `docs/server-api.md`
+- Deployment and setup: `docs/server-deployment.md`
+
 ## Requirements
 
 * Flutter SDK
@@ -51,6 +56,9 @@ cd server
 dart pub get
 dart run bin/server.dart
 ```
+
+See `docs/server-deployment.md` for a fuller local setup and Cloud Run
+deployment guide.
 
 ## Testing with coverage
 
@@ -101,20 +109,19 @@ If omitted, the app uses `HyperListenTheme`.
 
 ## Notes
 
-* The code is structured around `SpeechController`, which manages a
-  Deepgram live stream, handles multi-speaker transcription, translation/tts
-  network calls, and notifies widgets of updates.  Recognized messages are
-  split by speaker and labeled accordingly in the UI.
+* The code is structured around `SpeechController`, which manages live
+  recognition, translation, and TTS flows and notifies widgets of updates.
+  Recognized messages are split by speaker and labeled accordingly in the UI.
 * `ChatMessage` objects now hold both the original and translated text.
 * Controls for clearing the chat and speaker alignment now live in a fixed bar
   immediately above the footer, keeping the footer focused on recording.
 * A language selector in the app bar allows translating into any supported Nova‑3
   language; the default target is English (`en`).
-* Phase 1 moves Google Translation, Google TTS, and Deepgram TTS behind the
-  backend. Live Deepgram STT still runs directly from the app for now.
+* The production app now routes cloud STT, translation, and TTS through the
+  backend.
 * The backend exposes `GET /v1/health`, `GET /v1/capabilities`,
-  `POST /v1/translate`, and `POST /v1/tts`.
+  `POST /v1/translate`, `POST /v1/tts`, and `WS /v1/stt/live`.
 * The app authenticates to the backend with Firebase Anonymous Auth bearer
-  tokens.
+  tokens. See `docs/server-api.md` for request/response details.
 
 ---
