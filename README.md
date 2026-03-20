@@ -10,6 +10,11 @@ Server docs:
 - API reference: `docs/server-api.md`
 - Deployment and setup: `docs/server-deployment.md`
 
+Deployment helpers:
+
+- Cloud Build config: `server/cloudbuild.yaml`
+- Cloud Run deploy helper: `tool/deploy_server_cloud_run.sh`
+
 ## Requirements
 
 * Flutter SDK
