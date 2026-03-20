@@ -208,10 +208,12 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
           ),
           if (controller.canChangeLanguages) ...[
             const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              initialValue: activeLanguage,
-              icon: const SizedBox.shrink(),
-              decoration: InputDecoration(
+            DropdownMenuFormField<String>(
+              initialSelection: activeLanguage,
+              expandedInsets: EdgeInsets.zero,
+              enableSearch: false,
+              requestFocusOnTap: false,
+              inputDecorationTheme: InputDecorationThemeData(
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -234,15 +236,17 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
                   borderSide: BorderSide.none,
                 ),
               ),
-              items: TwoWayChatController.supportedLanguages.entries
+              dropdownMenuEntries: TwoWayChatController
+                  .supportedLanguages
+                  .entries
                   .map(
-                    (entry) => DropdownMenuItem<String>(
+                    (entry) => DropdownMenuEntry<String>(
                       value: entry.value,
-                      child: Text(entry.key),
+                      label: entry.key,
                     ),
                   )
                   .toList(),
-              onChanged: (value) {
+              onSelected: (value) {
                 if (value == null) return;
                 if (_isPrimary) {
                   context.read<TwoWayChatController>().setPrimaryLanguage(
