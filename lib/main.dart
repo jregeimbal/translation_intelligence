@@ -53,6 +53,26 @@ void main() async {
   runApp(MyApp());
 }
 
+typedef HomePageInitializer = Future<HomePageInitializationBundle> Function();
+
+class HomePageInitializationBundle {
+  const HomePageInitializationBundle({
+    required this.backendApiClient,
+    required this.controller,
+    required this.twoWayController,
+  });
+
+  final BackendApiClient backendApiClient;
+  final SpeechController controller;
+  final TwoWayChatController twoWayController;
+
+  void dispose() {
+    controller.dispose();
+    twoWayController.dispose();
+    backendApiClient.close();
+  }
+}
+
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -107,11 +127,13 @@ class _MyAppState extends State<MyApp> {
 class MyHomePage extends StatefulWidget {
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
+  final HomePageInitializer? initializer;
 
   const MyHomePage({
     super.key,
     required this.themeMode,
     required this.onThemeModeChanged,
+    this.initializer,
   });
 
   @override
@@ -626,9 +648,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
 class _MyHomePageState extends State<MyHomePage> {
   late SpeechController _controller;
   late TwoWayChatController _twoWayController;
-  late FirebaseAuthSession _authSession;
   late BackendApiClient _backendApiClient;
-  late BackendSttClient _backendSttClient;
   StreamSubscription<String>? _listeningDeviceUpdateSub;
   late final DebouncedMessageDispatcher _listeningDeviceSnackBarDebouncer;
   bool _initializing = true;
@@ -655,6 +675,20 @@ class _MyHomePageState extends State<MyHomePage> {
   String? _playbackDeviceId;
 
   bool get _isGroupSection => _selectedSection == 0;
+
+  void _disposeInitializedResources() {
+    _listeningDeviceUpdateSub?.cancel();
+    _listeningDeviceUpdateSub = null;
+    if (_controllersReady) {
+      _controller.dispose();
+      _twoWayController.dispose();
+      _controllersReady = false;
+    }
+    if (_backendClientReady) {
+      _backendApiClient.close();
+      _backendClientReady = false;
+    }
+  }
 
   SpeechSttProvider? get _activeSessionSttProvider => _isGroupSection
       ? _controller.activeSessionSttProvider
@@ -805,6 +839,100 @@ class _MyHomePageState extends State<MyHomePage> {
     ) {
       if (!mounted || _initializing) return;
       _showDebouncedListeningDeviceSnackBar(message);
+    });
+  }
+
+  Future<HomePageInitializationBundle> _createInitializationBundle() async {
+    final runtimeConfig = RuntimeConfig.fromDotEnv(dotenv);
+    final authSession = FirebaseAuthSession(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await authSession.initialize();
+    final backendApiClient = BackendApiClient(
+      baseUrl: runtimeConfig.apiBaseUrl,
+      authTokenProvider: authSession.getIdToken,
+    );
+    final backendSttClient = BackendSttClient(
+      baseUrl: runtimeConfig.apiBaseUrl,
+      authTokenProvider: authSession.getIdToken,
+    );
+
+    final controller = SpeechController(
+      backendApiClient: backendApiClient,
+      backendSttClient: backendSttClient,
+    );
+    controller.setSttProvider(_sttProvider);
+    controller.setTranslationProvider(_translationProvider);
+    controller.setDeepgramRecognitionModel(_deepgramRecognitionModel);
+    controller.setDeepgramRecognitionLanguage(_deepgramRecognitionLanguage);
+    controller.setSpeechToTextRecognitionLocale(_speechToTextRecognitionLocale);
+
+    final twoWayController = TwoWayChatController(
+      backendApiClient: backendApiClient,
+      backendSttClient: backendSttClient,
+    );
+    twoWayController.setSttProvider(_sttProvider);
+    twoWayController.setTranslationProvider(_translationProvider);
+    twoWayController.setDeepgramRecognitionModel(_deepgramRecognitionModel);
+    twoWayController.setDeepgramRecognitionLanguage(
+      _deepgramRecognitionLanguage,
+    );
+    twoWayController.setSpeechToTextRecognitionLocale(
+      _speechToTextRecognitionLocale,
+    );
+
+    await Future.wait([controller.init(), twoWayController.init()]);
+
+    return HomePageInitializationBundle(
+      backendApiClient: backendApiClient,
+      controller: controller,
+      twoWayController: twoWayController,
+    );
+  }
+
+  Future<void> _initializeControllers() async {
+    _disposeInitializedResources();
+
+    setState(() {
+      _initializing = true;
+      _initializationError = '';
+    });
+
+    HomePageInitializationBundle? bundle;
+
+    try {
+      bundle = await (widget.initializer ?? _createInitializationBundle)();
+    } catch (error) {
+      bundle?.dispose();
+      if (!mounted) return;
+      setState(() {
+        _initializationError = '$error';
+        _initializing = false;
+      });
+      return;
+    }
+
+    if (!mounted) {
+      bundle.dispose();
+      return;
+    }
+
+    _backendApiClient = bundle.backendApiClient;
+    _controller = bundle.controller;
+    _twoWayController = bundle.twoWayController;
+    _backendClientReady = true;
+    _controllersReady = true;
+    _bindListeningDeviceNotifications();
+    setState(() {
+      _listeningDevices = _controller.listeningDevices;
+      _listeningDeviceId = _controller.listeningDeviceId;
+      _playbackDevices = _controller.playbackDevices;
+      _playbackDeviceId = _controller.playbackDeviceId;
+      _speechToTextRecognitionLocales =
+          _controller.speechToTextRecognitionLocales;
+      _speechToTextRecognitionLocale =
+          _controller.speechToTextRecognitionLocale;
+      _initializing = false;
     });
   }
 
@@ -1181,95 +1309,13 @@ class _MyHomePageState extends State<MyHomePage> {
           );
       },
     );
-
-    Future<void> createController() async {
-      setState(() {
-        _initializing = true;
-        _initializationError = '';
-      });
-
-      try {
-        final runtimeConfig = RuntimeConfig.fromDotEnv(dotenv);
-        _authSession = FirebaseAuthSession(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-        await _authSession.initialize();
-        _backendApiClient = BackendApiClient(
-          baseUrl: runtimeConfig.apiBaseUrl,
-          authTokenProvider: _authSession.getIdToken,
-        );
-        _backendSttClient = BackendSttClient(
-          baseUrl: runtimeConfig.apiBaseUrl,
-          authTokenProvider: _authSession.getIdToken,
-        );
-        _backendClientReady = true;
-      } catch (error) {
-        if (!mounted) return;
-        setState(() {
-          _initializationError = '$error';
-          _initializing = false;
-        });
-        return;
-      }
-
-      if (!mounted) return;
-
-      _controller = SpeechController(
-        backendApiClient: _backendApiClient,
-        backendSttClient: _backendSttClient,
-      );
-      _bindListeningDeviceNotifications();
-      _controller.setSttProvider(_sttProvider);
-      _controller.setTranslationProvider(_translationProvider);
-      _controller.setDeepgramRecognitionModel(_deepgramRecognitionModel);
-      _controller.setDeepgramRecognitionLanguage(_deepgramRecognitionLanguage);
-      _controller.setSpeechToTextRecognitionLocale(
-        _speechToTextRecognitionLocale,
-      );
-      _twoWayController = TwoWayChatController(
-        backendApiClient: _backendApiClient,
-        backendSttClient: _backendSttClient,
-      );
-      _controllersReady = true;
-      _twoWayController.setSttProvider(_sttProvider);
-      _twoWayController.setTranslationProvider(_translationProvider);
-      _twoWayController.setDeepgramRecognitionModel(_deepgramRecognitionModel);
-      _twoWayController.setDeepgramRecognitionLanguage(
-        _deepgramRecognitionLanguage,
-      );
-      _twoWayController.setSpeechToTextRecognitionLocale(
-        _speechToTextRecognitionLocale,
-      );
-      Future.wait([_controller.init(), _twoWayController.init()]).then((_) {
-        if (!mounted) return;
-        setState(() {
-          _listeningDevices = _controller.listeningDevices;
-          _listeningDeviceId = _controller.listeningDeviceId;
-          _playbackDevices = _controller.playbackDevices;
-          _playbackDeviceId = _controller.playbackDeviceId;
-          _speechToTextRecognitionLocales =
-              _controller.speechToTextRecognitionLocales;
-          _speechToTextRecognitionLocale =
-              _controller.speechToTextRecognitionLocale;
-          _initializing = false;
-        });
-      });
-    }
-
-    createController();
+    _initializeControllers();
   }
 
   @override
   void dispose() {
-    _listeningDeviceUpdateSub?.cancel();
     _listeningDeviceSnackBarDebouncer.dispose();
-    if (_backendClientReady) {
-      _backendApiClient.close();
-    }
-    if (_controllersReady) {
-      _controller.dispose();
-      _twoWayController.dispose();
-    }
+    _disposeInitializedResources();
     super.dispose();
   }
 
@@ -1288,9 +1334,20 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text(
-              'Initialization failed: $_initializationError',
-              textAlign: TextAlign.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Initialization failed: $_initializationError',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _initializeControllers,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Retry'),
+                ),
+              ],
             ),
           ),
         ),
