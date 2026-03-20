@@ -78,7 +78,7 @@ void main() {
         find.text('If needed, please adjust your language preference'),
         findsNothing,
       );
-      expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+      expect(find.byType(DropdownMenuFormField<String>), findsNothing);
     });
 
     testWidgets('renders speaker bubble with translation', (tester) async {

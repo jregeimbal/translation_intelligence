@@ -246,8 +246,42 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
     }
   }
 
+  InputDecorationThemeData _dropdownMenuTheme(
+    ThemeData theme, {
+    EdgeInsetsGeometry contentPadding = const EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 10,
+    ),
+    TextStyle? labelStyle,
+    TextStyle? floatingLabelStyle,
+  }) {
+    return InputDecorationThemeData(
+      isDense: true,
+      contentPadding: contentPadding,
+      labelStyle: labelStyle,
+      floatingLabelStyle: floatingLabelStyle,
+      filled: true,
+      fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+        alpha: 0.55,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final deepgramLanguages =
         DeepgramRecognitionCatalog
             .supportedRecognitionLanguagesByModel[_selectedDeepgramRecognitionModel] ??
@@ -284,10 +318,22 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                           const SizedBox(height: 12),
                           const Text('Speech to Text'),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<SpeechSttProvider>(
-                            initialValue: _selectedSttProvider,
-                            isExpanded: true,
-                            onChanged: (value) {
+                          DropdownMenuFormField<SpeechSttProvider>(
+                            initialSelection: _selectedSttProvider,
+                            expandedInsets: EdgeInsets.zero,
+                            enableSearch: false,
+                            requestFocusOnTap: false,
+                            inputDecorationTheme: _dropdownMenuTheme(theme),
+                            dropdownMenuEntries: SpeechSttProvider.values
+                                .map(
+                                  (provider) =>
+                                      DropdownMenuEntry<SpeechSttProvider>(
+                                        value: provider,
+                                        label: provider.label,
+                                      ),
+                                )
+                                .toList(),
+                            onSelected: (value) {
                               if (value == null) return;
                               setState(() {
                                 _selectedSttProvider = value;
@@ -296,25 +342,29 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 }
                               });
                             },
-                            items: SpeechSttProvider.values
-                                .map(
-                                  (provider) =>
-                                      DropdownMenuItem<SpeechSttProvider>(
-                                        value: provider,
-                                        child: Text(provider.label),
-                                      ),
-                                )
-                                .toList(),
                           ),
                           if (_selectedSttProvider ==
                               SpeechSttProvider.deepgram) ...[
                             const SizedBox(height: 16),
                             const Text('Deepgram Model'),
                             const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              initialValue: _selectedDeepgramRecognitionModel,
-                              isExpanded: true,
-                              onChanged: (value) {
+                            DropdownMenuFormField<String>(
+                              initialSelection:
+                                  _selectedDeepgramRecognitionModel,
+                              expandedInsets: EdgeInsets.zero,
+                              enableSearch: false,
+                              requestFocusOnTap: false,
+                              inputDecorationTheme: _dropdownMenuTheme(theme),
+                              dropdownMenuEntries: DeepgramRecognitionCatalog
+                                  .supportedRecognitionModels
+                                  .map(
+                                    (model) => DropdownMenuEntry<String>(
+                                      value: model,
+                                      label: model,
+                                    ),
+                                  )
+                                  .toList(),
+                              onSelected: (value) {
                                 if (value == null) return;
                                 setState(() {
                                   _selectedDeepgramRecognitionModel = value;
@@ -334,37 +384,31 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                   }
                                 });
                               },
-                              items: DeepgramRecognitionCatalog
-                                  .supportedRecognitionModels
-                                  .map(
-                                    (model) => DropdownMenuItem<String>(
-                                      value: model,
-                                      child: Text(model),
-                                    ),
-                                  )
-                                  .toList(),
                             ),
                             const SizedBox(height: 16),
                             const Text('Deepgram Language'),
                             const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              initialValue:
+                            DropdownMenuFormField<String>(
+                              initialSelection:
                                   _selectedDeepgramRecognitionLanguage,
-                              isExpanded: true,
-                              onChanged: (value) {
+                              expandedInsets: EdgeInsets.zero,
+                              enableSearch: false,
+                              requestFocusOnTap: false,
+                              inputDecorationTheme: _dropdownMenuTheme(theme),
+                              dropdownMenuEntries: deepgramLanguages.entries
+                                  .map(
+                                    (entry) => DropdownMenuEntry<String>(
+                                      value: entry.value,
+                                      label: entry.key,
+                                    ),
+                                  )
+                                  .toList(),
+                              onSelected: (value) {
                                 if (value == null) return;
                                 setState(() {
                                   _selectedDeepgramRecognitionLanguage = value;
                                 });
                               },
-                              items: deepgramLanguages.entries
-                                  .map(
-                                    (entry) => DropdownMenuItem<String>(
-                                      value: entry.value,
-                                      child: Text(entry.key),
-                                    ),
-                                  )
-                                  .toList(),
                             ),
                           ],
                           if (_selectedSttProvider ==
@@ -372,72 +416,80 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             const SizedBox(height: 16),
                             const Text('Google Locale'),
                             const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              initialValue:
+                            DropdownMenuFormField<String>(
+                              initialSelection:
                                   _selectedSpeechToTextRecognitionLocale,
-                              isExpanded: true,
-                              onChanged: (value) {
+                              expandedInsets: EdgeInsets.zero,
+                              enableSearch: false,
+                              requestFocusOnTap: false,
+                              inputDecorationTheme: _dropdownMenuTheme(theme),
+                              dropdownMenuEntries:
+                                  _speechToTextRecognitionLocales.entries
+                                      .map(
+                                        (entry) => DropdownMenuEntry<String>(
+                                          value: entry.value,
+                                          label: entry.key,
+                                        ),
+                                      )
+                                      .toList(),
+                              onSelected: (value) {
                                 if (value == null) return;
                                 setState(() {
                                   _selectedSpeechToTextRecognitionLocale =
                                       value;
                                 });
                               },
-                              items: _speechToTextRecognitionLocales.entries
-                                  .map(
-                                    (entry) => DropdownMenuItem<String>(
-                                      value: entry.value,
-                                      child: Text(entry.key),
-                                    ),
-                                  )
-                                  .toList(),
                             ),
                           ],
                           const SizedBox(height: 16),
                           const Text('Translation'),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<SpeechTranslationProvider>(
-                            initialValue: _selectedTranslationProvider,
-                            isExpanded: true,
-                            onChanged: (value) {
+                          DropdownMenuFormField<SpeechTranslationProvider>(
+                            initialSelection: _selectedTranslationProvider,
+                            expandedInsets: EdgeInsets.zero,
+                            enableSearch: false,
+                            requestFocusOnTap: false,
+                            inputDecorationTheme: _dropdownMenuTheme(theme),
+                            dropdownMenuEntries: SpeechTranslationProvider
+                                .values
+                                .map(
+                                  (provider) =>
+                                      DropdownMenuEntry<
+                                        SpeechTranslationProvider
+                                      >(value: provider, label: provider.label),
+                                )
+                                .toList(),
+                            onSelected: (value) {
                               if (value == null) return;
                               setState(() {
                                 _selectedTranslationProvider = value;
                               });
                             },
-                            items: SpeechTranslationProvider.values
-                                .map(
-                                  (provider) =>
-                                      DropdownMenuItem<
-                                        SpeechTranslationProvider
-                                      >(
-                                        value: provider,
-                                        child: Text(provider.label),
-                                      ),
-                                )
-                                .toList(),
                           ),
                           const SizedBox(height: 16),
                           const Text('Text to Speech'),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<SpeechOutputProvider>(
-                            initialValue: _selectedOutputProvider,
-                            isExpanded: true,
-                            onChanged: (value) {
+                          DropdownMenuFormField<SpeechOutputProvider>(
+                            initialSelection: _selectedOutputProvider,
+                            expandedInsets: EdgeInsets.zero,
+                            enableSearch: false,
+                            requestFocusOnTap: false,
+                            inputDecorationTheme: _dropdownMenuTheme(theme),
+                            dropdownMenuEntries: SpeechOutputProvider.values
+                                .map(
+                                  (provider) =>
+                                      DropdownMenuEntry<SpeechOutputProvider>(
+                                        value: provider,
+                                        label: provider.label,
+                                      ),
+                                )
+                                .toList(),
+                            onSelected: (value) {
                               if (value == null) return;
                               setState(() {
                                 _selectedOutputProvider = value;
                               });
                             },
-                            items: SpeechOutputProvider.values
-                                .map(
-                                  (provider) =>
-                                      DropdownMenuItem<SpeechOutputProvider>(
-                                        value: provider,
-                                        child: Text(provider.label),
-                                      ),
-                                )
-                                .toList(),
                           ),
                         ],
                       ),
@@ -482,30 +534,31 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             ),
                             if (_listeningDevices.length > 1) ...[
                               const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                initialValue: _selectedListeningDeviceId,
-                                isExpanded: true,
-                                onChanged: (value) {
+                              DropdownMenuFormField<String?>(
+                                initialSelection: _selectedListeningDeviceId,
+                                expandedInsets: EdgeInsets.zero,
+                                enableSearch: false,
+                                requestFocusOnTap: false,
+                                inputDecorationTheme: _dropdownMenuTheme(theme),
+                                dropdownMenuEntries: [
+                                  const DropdownMenuEntry<String?>(
+                                    value: null,
+                                    label: 'Auto',
+                                  ),
+                                  ..._listeningDevices.map(
+                                    (device) => DropdownMenuEntry<String?>(
+                                      value: device.id,
+                                      label: device.label.isNotEmpty
+                                          ? device.label
+                                          : device.id,
+                                    ),
+                                  ),
+                                ],
+                                onSelected: (value) {
                                   setState(() {
                                     _selectedListeningDeviceId = value;
                                   });
                                 },
-                                items: [
-                                  const DropdownMenuItem<String>(
-                                    value: null,
-                                    child: Text('Auto'),
-                                  ),
-                                  ..._listeningDevices.map(
-                                    (device) => DropdownMenuItem<String>(
-                                      value: device.id,
-                                      child: Text(
-                                        device.label.isNotEmpty
-                                            ? device.label
-                                            : device.id,
-                                      ),
-                                    ),
-                                  ),
-                                ],
                               ),
                             ],
                           ],
@@ -549,26 +602,29 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             ),
                             if (_playbackDevices.length > 1) ...[
                               const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                initialValue: _selectedPlaybackDeviceId,
-                                isExpanded: true,
-                                onChanged: (value) {
+                              DropdownMenuFormField<String?>(
+                                initialSelection: _selectedPlaybackDeviceId,
+                                expandedInsets: EdgeInsets.zero,
+                                enableSearch: false,
+                                requestFocusOnTap: false,
+                                inputDecorationTheme: _dropdownMenuTheme(theme),
+                                dropdownMenuEntries: [
+                                  const DropdownMenuEntry<String?>(
+                                    value: null,
+                                    label: 'Auto',
+                                  ),
+                                  ..._playbackDevices.map(
+                                    (device) => DropdownMenuEntry<String?>(
+                                      value: device.id,
+                                      label: device.details,
+                                    ),
+                                  ),
+                                ],
+                                onSelected: (value) {
                                   setState(() {
                                     _selectedPlaybackDeviceId = value;
                                   });
                                 },
-                                items: [
-                                  const DropdownMenuItem<String>(
-                                    value: null,
-                                    child: Text('Auto'),
-                                  ),
-                                  ..._playbackDevices.map(
-                                    (device) => DropdownMenuItem<String>(
-                                      value: device.id,
-                                      child: Text(device.details),
-                                    ),
-                                  ),
-                                ],
                               ),
                             ],
                           ],
@@ -583,23 +639,26 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                           const SizedBox(height: 12),
                           const Text('Theme Mode'),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<ThemeMode>(
-                            initialValue: _selectedThemeMode,
-                            isExpanded: true,
-                            onChanged: (value) {
+                          DropdownMenuFormField<ThemeMode>(
+                            initialSelection: _selectedThemeMode,
+                            expandedInsets: EdgeInsets.zero,
+                            enableSearch: false,
+                            requestFocusOnTap: false,
+                            inputDecorationTheme: _dropdownMenuTheme(theme),
+                            dropdownMenuEntries: ThemeMode.values
+                                .map(
+                                  (mode) => DropdownMenuEntry<ThemeMode>(
+                                    value: mode,
+                                    label: _themeModeLabel(mode),
+                                  ),
+                                )
+                                .toList(),
+                            onSelected: (value) {
                               if (value == null) return;
                               setState(() {
                                 _selectedThemeMode = value;
                               });
                             },
-                            items: ThemeMode.values
-                                .map(
-                                  (mode) => DropdownMenuItem<ThemeMode>(
-                                    value: mode,
-                                    child: Text(_themeModeLabel(mode)),
-                                  ),
-                                )
-                                .toList(),
                           ),
                         ],
                       ),
@@ -1174,6 +1233,28 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final sourceCode = _controller.deepgramRecognitionLanguage;
     final targetCode = _controller.targetLanguage;
+    final fieldTheme = InputDecorationThemeData(
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      labelStyle: const TextStyle(fontSize: 12),
+      floatingLabelStyle: const TextStyle(fontSize: 12),
+      filled: true,
+      fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+        alpha: 0.55,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+    );
 
     return Container(
       width: double.infinity,
@@ -1185,44 +1266,22 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Row(
         children: [
           Expanded(
-            child: DropdownButtonFormField<String>(
-              initialValue: sourceCode,
-              icon: const SizedBox.shrink(),
-              decoration: InputDecoration(
-                labelText: 'Source',
-                labelStyle: const TextStyle(fontSize: 12),
-                floatingLabelStyle: const TextStyle(fontSize: 12),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 10,
-                ),
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.55,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              items: sourceLanguages.entries
+            child: DropdownMenuFormField<String>(
+              initialSelection: sourceCode,
+              expandedInsets: EdgeInsets.zero,
+              enableSearch: false,
+              requestFocusOnTap: false,
+              label: const Text('Source'),
+              inputDecorationTheme: fieldTheme,
+              dropdownMenuEntries: sourceLanguages.entries
                   .map(
-                    (entry) => DropdownMenuItem<String>(
+                    (entry) => DropdownMenuEntry<String>(
                       value: entry.value,
-                      child: Text(entry.key),
+                      label: entry.key,
                     ),
                   )
                   .toList(growable: false),
-              onChanged: (value) {
+              onSelected: (value) {
                 if (value == null || value == sourceCode) return;
                 _setDeepgramRecognitionLanguage(value);
               },
@@ -1242,44 +1301,22 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: DropdownButtonFormField<String>(
-              initialValue: targetCode,
-              icon: const SizedBox.shrink(),
-              decoration: InputDecoration(
-                labelText: 'Target',
-                labelStyle: const TextStyle(fontSize: 12),
-                floatingLabelStyle: const TextStyle(fontSize: 12),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 10,
-                ),
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.55,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              items: targetLanguages.entries
+            child: DropdownMenuFormField<String>(
+              initialSelection: targetCode,
+              expandedInsets: EdgeInsets.zero,
+              enableSearch: false,
+              requestFocusOnTap: false,
+              label: const Text('Target'),
+              inputDecorationTheme: fieldTheme,
+              dropdownMenuEntries: targetLanguages.entries
                   .map(
-                    (entry) => DropdownMenuItem<String>(
+                    (entry) => DropdownMenuEntry<String>(
                       value: entry.value,
-                      child: Text(entry.key),
+                      label: entry.key,
                     ),
                   )
                   .toList(growable: false),
-              onChanged: (value) {
+              onSelected: (value) {
                 if (value == null || value == targetCode) return;
                 setState(() {
                   _controller.setTargetLanguage(value);

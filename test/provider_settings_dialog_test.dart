@@ -166,7 +166,7 @@ void main() {
       expect(find.text('Current: USB Microphone'), findsOneWidget);
 
       final deviceDropdown = find.byWidgetPredicate((widget) {
-        return widget is DropdownButtonFormField<String> &&
+        return widget is DropdownMenuFormField<String?> &&
             widget.initialValue == 'usb-1';
       });
       expect(deviceDropdown, findsOneWidget);

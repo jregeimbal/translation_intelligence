@@ -37,19 +37,20 @@ class _ChatControlBarState extends State<ChatControlBar> {
             Text('Primary speaker', style: theme.textTheme.bodyMedium),
             const SizedBox(width: 8),
             Expanded(
-              child: DropdownButtonFormField<int?>(
-                initialValue: preferred,
-                icon: const SizedBox.shrink(),
-                decoration: InputDecoration(
+              child: DropdownMenuFormField<int?>(
+                initialSelection: preferred,
+                expandedInsets: EdgeInsets.zero,
+                enableSearch: false,
+                requestFocusOnTap: false,
+                inputDecorationTheme: InputDecorationThemeData(
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 10,
                   ),
                   filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.55,
-                  ),
+                  fillColor: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.55),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
@@ -63,19 +64,21 @@ class _ChatControlBarState extends State<ChatControlBar> {
                     borderSide: BorderSide.none,
                   ),
                 ),
-                items: [
-                  const DropdownMenuItem<int?>(
+                dropdownMenuEntries: [
+                  const DropdownMenuEntry<int?>(
                     value: -1,
-                    child: Text('No alignment'),
+                    label: 'No alignment',
                   ),
                   ...speakers.map(
-                    (s) => DropdownMenuItem<int?>(
+                    (s) => DropdownMenuEntry<int?>(
                       value: s,
-                      child: Text('Speaker ${s + 1}'),
+                      label: 'Speaker ${s + 1}',
                     ),
                   ),
                 ],
-                onChanged: context.read<SpeechController>().setPreferredSpeaker,
+                onSelected: context
+                    .read<SpeechController>()
+                    .setPreferredSpeaker,
               ),
             ),
           ],

@@ -88,17 +88,18 @@ class _SpeechFooterState extends State<SpeechFooter> {
                 if (hasMessages) ...[
                   SizedBox(
                     width: 140,
-                    child: DropdownButtonFormField<int?>(
-                      initialValue: preferred,
-                      isExpanded: true,
-                      icon: const SizedBox.shrink(),
-                      decoration: InputDecoration(
+                    child: DropdownMenuFormField<int?>(
+                      initialSelection: preferred,
+                      expandedInsets: EdgeInsets.zero,
+                      enableSearch: false,
+                      requestFocusOnTap: false,
+                      label: const Text('Primary Speaker'),
+                      inputDecorationTheme: InputDecorationThemeData(
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 10,
                         ),
-                        labelText: 'Primary Speaker',
                         labelStyle: const TextStyle(fontSize: 12),
                         filled: true,
                         fillColor: theme.colorScheme.surfaceContainerHighest
@@ -116,19 +117,16 @@ class _SpeechFooterState extends State<SpeechFooter> {
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      items: [
-                        const DropdownMenuItem<int?>(
-                          value: -1,
-                          child: Text('None'),
-                        ),
+                      dropdownMenuEntries: [
+                        const DropdownMenuEntry<int?>(value: -1, label: 'None'),
                         ...speakers.map(
-                          (s) => DropdownMenuItem<int?>(
+                          (s) => DropdownMenuEntry<int?>(
                             value: s,
-                            child: Text('Speaker ${s + 1}'),
+                            label: 'Speaker ${s + 1}',
                           ),
                         ),
                       ],
-                      onChanged: (value) {
+                      onSelected: (value) {
                         context.read<SpeechController>().setPreferredSpeaker(
                           value,
                         );
