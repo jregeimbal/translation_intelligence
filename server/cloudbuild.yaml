@@ -1,0 +1,19 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:${_TAG}
+      - .
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:${_TAG}
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: translation-intelligence
+  _IMAGE_NAME: translation-intelligence-server
+  _TAG: latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY

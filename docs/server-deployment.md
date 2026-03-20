@@ -67,6 +67,71 @@ dart run bin/server.dart
 
 By default, the server listens on `0.0.0.0:8080` unless `PORT` is overridden.
 
+## Containerization
+
+The backend now includes a compiled-binary container build in
+`server/Dockerfile`.
+
+### Build approach
+
+- builder stage: official Dart SDK image
+- build output: `dart compile exe bin/server.dart`
+- runtime stage: slim Debian image with CA certificates
+- runtime process: `/app/server`
+
+This keeps the production image smaller and avoids starting the service through
+`dart run`.
+
+### Files
+
+- `server/Dockerfile`
+- `server/.dockerignore`
+
+The `.dockerignore` excludes tests, Dart build state, and local credential JSON
+files so they are not copied into the container build context.
+
+### Build the container locally
+
+```bash
+docker build -t translation-intelligence-server ./server
+```
+
+### Run the container locally
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e FIREBASE_PROJECT_ID="your-firebase-project-id" \
+  -e FIREBASE_WEB_API_KEY="your-firebase-web-api-key" \
+  -e DEEPGRAM_API_KEY="your-deepgram-api-key" \
+  -e GOOGLE_SERVICE_ACCOUNT_JSON="$(cat /absolute/path/to/service-account.json)" \
+  -e ALLOWED_ORIGINS="http://localhost:3000,http://localhost:8000" \
+  translation-intelligence-server
+```
+
+If you prefer a mounted secret file instead of inline JSON:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e FIREBASE_PROJECT_ID="your-firebase-project-id" \
+  -e FIREBASE_WEB_API_KEY="your-firebase-web-api-key" \
+  -e DEEPGRAM_API_KEY="your-deepgram-api-key" \
+  -e GOOGLE_SERVICE_ACCOUNT_JSON_PATH="/run/secrets/service-account.json" \
+  -v /absolute/path/to/service-account.json:/run/secrets/service-account.json:ro \
+  translation-intelligence-server
+```
+
+Then verify:
+
+```bash
+curl http://localhost:8080/v1/health
+```
+
+Or run the smoke test helper:
+
+```bash
+API_BASE_URL=http://localhost:8080 EXPECT_AUTH_SUCCESS=false tool/smoke_test_server.sh
+```
+
 ## Environment variables
 
 The server reads configuration from `server/lib/src/config/app_config.dart`.
@@ -169,6 +234,9 @@ Prefer secret injection for:
 
 If you mount a file instead, use `GOOGLE_SERVICE_ACCOUNT_JSON_PATH`.
 
+For Cloud Run, prefer `GOOGLE_SERVICE_ACCOUNT_JSON` as a secret-backed
+environment variable instead of baking a JSON file into the image.
+
 ### Deployment checklist
 
 - Firebase Anonymous Auth enabled
@@ -191,6 +259,94 @@ FIREBASE_WEB_API_KEY=[secret]
 DEEPGRAM_API_KEY=[secret]
 GOOGLE_SERVICE_ACCOUNT_JSON=[secret]
 ```
+
+## Deploying to Cloud Run
+
+### 1. Build and push with Cloud Build
+
+```bash
+gcloud builds submit ./server \
+  --tag us-central1-docker.pkg.dev/PROJECT_ID/REPOSITORY/translation-intelligence-server:latest
+```
+
+Or use the checked-in build config:
+
+```bash
+gcloud builds submit ./server \
+  --config server/cloudbuild.yaml \
+  --substitutions _REGION=us-central1,_REPOSITORY=translation-intelligence,_IMAGE_NAME=translation-intelligence-server,_TAG=latest
+```
+
+### 2. Deploy the image to Cloud Run
+
+```bash
+gcloud run deploy translation-intelligence-server \
+  --image us-central1-docker.pkg.dev/PROJECT_ID/REPOSITORY/translation-intelligence-server:latest \
+  --region us-central1 \
+  --platform managed \
+  --allow-unauthenticated \
+  --port 8080 \
+  --set-env-vars "^@^ALLOWED_ORIGINS=https://app.example.com,https://staging.example.com@HTTP_RATE_LIMIT_PER_MINUTE=120@WEBSOCKET_SESSION_RATE_LIMIT_PER_MINUTE=30@FIREBASE_PROJECT_ID=your-project-id" \
+  --set-secrets FIREBASE_WEB_API_KEY=FIREBASE_WEB_API_KEY:latest,DEEPGRAM_API_KEY=DEEPGRAM_API_KEY:latest,GOOGLE_SERVICE_ACCOUNT_JSON=GOOGLE_SERVICE_ACCOUNT_JSON:latest
+```
+
+Or use the reusable deploy helper:
+
+```bash
+GCP_PROJECT_ID=your-gcp-project-id \
+ARTIFACT_REPOSITORY=translation-intelligence \
+ALLOWED_ORIGINS=https://app.example.com,https://staging.example.com \
+FIREBASE_PROJECT_ID=your-firebase-project-id \
+tool/deploy_server_cloud_run.sh
+```
+
+Files:
+
+- `server/cloudbuild.yaml`
+- `tool/deploy_server_cloud_run.sh`
+
+Notes:
+
+- Replace `PROJECT_ID`, `REPOSITORY`, and region values with your own
+- The custom `^@^...@...` delimiter keeps the comma-separated `ALLOWED_ORIGINS`
+  value intact
+- Keep `FIREBASE_WEB_API_KEY`, `DEEPGRAM_API_KEY`, and
+  `GOOGLE_SERVICE_ACCOUNT_JSON` in Secret Manager
+- `--allow-unauthenticated` is appropriate here because the app authenticates at
+  the application layer with Firebase tokens; if you later put the service
+  behind another edge layer, revisit this choice
+
+### 3. Recommended Cloud Run settings
+
+- health path: `/v1/health`
+- request timeout: long enough for live STT sessions
+- minimum instances: optional, set above zero only if cold starts matter
+- concurrency: start with the default, then tune based on WebSocket load and
+  memory usage
+
+### 4. Post-deploy smoke tests
+
+```bash
+curl https://YOUR_SERVICE_URL/v1/health
+```
+
+```bash
+curl \
+  -H "Authorization: Bearer $FIREBASE_ID_TOKEN" \
+  https://YOUR_SERVICE_URL/v1/capabilities
+```
+
+Or use the reusable helper:
+
+```bash
+API_BASE_URL=https://YOUR_SERVICE_URL FIREBASE_ID_TOKEN=$FIREBASE_ID_TOKEN tool/smoke_test_server.sh
+```
+
+Smoke test behavior:
+
+- always validates `/v1/health`
+- validates authenticated `/v1/capabilities` when `FIREBASE_ID_TOKEN` is set
+- can verify the unauthenticated `401` path with `EXPECT_AUTH_SUCCESS=false`
 
 ## Health checks and smoke tests
 
@@ -247,6 +403,19 @@ Check:
 - the first WebSocket message is a `start` JSON payload
 - the payload includes `token`, `sourceLanguage`, and `sampleRate`
 - the client streams PCM16 mono audio frames after receiving `ready`
+
+### Container starts but exits immediately
+
+Check:
+
+- required env vars are present in Cloud Run
+- secrets are mapped to the correct environment variable names
+- the deployed revision logs show successful startup on `PORT`
+
+## Security note
+
+Do not bake service-account JSON files or API keys into the image. Keep them in
+Secret Manager or inject them only at runtime.
 
 ## Source of truth in code
 

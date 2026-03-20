@@ -1,0 +1,10 @@
+.dart_tool/
+.pub/
+build/
+coverage/
+test/
+analysis_options.yaml
+*.log
+*.md
+*service-account*.json
+tutti-lingo-google-cloud-service-account.json
