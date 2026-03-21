@@ -510,11 +510,14 @@ class SpeechController extends ChangeNotifier {
   }
 
   Future<String?> _translateText(String text) async {
+    final sourceLanguage = _activeSessionSourceLanguage;
+
     return _speechPipeline.translateText(
       text: text,
       targetLanguage: _targetLanguage,
-      sourceLanguage:
-          'es', // for testing, we can hardcode Spanish as the source to verify translation is working https://developers.google.com/ml-kit/language/translation/translation-language-support
+      sourceLanguage: sourceLanguage == null || sourceLanguage == 'multi'
+          ? null
+          : sourceLanguage,
       returnOriginalOnFailure: false,
       throwOnMissingApiKey: true,
       nullWhenUnchanged: true,

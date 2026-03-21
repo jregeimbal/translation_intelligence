@@ -54,6 +54,8 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   String? _listeningDeviceId;
   List<PlaybackDevice> _playbackDevices = const [];
   String? _playbackDeviceId;
+  int startListeningCallCount = 0;
+  int stopListeningCallCount = 0;
   final StreamController<String> _listeningDeviceUpdatesController =
       StreamController<String>.broadcast();
 
@@ -210,12 +212,14 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
 
   @override
   Future<void> startListening() async {
+    startListeningCallCount += 1;
     _isListening = true;
     notifyListeners();
   }
 
   @override
   Future<void> stopListening() async {
+    stopListeningCallCount += 1;
     _isListening = false;
     _lastWords = '';
     notifyListeners();

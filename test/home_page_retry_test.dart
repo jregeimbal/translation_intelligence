@@ -11,6 +11,13 @@ import 'speech_controller_stub.dart';
 
 class FakeTwoWayChatController extends ChangeNotifier
     implements TwoWayChatController {
+  bool listening = false;
+  TwoWaySpeaker? listeningSpeaker;
+  String deepgramRecognitionLanguage = 'multi';
+  String speechToTextRecognitionLocale = 'multi';
+  int startListeningCallCount = 0;
+  int stopListeningCallCount = 0;
+
   @override
   dynamic noSuchMethod(Invocation invocation) {
     switch (invocation.memberName) {
@@ -21,7 +28,7 @@ class FakeTwoWayChatController extends ChangeNotifier
       case #speechEnabled:
         return true;
       case #isListening:
-        return false;
+        return listening;
       case #speechError:
       case #lastWords:
         return '';
@@ -39,9 +46,42 @@ class FakeTwoWayChatController extends ChangeNotifier
         return 'en';
       case #guestLanguage:
         return 'es';
+      case #deepgramRecognitionLanguage:
+        return deepgramRecognitionLanguage;
+      case #speechToTextRecognitionLocale:
+        return speechToTextRecognitionLocale;
+      case #activeSpeaker:
+        return listeningSpeaker;
     }
 
     return super.noSuchMethod(invocation);
+  }
+
+  @override
+  Future<void> startListening(TwoWaySpeaker speaker) async {
+    startListeningCallCount += 1;
+    listening = true;
+    listeningSpeaker = speaker;
+    notifyListeners();
+  }
+
+  @override
+  Future<void> stopListening() async {
+    stopListeningCallCount += 1;
+    listening = false;
+    notifyListeners();
+  }
+
+  @override
+  void setDeepgramRecognitionLanguage(String language) {
+    deepgramRecognitionLanguage = language;
+    notifyListeners();
+  }
+
+  @override
+  void setSpeechToTextRecognitionLocale(String locale) {
+    speechToTextRecognitionLocale = locale;
+    notifyListeners();
   }
 }
 
@@ -106,5 +146,88 @@ void main() {
     expect(find.text('Translation Studio'), findsOneWidget);
     expect(find.text('Tap the mic to start listening...'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Retry'), findsNothing);
+  });
+
+  testWidgets('saving settings restarts active group listening', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1400, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final controller = TestSpeechController();
+    await controller.startListening();
+    final twoWayController = FakeTwoWayChatController();
+    final backendApiClient = BackendApiClient(
+      baseUrl: 'https://example.com',
+      authTokenProvider: () async => 'token',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MyHomePage(
+          themeMode: ThemeMode.light,
+          onThemeModeChanged: (_) {},
+          initializer: () async => HomePageInitializationBundle(
+            backendApiClient: backendApiClient,
+            controller: controller,
+            twoWayController: twoWayController,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Save'));
+    await tester.pumpAndSettle();
+
+    expect(controller.stopListeningCallCount, 1);
+    expect(controller.startListeningCallCount, 2);
+    expect(controller.isListening, isTrue);
+  });
+
+  testWidgets('changing source language restarts active group listening', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1400, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final controller = TestSpeechController();
+    controller.setDeepgramRecognitionLanguage('multi');
+    await controller.startListening();
+    final twoWayController = FakeTwoWayChatController();
+    final backendApiClient = BackendApiClient(
+      baseUrl: 'https://example.com',
+      authTokenProvider: () async => 'token',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MyHomePage(
+          themeMode: ThemeMode.light,
+          onThemeModeChanged: (_) {},
+          initializer: () async => HomePageInitializationBundle(
+            backendApiClient: backendApiClient,
+            controller: controller,
+            twoWayController: twoWayController,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final sourceDropdown = tester.widget<DropdownMenuFormField<String>>(
+      find.byType(DropdownMenuFormField<String>).first,
+    );
+    sourceDropdown.onSelected?.call('es');
+    await tester.pumpAndSettle();
+
+    expect(controller.stopListeningCallCount, 1);
+    expect(controller.startListeningCallCount, 2);
+    expect(controller.deepgramRecognitionLanguage, 'es');
+    expect(controller.isListening, isTrue);
   });
 }

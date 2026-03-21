@@ -54,21 +54,30 @@ void main() async {
     defaultValue: '',
   );
 
-  final noDotenvOverride = bool.tryParse(const String.fromEnvironment(
-    'NO_DOTENV_OVERRIDE',
-    defaultValue: 'false',
-  ));
+  final noDotenvOverride = bool.tryParse(
+    const String.fromEnvironment('NO_DOTENV_OVERRIDE', defaultValue: 'false'),
+  );
 
-  Logger('Main').finest('Loaded runtime configuration: API_BASE_URL=${apiBaseUrl.isEmpty ? '(not set)' : apiBaseUrl}');
+  Logger('Main').finest(
+    'Loaded runtime configuration: API_BASE_URL=${apiBaseUrl.isEmpty ? '(not set)' : apiBaseUrl}',
+  );
 
   await dotenv.load(
-    mergeWith: { if (apiBaseUrl.isNotEmpty) "API_BASE_URL": apiBaseUrl },
+    mergeWith: {if (apiBaseUrl.isNotEmpty) "API_BASE_URL": apiBaseUrl},
     overrideWithFiles: [if (noDotenvOverride == false) '.env'],
   );
   if (noDotenvOverride == true) {
-    Logger('Main').info('RuntimeConfig: Skipping .env file merge in ${kReleaseMode ? 'release' : kProfileMode ? 'profile' : 'debug'} mode.');
+    Logger('Main').info(
+      'RuntimeConfig: Skipping .env file merge in ${kReleaseMode
+          ? 'release'
+          : kProfileMode
+          ? 'profile'
+          : 'debug'} mode.',
+    );
   } else {
-    Logger('Main').info('RuntimeConfig: Merging .env file for configuration values.');
+    Logger(
+      'Main',
+    ).info('RuntimeConfig: Merging .env file for configuration values.');
   }
   dotenv.env.forEach((key, value) {
     Logger('Main').info('RuntimeConfig: $key=$value');
@@ -1064,22 +1073,44 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _setDeepgramRecognitionLanguage(String language) {
+  Future<void> _setDeepgramRecognitionLanguage(String language) async {
     if (_deepgramRecognitionLanguage == language || _initializing) return;
+
+    final restartListening = _controller.isListening;
+    if (restartListening) {
+      await _controller.stopListening();
+    }
+    if (!mounted) return;
+
     setState(() {
       _deepgramRecognitionLanguage = language;
       _controller.setDeepgramRecognitionLanguage(language);
       _twoWayController.setDeepgramRecognitionLanguage(language);
     });
+
+    if (restartListening) {
+      await _controller.startListening();
+    }
   }
 
-  void _setSpeechToTextRecognitionLocale(String locale) {
+  Future<void> _setSpeechToTextRecognitionLocale(String locale) async {
     if (_speechToTextRecognitionLocale == locale || _initializing) return;
+
+    final restartListening = _controller.isListening;
+    if (restartListening) {
+      await _controller.stopListening();
+    }
+    if (!mounted) return;
+
     setState(() {
       _speechToTextRecognitionLocale = locale;
       _controller.setSpeechToTextRecognitionLocale(locale);
       _twoWayController.setSpeechToTextRecognitionLocale(locale);
     });
+
+    if (restartListening) {
+      await _controller.startListening();
+    }
   }
 
   void _setListeningDeviceId(String? deviceId) {
@@ -1158,6 +1189,18 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
+    final restartGroupListening = _controller.isListening;
+    final restartTwoWayListening = _twoWayController.isListening;
+    final restartTwoWaySpeaker = _twoWayController.activeSpeaker;
+
+    if (restartGroupListening) {
+      await _controller.stopListening();
+    }
+    if (restartTwoWayListening) {
+      await _twoWayController.stopListening();
+    }
+    if (!mounted) return;
+
     if (selection.sttProvider != _sttProvider) {
       await _setSttProvider(selection.sttProvider);
     }
@@ -1172,11 +1215,13 @@ class _MyHomePageState extends State<MyHomePage> {
       _setDeepgramRecognitionModel(selection.deepgramRecognitionModel);
     }
     if (selection.deepgramRecognitionLanguage != _deepgramRecognitionLanguage) {
-      _setDeepgramRecognitionLanguage(selection.deepgramRecognitionLanguage);
+      await _setDeepgramRecognitionLanguage(
+        selection.deepgramRecognitionLanguage,
+      );
     }
     if (selection.speechToTextRecognitionLocale !=
         _speechToTextRecognitionLocale) {
-      _setSpeechToTextRecognitionLocale(
+      await _setSpeechToTextRecognitionLocale(
         selection.speechToTextRecognitionLocale,
       );
     }
@@ -1188,6 +1233,13 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     if (selection.themeMode != widget.themeMode) {
       widget.onThemeModeChanged(selection.themeMode);
+    }
+
+    if (restartGroupListening) {
+      await _controller.startListening();
+    }
+    if (restartTwoWayListening && restartTwoWaySpeaker != null) {
+      await _twoWayController.startListening(restartTwoWaySpeaker);
     }
   }
 
@@ -1233,7 +1285,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return supportsCurrentDirection && supportsSwappedDirection;
   }
 
-  void _swapGroupLanguages(Map<String, String> sourceLanguages) {
+  Future<void> _swapGroupLanguages(Map<String, String> sourceLanguages) async {
     if (!_canSwapGroupLanguages(sourceLanguages)) return;
 
     final source = _controller.deepgramRecognitionLanguage;
@@ -1241,12 +1293,22 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (source == target) return;
 
+    final restartListening = _controller.isListening;
+    if (restartListening) {
+      await _controller.stopListening();
+    }
+    if (!mounted) return;
+
     setState(() {
       _deepgramRecognitionLanguage = target;
       _controller.setDeepgramRecognitionLanguage(target);
       _twoWayController.setDeepgramRecognitionLanguage(target);
       _controller.setTargetLanguage(source);
     });
+
+    if (restartListening) {
+      await _controller.startListening();
+    }
   }
 
   Widget _buildGroupLanguageBar(ThemeData theme) {
@@ -1305,9 +1367,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   )
                   .toList(growable: false),
-              onSelected: (value) {
+              onSelected: (value) async {
                 if (value == null || value == sourceCode) return;
-                _setDeepgramRecognitionLanguage(value);
+                await _setDeepgramRecognitionLanguage(value);
               },
             ),
           ),
@@ -1319,7 +1381,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ? 'Swap unavailable when source or target is multi'
                       : 'Swap unavailable for selected language pair'),
             onPressed: canSwap
-                ? () => _swapGroupLanguages(sourceLanguages)
+                ? () async => _swapGroupLanguages(sourceLanguages)
                 : null,
             icon: const Icon(Icons.swap_horiz_rounded),
           ),

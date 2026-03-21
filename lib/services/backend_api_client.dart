@@ -67,7 +67,7 @@ class BackendApiClient {
         throw const FormatException('Backend translation response was invalid');
       }
 
-      if (nullWhenUnchanged && translatedText == text) {
+      if (nullWhenUnchanged && translatedText.toLowerCase().trim().replaceAll(RegExp(r'[^\w\s]+'), '') == text.toLowerCase().trim().replaceAll(RegExp(r'[^\w\s]+'), '')) {
         return null;
       }
 
