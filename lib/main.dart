@@ -14,6 +14,7 @@ import 'firebase_options.dart';
 import 'models/provider_settings_selection.dart';
 import 'models/playback_device.dart';
 import 'services/backend_api_client.dart';
+import 'services/app_preferences.dart';
 import 'services/backend_stt_client.dart';
 import 'services/deepgram_recognition_catalog.dart';
 import 'services/firebase_auth_session.dart';
@@ -748,6 +749,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final AppPreferences _appPreferences = AppPreferences();
   late SpeechController _controller;
   late TwoWayChatController _twoWayController;
   late BackendApiClient _backendApiClient;
@@ -768,6 +770,7 @@ class _MyHomePageState extends State<MyHomePage> {
       DeepgramRecognitionCatalog.defaultRecognitionLanguage;
   String _speechToTextRecognitionLocale =
       SpeechToTextService.defaultRecognitionLanguage;
+  String _targetLanguage = 'en';
   Map<String, String> _speechToTextRecognitionLocales = const {
     'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
   };
@@ -775,10 +778,14 @@ class _MyHomePageState extends State<MyHomePage> {
   List<PlaybackDevice> _playbackDevices = const [];
   String? _listeningDeviceId;
   String? _playbackDeviceId;
+  AppPreferencesSnapshot? _lastPersistedPreferences;
 
   bool get _isGroupSection => _selectedSection == 0;
 
   void _disposeInitializedResources() {
+    if (_controllersReady) {
+      _controller.removeListener(_persistControllerPreferences);
+    }
     _listeningDeviceUpdateSub?.cancel();
     _listeningDeviceUpdateSub = null;
     if (_controllersReady) {
@@ -790,6 +797,97 @@ class _MyHomePageState extends State<MyHomePage> {
       _backendApiClient.close();
       _backendClientReady = false;
     }
+  }
+
+  Future<void> _loadPersistedPreferences() async {
+    final snapshot = await _appPreferences.load();
+    final model =
+        DeepgramRecognitionCatalog.supportedRecognitionModels.contains(
+          snapshot.deepgramRecognitionModel,
+        )
+        ? snapshot.deepgramRecognitionModel
+        : DeepgramRecognitionCatalog.defaultRecognitionModel;
+    final sourceLanguage =
+        DeepgramRecognitionCatalog.isRecognitionLanguageSupportedForModel(
+          model,
+          snapshot.deepgramRecognitionLanguage,
+        )
+        ? snapshot.deepgramRecognitionLanguage
+        : DeepgramRecognitionCatalog.defaultRecognitionLanguageForModel(model);
+    final targetLanguage =
+        SpeechController.supportedLanguages.values.contains(
+          snapshot.targetLanguage,
+        )
+        ? snapshot.targetLanguage
+        : 'en';
+
+    _deepgramRecognitionModel = model;
+    _deepgramRecognitionLanguage = sourceLanguage;
+    _speechToTextRecognitionLocale = snapshot.speechToTextRecognitionLocale;
+    _targetLanguage = targetLanguage;
+    _lastPersistedPreferences = AppPreferencesSnapshot(
+      deepgramRecognitionModel: model,
+      deepgramRecognitionLanguage: sourceLanguage,
+      speechToTextRecognitionLocale: snapshot.speechToTextRecognitionLocale,
+      targetLanguage: targetLanguage,
+      hideTranslatedOriginalText: snapshot.hideTranslatedOriginalText,
+      audioPlaybackEnabled: snapshot.audioPlaybackEnabled,
+    );
+  }
+
+  void _persistControllerPreferences() {
+    if (!_controllersReady) return;
+
+    final snapshot = AppPreferencesSnapshot(
+      deepgramRecognitionModel: _controller.deepgramRecognitionModel,
+      deepgramRecognitionLanguage: _controller.deepgramRecognitionLanguage,
+      speechToTextRecognitionLocale: _controller.speechToTextRecognitionLocale,
+      targetLanguage: _controller.targetLanguage,
+      hideTranslatedOriginalText: _controller.hideTranslatedOriginalText,
+      audioPlaybackEnabled: _controller.audioPlaybackEnabled,
+    );
+
+    final previous = _lastPersistedPreferences;
+    _lastPersistedPreferences = snapshot;
+
+    if (previous != null &&
+        previous.deepgramRecognitionModel ==
+            snapshot.deepgramRecognitionModel &&
+        previous.deepgramRecognitionLanguage ==
+            snapshot.deepgramRecognitionLanguage &&
+        previous.speechToTextRecognitionLocale ==
+            snapshot.speechToTextRecognitionLocale &&
+        previous.targetLanguage == snapshot.targetLanguage &&
+        previous.hideTranslatedOriginalText ==
+            snapshot.hideTranslatedOriginalText &&
+        previous.audioPlaybackEnabled == snapshot.audioPlaybackEnabled) {
+      return;
+    }
+
+    unawaited(
+      _appPreferences.setDeepgramRecognitionModel(
+        snapshot.deepgramRecognitionModel,
+      ),
+    );
+    unawaited(
+      _appPreferences.setDeepgramRecognitionLanguage(
+        snapshot.deepgramRecognitionLanguage,
+      ),
+    );
+    unawaited(
+      _appPreferences.setSpeechToTextRecognitionLocale(
+        snapshot.speechToTextRecognitionLocale,
+      ),
+    );
+    unawaited(_appPreferences.setTargetLanguage(snapshot.targetLanguage));
+    unawaited(
+      _appPreferences.setHideTranslatedOriginalText(
+        snapshot.hideTranslatedOriginalText,
+      ),
+    );
+    unawaited(
+      _appPreferences.setAudioPlaybackEnabled(snapshot.audioPlaybackEnabled),
+    );
   }
 
   SpeechSttProvider? get _activeSessionSttProvider => _isGroupSection
@@ -968,6 +1066,15 @@ class _MyHomePageState extends State<MyHomePage> {
     controller.setDeepgramRecognitionModel(_deepgramRecognitionModel);
     controller.setDeepgramRecognitionLanguage(_deepgramRecognitionLanguage);
     controller.setSpeechToTextRecognitionLocale(_speechToTextRecognitionLocale);
+    controller.setTargetLanguage(_targetLanguage);
+    if (_lastPersistedPreferences != null) {
+      controller.setHideTranslatedOriginalText(
+        _lastPersistedPreferences!.hideTranslatedOriginalText,
+      );
+      controller.setAudioPlaybackEnabled(
+        _lastPersistedPreferences!.audioPlaybackEnabled,
+      );
+    }
 
     final twoWayController = TwoWayChatController(
       backendApiClient: backendApiClient,
@@ -1003,6 +1110,7 @@ class _MyHomePageState extends State<MyHomePage> {
     HomePageInitializationBundle? bundle;
 
     try {
+      await _loadPersistedPreferences();
       bundle = await (widget.initializer ?? _createInitializationBundle)();
     } catch (error) {
       bundle?.dispose();
@@ -1022,6 +1130,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _backendApiClient = bundle.backendApiClient;
     _controller = bundle.controller;
     _twoWayController = bundle.twoWayController;
+    _controller.addListener(_persistControllerPreferences);
     _backendClientReady = true;
     _controllersReady = true;
     _bindListeningDeviceNotifications();
@@ -1034,6 +1143,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _controller.speechToTextRecognitionLocales;
       _speechToTextRecognitionLocale =
           _controller.speechToTextRecognitionLocale;
+      _targetLanguage = _controller.targetLanguage;
       _initializing = false;
     });
   }
@@ -1311,6 +1421,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     setState(() {
       _deepgramRecognitionLanguage = target;
+      _targetLanguage = source;
       _controller.setDeepgramRecognitionLanguage(target);
       _twoWayController.setDeepgramRecognitionLanguage(target);
       _controller.setTargetLanguage(source);
@@ -1417,6 +1528,7 @@ class _MyHomePageState extends State<MyHomePage> {
               onSelected: (value) {
                 if (value == null || value == targetCode) return;
                 setState(() {
+                  _targetLanguage = value;
                   _controller.setTargetLanguage(value);
                 });
               },

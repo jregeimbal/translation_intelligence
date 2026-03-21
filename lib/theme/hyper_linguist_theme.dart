@@ -120,6 +120,7 @@ class HyperLinguistTextRoles extends ThemeExtension<HyperLinguistTextRoles> {
       ),
       statusMessage: textTheme.bodyLarge!.copyWith(
         color: colorScheme.onSurfaceVariant,
+        fontSize: 18,
       ),
       helperText: textTheme.bodyMedium!.copyWith(
         color: colorScheme.onSurfaceVariant,

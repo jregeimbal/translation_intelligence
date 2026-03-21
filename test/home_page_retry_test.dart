@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:translation_intelligence/controllers/two_way_chat_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:translation_intelligence/main.dart';
 import 'package:translation_intelligence/models/two_way_message.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
@@ -86,6 +87,12 @@ class FakeTwoWayChatController extends ChangeNotifier
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('MyHomePage retries initialization after failure', (
     tester,
   ) async {
