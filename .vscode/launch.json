@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Server (Debug)",
+            "name": "Server (debug)",
             "type": "dart",
             "request": "launch",
             "program": "server/bin/server.dart",
@@ -14,44 +14,61 @@
                 "FIREBASE_PROJECT_ID": "tutti-lingo",
                 "FIREBASE_WEB_API_KEY": "AIzaSyBDCTRkDbXpsnLzfpewRaOEo3-LOgxv-p8",
                 "GOOGLE_SERVICE_ACCOUNT_JSON_PATH": "tutti-lingo-google-cloud-service-account.json",
-                "ALLOWED_ORIGINS": "http://localhost:55555"
+                "ALLOWED_ORIGINS": "http://localhost:55555",
+                "SERVER_HOST": "0.0.0.0",
+                "PORT": "8080"
             },
             "vmAdditionalArgs": ["--observe"]
         },
         {
-            "name": "App (Debug)",
+            "name": "App (debug)",
             "request": "launch",
             "type": "dart",
             "args": [
                 "--web-hostname=localhost",
-                "--web-port=55555"
+                "--web-port=55555",
+                "--dart-define", "API_BASE_URL=http://localhost:8080"
             ],
         },
         {
-            "name": "translation_intelligence (profile mode)",
+            "name": "App (profile)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile",
             "args": [
                 "--web-hostname=0.0.0.0",
-                "--web-port=55555"
+                "--web-port=55555",
+                "--dart-define", "API_BASE_URL=http://localhost:8080"
             ],
         },
         {
-            "name": "translation_intelligence (release mode)",
+            "name": "App (release w/ local server)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release",
             "args": [
-                "--dart-define", "GOOGLE_API_KEY=AIzaSyBWRL9u_XeJceL4kjL_82gOVfEhCeloqrI",
-                "--dart-define", "DEEPGRAM_API_KEY=REDACTED_DEEPGRAM_API_KEY"
+                "--web-hostname=localhost",
+                "--web-port=55555",
+                "--dart-define", "API_BASE_URL=http://localhost:8080"
+            ],
+        },
+        {
+            "name": "App (release)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "args": [
+                "--web-hostname=localhost",
+                "--web-port=55555",
+                "--dart-define", "NO_DOTENV_OVERRIDE=true",
+                "--dart-define", "API_BASE_URL=https://translation-intelligence-server-807627897911.us-central1.run.app"
             ],
         }
     ],
     "compounds": [
     {
-      "name": "Server & App",
-      "configurations": ["Server (Debug)", "App (Debug)"],
+      "name": "Server & App (debug)",
+      "configurations": ["Server (debug)", "App (debug)"],
       "stopAll": true
     }
   ]

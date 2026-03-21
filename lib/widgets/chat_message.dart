@@ -196,6 +196,11 @@ class _ChatMessageListState extends State<ChatMessageList> {
                 msg.speaker == controller.preferredSpeaker;
             final isPrimaryStyled =
                 controller.preferredSpeaker != null && isPreferred;
+            final hasTranslation =
+                msg.translation != null ||
+                msg.groups.any((group) => group.translation != null);
+            final canToggleOriginal =
+                hideTranslatedOriginalText && msg.isFinal && hasTranslation;
             final textColor = theme.colorScheme.onSurface;
             final speakerChipColor = _speakerChipBackground(
               msg.speaker,
@@ -263,29 +268,39 @@ class _ChatMessageListState extends State<ChatMessageList> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      _ChatMessageContent(
-                        message: msg,
-                        isPrimaryStyled: isPrimaryStyled,
-                        textColor: textColor,
-                        textRoles: textRoles,
-                        showOriginal:
-                            !hideTranslatedOriginalText ||
-                            !msg.isFinal ||
-                            _expandedOriginalMessageIds.contains(msg.id),
-                        onToggleOriginal:
-                            hideTranslatedOriginalText && msg.isFinal
-                            ? () {
-                                setState(() {
-                                  if (_expandedOriginalMessageIds.contains(
-                                    msg.id,
-                                  )) {
-                                    _expandedOriginalMessageIds.remove(msg.id);
-                                  } else {
-                                    _expandedOriginalMessageIds.add(msg.id);
-                                  }
-                                });
-                              }
-                            : null,
+                      MouseRegion(
+                        cursor: canToggleOriginal
+                            ? SystemMouseCursors.click
+                            : MouseCursor.defer,
+                        child: GestureDetector(
+                          key: ValueKey<String>('chat_bubble_${msg.id}'),
+                          behavior: HitTestBehavior.translucent,
+                          onTap: canToggleOriginal
+                              ? () {
+                                  setState(() {
+                                    if (_expandedOriginalMessageIds.contains(
+                                      msg.id,
+                                    )) {
+                                      _expandedOriginalMessageIds.remove(
+                                        msg.id,
+                                      );
+                                    } else {
+                                      _expandedOriginalMessageIds.add(msg.id);
+                                    }
+                                  });
+                                }
+                              : null,
+                          child: _ChatMessageContent(
+                            message: msg,
+                            isPrimaryStyled: isPrimaryStyled,
+                            textColor: textColor,
+                            textRoles: textRoles,
+                            showOriginal:
+                                !hideTranslatedOriginalText ||
+                                !msg.isFinal ||
+                                _expandedOriginalMessageIds.contains(msg.id),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -332,7 +347,6 @@ class _ChatMessageContent extends StatelessWidget {
   final Color textColor;
   final AppThemeTextRoles textRoles;
   final bool showOriginal;
-  final VoidCallback? onToggleOriginal;
 
   const _ChatMessageContent({
     required this.message,
@@ -340,7 +354,6 @@ class _ChatMessageContent extends StatelessWidget {
     required this.textColor,
     required this.textRoles,
     required this.showOriginal,
-    required this.onToggleOriginal,
   });
 
   @override
@@ -349,27 +362,36 @@ class _ChatMessageContent extends StatelessWidget {
     final translationStyle = textRoles.bubbleTranslation.copyWith(
       color: textColor.withValues(alpha: 0.9),
     );
+    final contentAlignment = isPrimaryStyled
+        ? Alignment.centerRight
+        : Alignment.centerLeft;
     final hasTranslation =
         message.translation != null ||
         message.groups.any((group) => group.translation != null);
     final shouldCollapseOriginal = message.isFinal && hasTranslation;
-    final originalContent = message.groups.isEmpty
-        ? _AnimatedRecognitionMessageText(
-            key: ValueKey<String>(message.id),
-            text: message.original,
-            isFinal: message.isFinal,
-            textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
-            style: bodyStyle,
-          )
-        : _InlineGroupedRecognitionText(
-            messageId: message.id,
-            groups: message.groups,
-            isFinal: message.isFinal,
-            textForGroup: (group) => group.original,
-            keySuffix: 'orig',
-            alignRight: isPrimaryStyled,
-            style: bodyStyle,
-          );
+    Widget expandToBubbleWidth(Widget child) {
+      return SizedBox(width: double.infinity, child: child);
+    }
+
+    final originalContent = expandToBubbleWidth(
+      message.groups.isEmpty
+          ? _AnimatedRecognitionMessageText(
+              key: ValueKey<String>(message.id),
+              text: message.original,
+              isFinal: message.isFinal,
+              textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
+              style: bodyStyle,
+            )
+          : _InlineGroupedRecognitionText(
+              messageId: message.id,
+              groups: message.groups,
+              isFinal: message.isFinal,
+              textForGroup: (group) => group.original,
+              keySuffix: 'orig',
+              alignRight: isPrimaryStyled,
+              style: bodyStyle,
+            ),
+    );
 
     return Column(
       crossAxisAlignment: isPrimaryStyled
@@ -377,59 +399,67 @@ class _ChatMessageContent extends StatelessWidget {
           : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (!shouldCollapseOriginal)
-          originalContent
-        else ...[
-          AnimatedSwitcher(
-            duration: _originalToggleDuration,
-            switchInCurve: Curves.easeInOut,
-            switchOutCurve: Curves.easeInOut,
-            transitionBuilder: (child, animation) {
-              return FadeTransition(
-                opacity: animation,
-                child: SizeTransition(
-                  sizeFactor: animation,
-                  axisAlignment: -1.0,
-                  child: child,
+        AnimatedSwitcher(
+          duration: _originalToggleDuration,
+          switchInCurve: Curves.easeInOut,
+          switchOutCurve: Curves.easeInOut,
+          layoutBuilder: (currentChild, previousChildren) {
+            return Align(
+              alignment: contentAlignment,
+              child: Column(
+                crossAxisAlignment: isPrimaryStyled
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ...previousChildren,
+                  if (currentChild != null) currentChild,
+                ],
+              ),
+            );
+          },
+          transitionBuilder: (child, animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: SizeTransition(
+                sizeFactor: animation,
+                axisAlignment: -1.0,
+                child: child,
+              ),
+            );
+          },
+          child: !shouldCollapseOriginal || showOriginal
+              ? KeyedSubtree(
+                  key: ValueKey<String>('${message.id}_original_visible'),
+                  child: originalContent,
+                )
+              : SizedBox(
+                  key: ValueKey<String>('${message.id}_original_hidden'),
                 ),
-              );
-            },
-            child: showOriginal
-                ? KeyedSubtree(
-                    key: ValueKey<String>('${message.id}_original_visible'),
-                    child: originalContent,
-                  )
-                : SizedBox(
-                    key: ValueKey<String>('${message.id}_original_hidden'),
-                  ),
-          ),
-          if (onToggleOriginal != null) ...[
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: onToggleOriginal,
-              child: Text(showOriginal ? 'Hide original' : 'Show original'),
-            ),
-          ],
-        ],
+        ),
         if (message.translation != null) ...[
           const SizedBox(height: 10),
           if (message.groups.any((group) => group.translation != null))
-            _InlineGroupedRecognitionText(
-              messageId: message.id,
-              groups: message.groups,
-              isFinal: message.isFinal,
-              textForGroup: (group) => group.translation,
-              keySuffix: 'translation',
-              alignRight: isPrimaryStyled,
-              style: translationStyle,
+            expandToBubbleWidth(
+              _InlineGroupedRecognitionText(
+                messageId: message.id,
+                groups: message.groups,
+                isFinal: message.isFinal,
+                textForGroup: (group) => group.translation,
+                keySuffix: 'translation',
+                alignRight: isPrimaryStyled,
+                style: translationStyle,
+              ),
             )
           else
-            _AnimatedRecognitionMessageText(
-              key: ValueKey<String>('${message.id}_translation'),
-              text: message.translation!,
-              isFinal: message.isFinal,
-              textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
-              style: translationStyle,
+            expandToBubbleWidth(
+              _AnimatedRecognitionMessageText(
+                key: ValueKey<String>('${message.id}_translation'),
+                text: message.translation!,
+                isFinal: message.isFinal,
+                textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
+                style: translationStyle,
+              ),
             ),
         ],
       ],

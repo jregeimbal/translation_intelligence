@@ -31,7 +31,6 @@ import 'widgets/two_way_chat.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
 
   Logger.root.level =
       Level.FINER; // This will only show WARNING and SEVERE logs
@@ -48,6 +47,31 @@ void main() async {
       time: record.time,
     );
     //}
+  });
+
+  final apiBaseUrl = const String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: '',
+  );
+
+  final noDotenvOverride = bool.tryParse(const String.fromEnvironment(
+    'NO_DOTENV_OVERRIDE',
+    defaultValue: 'false',
+  ));
+
+  Logger('Main').finest('Loaded runtime configuration: API_BASE_URL=${apiBaseUrl.isEmpty ? '(not set)' : apiBaseUrl}');
+
+  await dotenv.load(
+    mergeWith: { if (apiBaseUrl.isNotEmpty) "API_BASE_URL": apiBaseUrl },
+    overrideWithFiles: [if (noDotenvOverride == false) '.env'],
+  );
+  if (noDotenvOverride == true) {
+    Logger('Main').info('RuntimeConfig: Skipping .env file merge in ${kReleaseMode ? 'release' : kProfileMode ? 'profile' : 'debug'} mode.');
+  } else {
+    Logger('Main').info('RuntimeConfig: Merging .env file for configuration values.');
+  }
+  dotenv.env.forEach((key, value) {
+    Logger('Main').info('RuntimeConfig: $key=$value');
   });
 
   runApp(MyApp());
