@@ -315,6 +315,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final dropdownTextStyle = theme.textTheme.bodySmall?.copyWith(fontSize: 18);
     final deepgramLanguages =
         DeepgramRecognitionCatalog
             .supportedRecognitionLanguagesByModel[_selectedDeepgramRecognitionModel] ??
@@ -356,6 +357,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             expandedInsets: EdgeInsets.zero,
                             enableSearch: false,
                             requestFocusOnTap: false,
+                            textStyle: dropdownTextStyle,
                             inputDecorationTheme: _dropdownMenuTheme(theme),
                             dropdownMenuEntries: SpeechSttProvider.values
                                 .map(
@@ -387,6 +389,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                               expandedInsets: EdgeInsets.zero,
                               enableSearch: false,
                               requestFocusOnTap: false,
+                              textStyle: dropdownTextStyle,
                               inputDecorationTheme: _dropdownMenuTheme(theme),
                               dropdownMenuEntries: DeepgramRecognitionCatalog
                                   .supportedRecognitionModels
@@ -427,6 +430,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                               expandedInsets: EdgeInsets.zero,
                               enableSearch: false,
                               requestFocusOnTap: false,
+                              textStyle: dropdownTextStyle,
                               inputDecorationTheme: _dropdownMenuTheme(theme),
                               dropdownMenuEntries: deepgramLanguages.entries
                                   .map(
@@ -455,6 +459,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                               expandedInsets: EdgeInsets.zero,
                               enableSearch: false,
                               requestFocusOnTap: false,
+                              textStyle: dropdownTextStyle,
                               inputDecorationTheme: _dropdownMenuTheme(theme),
                               dropdownMenuEntries:
                                   _speechToTextRecognitionLocales.entries
@@ -482,6 +487,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             expandedInsets: EdgeInsets.zero,
                             enableSearch: false,
                             requestFocusOnTap: false,
+                            textStyle: dropdownTextStyle,
                             inputDecorationTheme: _dropdownMenuTheme(theme),
                             dropdownMenuEntries: SpeechTranslationProvider
                                 .values
@@ -507,6 +513,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             expandedInsets: EdgeInsets.zero,
                             enableSearch: false,
                             requestFocusOnTap: false,
+                            textStyle: dropdownTextStyle,
                             inputDecorationTheme: _dropdownMenuTheme(theme),
                             dropdownMenuEntries: SpeechOutputProvider.values
                                 .map(
@@ -572,6 +579,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 expandedInsets: EdgeInsets.zero,
                                 enableSearch: false,
                                 requestFocusOnTap: false,
+                                textStyle: dropdownTextStyle,
                                 inputDecorationTheme: _dropdownMenuTheme(theme),
                                 dropdownMenuEntries: [
                                   const DropdownMenuEntry<String?>(
@@ -640,6 +648,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 expandedInsets: EdgeInsets.zero,
                                 enableSearch: false,
                                 requestFocusOnTap: false,
+                                textStyle: dropdownTextStyle,
                                 inputDecorationTheme: _dropdownMenuTheme(theme),
                                 dropdownMenuEntries: [
                                   const DropdownMenuEntry<String?>(
@@ -677,6 +686,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             expandedInsets: EdgeInsets.zero,
                             enableSearch: false,
                             requestFocusOnTap: false,
+                            textStyle: dropdownTextStyle,
                             inputDecorationTheme: _dropdownMenuTheme(theme),
                             dropdownMenuEntries: ThemeMode.values
                                 .map(
@@ -1357,6 +1367,7 @@ class _MyHomePageState extends State<MyHomePage> {
               expandedInsets: EdgeInsets.zero,
               enableSearch: false,
               requestFocusOnTap: false,
+              textStyle: theme.textTheme.bodySmall?.copyWith(fontSize: 18),
               label: const Text('Source'),
               inputDecorationTheme: fieldTheme,
               dropdownMenuEntries: sourceLanguages.entries
@@ -1392,6 +1403,7 @@ class _MyHomePageState extends State<MyHomePage> {
               expandedInsets: EdgeInsets.zero,
               enableSearch: false,
               requestFocusOnTap: false,
+              textStyle: theme.textTheme.bodySmall?.copyWith(fontSize: 18),
               label: const Text('Target'),
               inputDecorationTheme: fieldTheme,
               dropdownMenuEntries: targetLanguages.entries

@@ -23,12 +23,27 @@ class SpeechFooter extends StatefulWidget {
 class _SpeechFooterState extends State<SpeechFooter> {
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<SpeechController>();
-    final speechEnabled = controller.speechEnabled;
-    final speechError = controller.speechError;
-    final hasMessages = controller.chatMessages.isNotEmpty;
-    final speakers = controller.speakers;
-    final preferred = controller.preferredSpeaker;
+    final speechEnabled = context.select<SpeechController, bool>(
+      (controller) => controller.speechEnabled,
+    );
+    final speechError = context.select<SpeechController, String>(
+      (controller) => controller.speechError,
+    );
+    final hasMessages = context.select<SpeechController, bool>(
+      (controller) => controller.chatMessages.isNotEmpty,
+    );
+    final speakers = context.select<SpeechController, List<int>>(
+      (controller) => List<int>.unmodifiable(controller.speakers),
+    );
+    final preferred = context.select<SpeechController, int?>(
+      (controller) => controller.preferredSpeaker,
+    );
+    final hideTranslatedOriginalText = context.select<SpeechController, bool>(
+      (controller) => controller.hideTranslatedOriginalText,
+    );
+    final audioPlaybackEnabled = context.select<SpeechController, bool>(
+      (controller) => controller.audioPlaybackEnabled,
+    );
     final theme = Theme.of(context);
     final textRoles = resolveAppThemeTextRoles(theme);
     return SizedBox(
@@ -50,6 +65,9 @@ class _SpeechFooterState extends State<SpeechFooter> {
                       expandedInsets: EdgeInsets.zero,
                       enableSearch: false,
                       requestFocusOnTap: false,
+                      textStyle: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 18,
+                      ),
                       label: const Text('Primary Speaker'),
                       inputDecorationTheme: InputDecorationThemeData(
                         isDense: true,
@@ -127,13 +145,13 @@ class _SpeechFooterState extends State<SpeechFooter> {
                           context
                               .read<SpeechController>()
                               .setHideTranslatedOriginalText(
-                                !controller.hideTranslatedOriginalText,
+                                !hideTranslatedOriginalText,
                               );
                         }
                       : null,
                   tooltip: 'Hide translation original text',
                   icon: Icon(
-                    controller.hideTranslatedOriginalText
+                    hideTranslatedOriginalText
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
                   ),
@@ -141,16 +159,16 @@ class _SpeechFooterState extends State<SpeechFooter> {
                 const SizedBox(width: 8),
                 IconButton(
                   icon: Icon(
-                    controller.audioPlaybackEnabled
+                    audioPlaybackEnabled
                         ? Icons.volume_up_rounded
                         : Icons.volume_off_rounded,
                   ),
-                  tooltip: controller.audioPlaybackEnabled
+                  tooltip: audioPlaybackEnabled
                       ? 'Disable audio playback'
                       : 'Enable audio playback',
                   onPressed: () {
                     context.read<SpeechController>().setAudioPlaybackEnabled(
-                      !controller.audioPlaybackEnabled,
+                      !audioPlaybackEnabled,
                     );
                   },
                 ),

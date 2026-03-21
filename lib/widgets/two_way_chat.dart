@@ -213,6 +213,7 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
               expandedInsets: EdgeInsets.zero,
               enableSearch: false,
               requestFocusOnTap: false,
+              textStyle: theme.textTheme.bodySmall?.copyWith(fontSize: 13),
               inputDecorationTheme: InputDecorationThemeData(
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
