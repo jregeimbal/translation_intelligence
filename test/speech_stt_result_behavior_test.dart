@@ -13,6 +13,7 @@ class _FakeSpeechPipeline extends SpeechPipeline {
       StreamController<double>.broadcast();
 
   int synthesizeCallCount = 0;
+  String? lastTranslateSourceLanguage;
 
   _FakeSpeechPipeline() : super(deepgramApiKey: 'test-deepgram');
 
@@ -30,6 +31,7 @@ class _FakeSpeechPipeline extends SpeechPipeline {
     bool detectLanguage = false,
   }) async {
     return SpeechRecognitionSession(
+      sourceLanguage: sourceLanguage,
       resultStream: resultController.stream,
       amplitudeStream: amplitudeController.stream,
       stop: () async {},
@@ -45,6 +47,7 @@ class _FakeSpeechPipeline extends SpeechPipeline {
     bool throwOnMissingApiKey = false,
     bool nullWhenUnchanged = false,
   }) async {
+    lastTranslateSourceLanguage = sourceLanguage;
     return '$text-translated';
   }
 
@@ -173,6 +176,47 @@ void main() {
         expect(controller.chatMessages.first.original, equals('hello final.'));
         expect(controller.getOptimisticMessages(), isEmpty);
         expect(pipeline.synthesizeCallCount, equals(1));
+      },
+    );
+
+    test(
+      'translation omits source language when active source is multi',
+      () async {
+        await controller.init();
+        await controller.startListening();
+
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hello final',
+            isFinal: true,
+          ),
+        );
+
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(pipeline.lastTranslateSourceLanguage, isNull);
+      },
+    );
+
+    test(
+      'translation sends source language when active source is fixed',
+      () async {
+        await controller.init();
+        controller.setDeepgramRecognitionLanguage('es');
+        await controller.startListening();
+
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hola final',
+            isFinal: true,
+          ),
+        );
+
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(pipeline.lastTranslateSourceLanguage, equals('es'));
       },
     );
 

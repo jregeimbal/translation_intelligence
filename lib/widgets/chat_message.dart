@@ -19,6 +19,7 @@ class ChatMessageList extends StatefulWidget {
 class _ChatMessageListState extends State<ChatMessageList> {
   int _lastMessageSnapshotHash = 0;
   final Set<String> _expandedOriginalMessageIds = <String>{};
+  String? _hoverHintMessageId;
 
   final ScrollController _scrollController = ScrollController();
   bool _shouldAutoScroll = true;
@@ -201,6 +202,10 @@ class _ChatMessageListState extends State<ChatMessageList> {
                 msg.groups.any((group) => group.translation != null);
             final canToggleOriginal =
                 hideTranslatedOriginalText && msg.isFinal && hasTranslation;
+            final showOriginal =
+                !hideTranslatedOriginalText ||
+                !msg.isFinal ||
+                _expandedOriginalMessageIds.contains(msg.id);
             final textColor = theme.colorScheme.onSurface;
             final speakerChipColor = _speakerChipBackground(
               msg.speaker,
@@ -272,34 +277,81 @@ class _ChatMessageListState extends State<ChatMessageList> {
                         cursor: canToggleOriginal
                             ? SystemMouseCursors.click
                             : MouseCursor.defer,
-                        child: GestureDetector(
-                          key: ValueKey<String>('chat_bubble_${msg.id}'),
-                          behavior: HitTestBehavior.translucent,
-                          onTap: canToggleOriginal
-                              ? () {
-                                  setState(() {
-                                    if (_expandedOriginalMessageIds.contains(
-                                      msg.id,
-                                    )) {
-                                      _expandedOriginalMessageIds.remove(
-                                        msg.id,
-                                      );
-                                    } else {
-                                      _expandedOriginalMessageIds.add(msg.id);
+                        onEnter: canToggleOriginal
+                            ? (_) {
+                                setState(() {
+                                  _hoverHintMessageId = msg.id;
+                                });
+                              }
+                            : null,
+                        onExit: (_) {
+                          if (_hoverHintMessageId != msg.id) return;
+                          setState(() {
+                            _hoverHintMessageId = null;
+                          });
+                        },
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            GestureDetector(
+                              key: ValueKey<String>('chat_bubble_${msg.id}'),
+                              behavior: HitTestBehavior.translucent,
+                              onTap: canToggleOriginal
+                                  ? () {
+                                      setState(() {
+                                        if (_expandedOriginalMessageIds
+                                            .contains(msg.id)) {
+                                          _expandedOriginalMessageIds.remove(
+                                            msg.id,
+                                          );
+                                        } else {
+                                          _expandedOriginalMessageIds.add(
+                                            msg.id,
+                                          );
+                                        }
+                                      });
                                     }
-                                  });
-                                }
-                              : null,
-                          child: _ChatMessageContent(
-                            message: msg,
-                            isPrimaryStyled: isPrimaryStyled,
-                            textColor: textColor,
-                            textRoles: textRoles,
-                            showOriginal:
-                                !hideTranslatedOriginalText ||
-                                !msg.isFinal ||
-                                _expandedOriginalMessageIds.contains(msg.id),
-                          ),
+                                  : null,
+                              child: _ChatMessageContent(
+                                message: msg,
+                                isPrimaryStyled: isPrimaryStyled,
+                                textColor: textColor,
+                                textRoles: textRoles,
+                                showOriginal: showOriginal,
+                              ),
+                            ),
+                            if (canToggleOriginal &&
+                                _hoverHintMessageId == msg.id)
+                              Positioned(
+                                top: -34,
+                                left: isPrimaryStyled ? null : 0,
+                                right: isPrimaryStyled ? 0 : null,
+                                child: IgnorePointer(
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.inverseSurface,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      child: Text(
+                                        showOriginal
+                                            ? 'Hide original'
+                                            : 'Show original',
+                                        style: textRoles.helperText.copyWith(
+                                          color: theme
+                                              .colorScheme
+                                              .onInverseSurface,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],
