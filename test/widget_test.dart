@@ -38,6 +38,24 @@ void main() {
     expect(find.text('Primary Speaker'), findsOneWidget);
     expect(find.byTooltip('Hide translation original text'), findsOneWidget);
 
+    final footerStack = tester.widget<Stack>(find.byType(Stack).first);
+    expect(footerStack.alignment, Alignment.center);
+
+    final leftAlignedRow = tester.widget<Align>(
+      find.byWidgetPredicate(
+        (widget) => widget is Align && widget.alignment == Alignment.centerLeft,
+      ),
+    );
+    expect(leftAlignedRow.alignment, Alignment.centerLeft);
+
+    final rightAlignedRow = tester.widget<Align>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Align && widget.alignment == Alignment.centerRight,
+      ),
+    );
+    expect(rightAlignedRow.alignment, Alignment.centerRight);
+
     controller.setHideTranslatedOriginalText(false);
     await tester.pumpAndSettle();
     expect(controller.hideTranslatedOriginalText, isFalse);

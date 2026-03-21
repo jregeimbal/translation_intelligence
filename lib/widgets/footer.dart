@@ -37,57 +37,14 @@ class _SpeechFooterState extends State<SpeechFooter> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded),
-                tooltip: 'Clear chat',
-                onPressed: hasMessages
-                    ? context.read<SpeechController>().clearMessages
-                    : null,
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: hasMessages
-                    ? () {
-                        context
-                            .read<SpeechController>()
-                            .setHideTranslatedOriginalText(
-                              !controller.hideTranslatedOriginalText,
-                            );
-                      }
-                    : null,
-                tooltip: 'Hide translation original text',
-                icon: Icon(
-                  controller.hideTranslatedOriginalText
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (!speechEnabled)
-                Flexible(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: Text(
-                      speechError.isNotEmpty
-                          ? speechError
-                          : 'Speech not available',
-                      style: textRoles.errorText,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-            ],
-          ),
           Align(
-            alignment: Alignment.centerRight,
+            alignment: Alignment.centerLeft,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (hasMessages) ...[
                   SizedBox(
-                    width: 140,
+                    width: 160,
                     child: DropdownMenuFormField<int?>(
                       initialSelection: preferred,
                       expandedInsets: EdgeInsets.zero,
@@ -135,6 +92,53 @@ class _SpeechFooterState extends State<SpeechFooter> {
                   ),
                   const SizedBox(width: 8),
                 ],
+                if (!speechEnabled)
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: Text(
+                        speechError.isNotEmpty
+                            ? speechError
+                            : 'Speech not available',
+                        style: textRoles.errorText,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  tooltip: 'Clear chat',
+                  onPressed: hasMessages
+                      ? context.read<SpeechController>().clearMessages
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: hasMessages
+                      ? () {
+                          context
+                              .read<SpeechController>()
+                              .setHideTranslatedOriginalText(
+                                !controller.hideTranslatedOriginalText,
+                              );
+                        }
+                      : null,
+                  tooltip: 'Hide translation original text',
+                  icon: Icon(
+                    controller.hideTranslatedOriginalText
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 IconButton(
                   icon: Icon(
                     controller.audioPlaybackEnabled
