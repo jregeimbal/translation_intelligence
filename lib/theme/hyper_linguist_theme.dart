@@ -127,7 +127,7 @@ class HyperLinguistTextRoles extends ThemeExtension<HyperLinguistTextRoles> {
       speakerChip: textTheme.labelMedium!,
       timestamp: textTheme.labelSmall!,
       bubbleBody: textTheme.bodyLarge!,
-      bubbleTranslation: textTheme.bodyMedium!.copyWith(
+      bubbleTranslation: textTheme.bodyLarge!.copyWith(
         fontStyle: FontStyle.italic,
       ),
       errorText: textTheme.bodyMedium!.copyWith(color: colorScheme.error),
