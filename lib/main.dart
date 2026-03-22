@@ -146,7 +146,7 @@ class _MyAppState extends State<MyApp> {
         : HyperListenTheme.dark();
 
     return MaterialApp(
-      title: 'Translation Intelligence',
+      title: 'Mejor Lingo',
       theme: selectedLightTheme,
       darkTheme: selectedDarkTheme,
       themeMode: _themeMode,
@@ -1633,10 +1633,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Translation Studio',
+                    'Mejor Lingo',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
-                  Text('Real-time assistant', style: textRoles.appSubtitle),
+                  Text('Translation Assistant', style: textRoles.appSubtitle),
                 ],
               ),
             ],
@@ -1671,7 +1671,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           child: Padding(
                             key: const ValueKey('group_chat'),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
+                              horizontal: 10.0,
                               vertical: 12,
                             ),
                             child: Column(
@@ -1687,7 +1687,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     key: const ValueKey('two_way_placeholder'),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
+                        horizontal: 10.0,
                         vertical: 12,
                       ),
                       child: _initializing
