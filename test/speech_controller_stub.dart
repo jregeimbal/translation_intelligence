@@ -47,8 +47,8 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   String _speechToTextRecognitionLocale =
       SpeechToTextService.defaultRecognitionLanguage;
   Map<String, String> _speechToTextRecognitionLocales = const {
-    'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
-    'English (US)': 'en-US',
+    'multi': SpeechToTextService.defaultRecognitionLanguage,
+    'en-US': 'en-US',
   };
   List<InputDevice> _listeningDevices = const [];
   String? _listeningDeviceId;
@@ -193,12 +193,8 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   }
 
   @override
-  String get targetLanguageName {
-    final entry = SpeechController.supportedLanguages.entries.firstWhere(
-      (e) => e.value == _targetLanguage,
-      orElse: () => MapEntry(_targetLanguage, _targetLanguage),
-    );
-    return entry.key;
+  bool get hasSupportedTargetLanguage {
+    return SpeechController.supportedLanguages.contains(_targetLanguage);
   }
 
   @override
@@ -288,9 +284,9 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   @override
   Future<void> refreshSpeechToTextRecognitionLocales() async {
     _speechToTextRecognitionLocales = const {
-      'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
-      'English (US)': 'en-US',
-      'Spanish (Spain)': 'es-ES',
+      'multi': SpeechToTextService.defaultRecognitionLanguage,
+      'en-US': 'en-US',
+      'es-ES': 'es-ES',
     };
     notifyListeners();
   }

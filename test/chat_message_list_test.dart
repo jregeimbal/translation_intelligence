@@ -6,6 +6,7 @@ import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/widgets/chat_message.dart';
 
 import 'speech_controller_stub.dart';
+import 'test_app.dart';
 
 void main() {
   group('ChatMessageList', () {
@@ -15,14 +16,11 @@ void main() {
         speechEnabled: true,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const ChatMessageList(),
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
         ),
       );
 
@@ -41,14 +39,11 @@ void main() {
         lastWords: 'buffered preview text',
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const ChatMessageList(),
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
         ),
       );
 
@@ -62,14 +57,11 @@ void main() {
         speechEnabled: true,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const ChatMessageList(),
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
         ),
       );
 
@@ -88,14 +80,11 @@ void main() {
       controller.preferredSpeaker = 0;
       controller.addMessage(message);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const ChatMessageList(),
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
         ),
       );
 
@@ -114,14 +103,11 @@ void main() {
       final controller = TestSpeechController();
       controller.addMessage(ChatMessage('No translation yet', isFinal: true));
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const ChatMessageList(),
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
         ),
       );
 
@@ -139,14 +125,11 @@ void main() {
           ..translation = 'Hello';
         controller.addMessage(message);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: ChangeNotifierProvider<SpeechController>.value(
-                value: controller,
-                child: const ChatMessageList(),
-              ),
-            ),
+        await pumpTestApp(
+          tester,
+          ChangeNotifierProvider<SpeechController>.value(
+            value: controller,
+            child: const ChatMessageList(),
           ),
         );
 
@@ -185,14 +168,11 @@ void main() {
         ..translation = 'Hello';
       controller.addMessage(message);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const ChatMessageList(),
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
         ),
       );
 
@@ -209,14 +189,11 @@ void main() {
       final message = ChatMessage('Hola', speaker: 0, isFinal: false);
       controller.addMessage(message);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const ChatMessageList(),
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
         ),
       );
 
@@ -247,14 +224,11 @@ void main() {
         ChatMessage('Primary line', speaker: 0, isFinal: false),
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const ChatMessageList(),
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
         ),
       );
 
@@ -289,14 +263,11 @@ void main() {
         ChatMessage('Guest line', speaker: 0, isFinal: false),
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const ChatMessageList(),
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
         ),
       );
 
@@ -338,14 +309,11 @@ void main() {
           ),
         );
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: ChangeNotifierProvider<SpeechController>.value(
-                value: controller,
-                child: const ChatMessageList(),
-              ),
-            ),
+        await pumpTestApp(
+          tester,
+          ChangeNotifierProvider<SpeechController>.value(
+            value: controller,
+            child: const ChatMessageList(),
           ),
         );
 
@@ -383,14 +351,11 @@ void main() {
             .toList(growable: false);
       }
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const ChatMessageList(),
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
         ),
       );
 
@@ -425,16 +390,13 @@ void main() {
       }
       final lastMessage = messages.last;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              height: 220,
-              child: ChangeNotifierProvider<SpeechController>.value(
-                value: controller,
-                child: const ChatMessageList(),
-              ),
-            ),
+      await pumpTestApp(
+        tester,
+        SizedBox(
+          height: 220,
+          child: ChangeNotifierProvider<SpeechController>.value(
+            value: controller,
+            child: const ChatMessageList(),
           ),
         ),
       );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 import 'package:translation_intelligence/theme/app_theme_resolver.dart';
 
 import 'recording_toggle_button.dart';
@@ -46,6 +47,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
     );
     final theme = Theme.of(context);
     final textRoles = resolveAppThemeTextRoles(theme);
+    final l10n = context.l10n;
     return SizedBox(
       width: double.infinity,
       height: 64,
@@ -68,7 +70,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
                       textStyle: theme.textTheme.bodySmall?.copyWith(
                         fontSize: 18,
                       ),
-                      label: const Text('Primary Speaker'),
+                      label: Text(l10n.primarySpeakerLabel),
                       inputDecorationTheme: InputDecorationThemeData(
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
@@ -93,11 +95,14 @@ class _SpeechFooterState extends State<SpeechFooter> {
                         ),
                       ),
                       dropdownMenuEntries: [
-                        const DropdownMenuEntry<int?>(value: -1, label: 'None'),
+                        DropdownMenuEntry<int?>(
+                          value: -1,
+                          label: l10n.noneLabel,
+                        ),
                         ...speakers.map(
                           (s) => DropdownMenuEntry<int?>(
                             value: s,
-                            label: 'Speaker ${s + 1}',
+                            label: l10n.speakerLabel(s + 1),
                           ),
                         ),
                       ],
@@ -116,8 +121,8 @@ class _SpeechFooterState extends State<SpeechFooter> {
                       padding: const EdgeInsets.only(right: 8.0),
                       child: Text(
                         speechError.isNotEmpty
-                            ? speechError
-                            : 'Speech not available',
+                            ? localizedSpeechError(context, speechError)
+                            : l10n.speechNotAvailable,
                         style: textRoles.errorText,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -133,7 +138,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.refresh_rounded),
-                  tooltip: 'Clear chat',
+                  tooltip: l10n.clearChat,
                   onPressed: hasMessages
                       ? context.read<SpeechController>().clearMessages
                       : null,
@@ -149,7 +154,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
                               );
                         }
                       : null,
-                  tooltip: 'Hide translation original text',
+                  tooltip: l10n.hideTranslationOriginalText,
                   icon: Icon(
                     hideTranslatedOriginalText
                         ? Icons.visibility_off_outlined
@@ -164,8 +169,8 @@ class _SpeechFooterState extends State<SpeechFooter> {
                         : Icons.volume_off_rounded,
                   ),
                   tooltip: audioPlaybackEnabled
-                      ? 'Disable audio playback'
-                      : 'Enable audio playback',
+                      ? l10n.disableAudioPlayback
+                      : l10n.enableAudioPlayback,
                   onPressed: () {
                     context.read<SpeechController>().setAudioPlaybackEnabled(
                       !audioPlaybackEnabled,

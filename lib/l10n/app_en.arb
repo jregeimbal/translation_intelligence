@@ -1,0 +1,147 @@
+{
+  "@@locale": "en",
+  "appTitle": "Omnialingo",
+  "themeModeSystem": "System",
+  "themeModeLight": "Light",
+  "themeModeDark": "Dark",
+  "settingsTitle": "Settings",
+  "tabProviders": "Providers",
+  "tabAudio": "Audio",
+  "tabDisplay": "Display",
+  "speechToTextLabel": "Speech to Text",
+  "deepgramModelLabel": "Deepgram Model",
+  "deepgramLanguageLabel": "Deepgram Language",
+  "googleLocaleLabel": "Google Locale",
+  "translationLabel": "Translation",
+  "textToSpeechLabel": "Text to Speech",
+  "listeningDeviceLabel": "Listening Device",
+  "audioInputSelectionHint": "Audio input selection is available when Speech to Text is set to Deepgram.",
+  "noInputDevicesDetected": "No input devices detected",
+  "autoLabel": "Auto",
+  "currentDetails": "Current: {details}",
+  "@currentDetails": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "autoWithDetails": "Auto ({details})",
+  "@autoWithDetails": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "playbackDeviceLabel": "Playback Device",
+  "iosPlaybackRoutesHint": "Some iOS playback routes are managed by the system and may not always switch programmatically.",
+  "playbackUnavailableHint": "Playback device details unavailable on this platform.",
+  "displayLabel": "Display",
+  "themeModeLabel": "Theme Mode",
+  "cancel": "Cancel",
+  "save": "Save",
+  "multiAuto": "Multi (Auto)",
+  "debugAudioStream": "Debug Audio Stream",
+  "debugSection": "Section",
+  "debugSectionGroup": "Group",
+  "debugSectionTwoWay": "2-way",
+  "debugListeningActive": "Listening Active",
+  "yes": "yes",
+  "no": "no",
+  "notAvailableShort": "n/a",
+  "debugSttProvider": "STT Provider",
+  "debugSourceLanguage": "Source Language",
+  "debugResolvedLanguageCode": "Resolved Language Code",
+  "debugActiveSampleRate": "Active Sample Rate",
+  "sampleRateHertz": "{sampleRate} Hz",
+  "@sampleRateHertz": {
+    "placeholders": {
+      "sampleRate": {}
+    }
+  },
+  "debugListeningDeviceId": "Listening Device Id",
+  "autoDefault": "auto/default",
+  "debugAmplitude": "Amplitude (0-1)",
+  "debugSessionElapsed": "Session Elapsed",
+  "debugSessionStartedAt": "Session Started At",
+  "debugConfiguredSttProvider": "Configured STT Provider",
+  "debugConfiguredDeepgramLanguage": "Configured Deepgram Language",
+  "debugConfiguredGoogleLocale": "Configured Google Locale",
+  "debugConfiguredSttLocale": "Configured STT Locale",
+  "close": "Close",
+  "unableToSwitchPlaybackDevice": "Unable to switch playback device on this platform.",
+  "sourceLabel": "Source",
+  "swapLanguagesTooltip": "Swap source and target language",
+  "swapUnavailableMultiTooltip": "Swap unavailable when source or target is multi",
+  "swapUnavailablePairTooltip": "Swap unavailable for selected language pair",
+  "targetLabel": "Target",
+  "initializationFailed": "Initialization failed: {error}",
+  "@initializationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "retry": "Retry",
+  "translationAssistant": "Real-Time Voice Translator",
+  "groupLabel": "Group",
+  "twoWayLabel": "2-way",
+  "listeningStatus": "Listening...",
+  "tapMicToStartListening": "Tap the mic to start listening...",
+  "speechNotAvailable": "Speech not available",
+  "speakerLabel": "Speaker {number}",
+  "@speakerLabel": {
+    "placeholders": {
+      "number": {}
+    }
+  },
+  "hideOriginal": "Hide original",
+  "showOriginal": "Show original",
+  "jumpToLatest": "Jump to latest",
+  "guestLabel": "Guest",
+  "primaryLabel": "Primary",
+  "clearChat": "Clear chat",
+  "speakerPanelTitle": "{title} Speaker",
+  "@speakerPanelTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "noMessagesYet": "No messages yet",
+  "stopListening": "Stop listening",
+  "listen": "Listen",
+  "primarySpeakerLabel": "Primary Speaker",
+  "noneLabel": "None",
+  "hideTranslationOriginalText": "Hide translation original text",
+  "disableAudioPlayback": "Disable audio playback",
+  "enableAudioPlayback": "Enable audio playback",
+  "primarySpeakerInline": "Primary speaker",
+  "noAlignment": "No alignment",
+  "speechUnavailable": "Speech unavailable",
+  "microphoneConnected": "Microphone connected",
+  "microphoneDisconnected": "Microphone disconnected",
+  "audioRouteChanged": "Audio route changed",
+  "listeningDeviceListUpdated": "Listening device list updated",
+  "messageWithDetails": "{message}: {details}",
+  "@messageWithDetails": {
+    "placeholders": {
+      "message": {},
+      "details": {}
+    }
+  },
+  "languageEnglish": "English",
+  "languageSpanish": "Spanish",
+  "languageFrench": "French",
+  "languageGerman": "German",
+  "languageChineseSimplified": "Chinese (Simplified)",
+  "languageJapanese": "Japanese",
+  "languageKorean": "Korean",
+  "languagePortuguese": "Portuguese",
+  "languageRussian": "Russian",
+  "languageArabic": "Arabic",
+  "languageHindi": "Hindi",
+  "microphonePermissionDenied": "Microphone permission denied",
+  "invalidSpeechApiKey": "Invalid speech API key",
+  "sttProviderDeepgram": "Deepgram",
+  "sttProviderGoogle": "Speech to Text",
+  "translationProviderGoogle": "Google Cloud (Backend)",
+  "translationProviderGoogleMlKit": "Google ML Kit (Legacy)",
+  "outputProviderGoogle": "Google",
+  "outputProviderDeepgram": "Deepgram"
+}

@@ -127,7 +127,7 @@ class SpeechToTextService {
 
     final sorted = locales.toList()..sort();
     return <String, String>{
-      'Multi (Auto)': defaultRecognitionLanguage,
+      'multi': defaultRecognitionLanguage,
       for (final locale in sorted) locale: locale,
     };
   }

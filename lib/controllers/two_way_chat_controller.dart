@@ -6,6 +6,7 @@ import 'package:record/record.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../models/two_way_message.dart';
+import '../services/app_language_catalog.dart';
 import '../services/backend_api_client.dart';
 import '../services/backend_stt_client.dart';
 import '../services/speech_pipeline.dart';
@@ -140,24 +141,13 @@ class TwoWayChatController extends ChangeNotifier {
     return applied;
   }
 
-  static const Map<String, String> supportedLanguages = {
-    'English': 'en',
-    'Spanish': 'es',
-    'French': 'fr',
-    'German': 'de',
-    'Chinese (Simplified)': 'zh-CN',
-    'Japanese': 'ja',
-    'Korean': 'ko',
-    'Portuguese': 'pt',
-    'Russian': 'ru',
-    'Arabic': 'ar',
-    'Hindi': 'hi',
-  };
+  static const List<String> supportedLanguages =
+      AppLanguageCatalog.supportedLanguageCodes;
 
   Future<void> init() async {
     final hasPerm = await _recorder.hasPermission();
     if (!hasPerm) {
-      _speechError = 'Microphone permission denied';
+      _speechError = 'microphonePermissionDenied';
       _speechEnabled = false;
       notifyListeners();
       return;
@@ -165,7 +155,7 @@ class TwoWayChatController extends ChangeNotifier {
 
     final isValid = await _speechPipeline.isSpeechApiKeyValid();
     if (!isValid) {
-      _speechError = 'Invalid speech API key';
+      _speechError = 'invalidSpeechApiKey';
       _speechEnabled = false;
       notifyListeners();
       return;

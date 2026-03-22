@@ -81,7 +81,7 @@ class SpeechPipeline {
        _speechToTextRecognitionLocale =
            SpeechToTextService.defaultRecognitionLanguage,
        _speechToTextRecognitionLocales = const {
-         'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
+         'multi': SpeechToTextService.defaultRecognitionLanguage,
        };
 
   SpeechOutputProvider get outputProvider => _outputProvider;

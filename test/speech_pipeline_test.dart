@@ -118,16 +118,13 @@ void main() {
       expect(controller.speakers, isEmpty);
       expect(controller.preferredSpeaker, isNull);
       expect(controller.targetLanguage, equals('en'));
-      expect(controller.targetLanguageName, equals('English'));
+      expect(controller.hasSupportedTargetLanguage, isTrue);
     });
 
     test('supportedLanguages contains expected baseline entries', () {
-      expect(SpeechController.supportedLanguages['English'], equals('en'));
-      expect(SpeechController.supportedLanguages['Spanish'], equals('es'));
-      expect(
-        SpeechController.supportedLanguages['Chinese (Simplified)'],
-        equals('zh-CN'),
-      );
+      expect(SpeechController.supportedLanguages, contains('en'));
+      expect(SpeechController.supportedLanguages, contains('es'));
+      expect(SpeechController.supportedLanguages, contains('zh-CN'));
     });
 
     test('setTargetLanguage updates and notifies only on changes', () {
@@ -136,17 +133,17 @@ void main() {
 
       controller.setTargetLanguage('es');
       expect(controller.targetLanguage, equals('es'));
-      expect(controller.targetLanguageName, equals('Spanish'));
+      expect(controller.hasSupportedTargetLanguage, isTrue);
       expect(notifications, equals(1));
 
       controller.setTargetLanguage('es');
       expect(notifications, equals(1));
     });
 
-    test('targetLanguageName falls back to raw code for unknown language', () {
+    test('hasSupportedTargetLanguage is false for unknown language', () {
       controller.setTargetLanguage('xx-custom');
       expect(controller.targetLanguage, equals('xx-custom'));
-      expect(controller.targetLanguageName, equals('xx-custom'));
+      expect(controller.hasSupportedTargetLanguage, isFalse);
     });
 
     test('setPreferredSpeaker updates and notifies listeners', () {
@@ -215,7 +212,7 @@ void main() {
         await controller.init();
 
         expect(controller.speechEnabled, isFalse);
-        expect(controller.speechError, equals('Microphone permission denied'));
+        expect(controller.speechError, equals('microphonePermissionDenied'));
       },
     );
 
@@ -237,7 +234,7 @@ void main() {
       await localController.init();
 
       expect(localController.speechEnabled, isFalse);
-      expect(localController.speechError, equals('Invalid speech API key'));
+      expect(localController.speechError, equals('invalidSpeechApiKey'));
     });
 
     test(

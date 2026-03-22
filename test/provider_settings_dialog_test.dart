@@ -9,33 +9,31 @@ import 'package:translation_intelligence/services/speech_to_text_service.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
 
 import 'speech_controller_stub.dart';
+import 'test_app.dart';
 
 void main() {
   testWidgets(
     'ProviderSettingsDialog shows Settings title, Providers sub-header, and ordered labels',
     (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: ProviderSettingsDialog(
-              initialSttProvider: SpeechSttProvider.deepgram,
-              initialTranslationProvider: SpeechTranslationProvider.google,
-              initialOutputProvider: SpeechOutputProvider.google,
-              initialDeepgramRecognitionModel: 'nova-3',
-              initialDeepgramRecognitionLanguage: 'multi',
-              initialSpeechToTextRecognitionLocale:
-                  SpeechToTextService.defaultRecognitionLanguage,
-              initialSpeechToTextRecognitionLocales: {
-                'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
-                'English (US)': 'en-US',
-              },
-              initialListeningDevices: [],
-              initialListeningDeviceId: null,
-              initialPlaybackDevices: [],
-              initialPlaybackDeviceId: null,
-              initialThemeMode: ThemeMode.system,
-            ),
-          ),
+      await pumpTestApp(
+        tester,
+        const ProviderSettingsDialog(
+          initialSttProvider: SpeechSttProvider.deepgram,
+          initialTranslationProvider: SpeechTranslationProvider.google,
+          initialOutputProvider: SpeechOutputProvider.google,
+          initialDeepgramRecognitionModel: 'nova-3',
+          initialDeepgramRecognitionLanguage: 'multi',
+          initialSpeechToTextRecognitionLocale:
+              SpeechToTextService.defaultRecognitionLanguage,
+          initialSpeechToTextRecognitionLocales: {
+            'multi': SpeechToTextService.defaultRecognitionLanguage,
+            'en-US': 'en-US',
+          },
+          initialListeningDevices: [],
+          initialListeningDeviceId: null,
+          initialPlaybackDevices: [],
+          initialPlaybackDeviceId: null,
+          initialThemeMode: ThemeMode.system,
         ),
       );
 
@@ -76,36 +74,33 @@ void main() {
   testWidgets('ProviderSettingsDialog shows current listening device details', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: ProviderSettingsDialog(
-            initialSttProvider: SpeechSttProvider.deepgram,
-            initialTranslationProvider: SpeechTranslationProvider.google,
-            initialOutputProvider: SpeechOutputProvider.google,
-            initialDeepgramRecognitionModel: 'nova-3',
-            initialDeepgramRecognitionLanguage: 'multi',
-            initialSpeechToTextRecognitionLocale:
-                SpeechToTextService.defaultRecognitionLanguage,
-            initialSpeechToTextRecognitionLocales: {
-              'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
-              'English (US)': 'en-US',
-            },
-            initialListeningDevices: [
-              InputDevice(id: 'builtin', label: 'Built-in Microphone'),
-            ],
-            initialListeningDeviceId: null,
-            initialPlaybackDevices: [
-              PlaybackDevice(
-                id: 'speaker',
-                name: 'iPhone',
-                type: 'Built-in Speaker',
-              ),
-            ],
-            initialPlaybackDeviceId: null,
-            initialThemeMode: ThemeMode.system,
+    await pumpTestApp(
+      tester,
+      const ProviderSettingsDialog(
+        initialSttProvider: SpeechSttProvider.deepgram,
+        initialTranslationProvider: SpeechTranslationProvider.google,
+        initialOutputProvider: SpeechOutputProvider.google,
+        initialDeepgramRecognitionModel: 'nova-3',
+        initialDeepgramRecognitionLanguage: 'multi',
+        initialSpeechToTextRecognitionLocale:
+            SpeechToTextService.defaultRecognitionLanguage,
+        initialSpeechToTextRecognitionLocales: {
+          'multi': SpeechToTextService.defaultRecognitionLanguage,
+          'en-US': 'en-US',
+        },
+        initialListeningDevices: [
+          InputDevice(id: 'builtin', label: 'Built-in Microphone'),
+        ],
+        initialListeningDeviceId: null,
+        initialPlaybackDevices: [
+          PlaybackDevice(
+            id: 'speaker',
+            name: 'iPhone',
+            type: 'Built-in Speaker',
           ),
-        ),
+        ],
+        initialPlaybackDeviceId: null,
+        initialThemeMode: ThemeMode.system,
       ),
     );
 
@@ -121,42 +116,39 @@ void main() {
   testWidgets(
     'ProviderSettingsDialog shows listening device selector when multiple are available',
     (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: ProviderSettingsDialog(
-              initialSttProvider: SpeechSttProvider.deepgram,
-              initialTranslationProvider: SpeechTranslationProvider.google,
-              initialOutputProvider: SpeechOutputProvider.google,
-              initialDeepgramRecognitionModel: 'nova-3',
-              initialDeepgramRecognitionLanguage: 'multi',
-              initialSpeechToTextRecognitionLocale:
-                  SpeechToTextService.defaultRecognitionLanguage,
-              initialSpeechToTextRecognitionLocales: {
-                'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
-                'English (US)': 'en-US',
-              },
-              initialListeningDevices: [
-                InputDevice(id: 'builtin', label: 'Built-in Microphone'),
-                InputDevice(id: 'usb-1', label: 'USB Microphone'),
-              ],
-              initialListeningDeviceId: 'usb-1',
-              initialPlaybackDevices: [
-                PlaybackDevice(
-                  id: 'speaker',
-                  name: 'iPhone',
-                  type: 'Built-in Speaker',
-                ),
-                PlaybackDevice(
-                  id: 'bt-1',
-                  name: 'AirPods Pro',
-                  type: 'Bluetooth A2DP',
-                ),
-              ],
-              initialPlaybackDeviceId: 'bt-1',
-              initialThemeMode: ThemeMode.system,
+      await pumpTestApp(
+        tester,
+        const ProviderSettingsDialog(
+          initialSttProvider: SpeechSttProvider.deepgram,
+          initialTranslationProvider: SpeechTranslationProvider.google,
+          initialOutputProvider: SpeechOutputProvider.google,
+          initialDeepgramRecognitionModel: 'nova-3',
+          initialDeepgramRecognitionLanguage: 'multi',
+          initialSpeechToTextRecognitionLocale:
+              SpeechToTextService.defaultRecognitionLanguage,
+          initialSpeechToTextRecognitionLocales: {
+            'multi': SpeechToTextService.defaultRecognitionLanguage,
+            'en-US': 'en-US',
+          },
+          initialListeningDevices: [
+            InputDevice(id: 'builtin', label: 'Built-in Microphone'),
+            InputDevice(id: 'usb-1', label: 'USB Microphone'),
+          ],
+          initialListeningDeviceId: 'usb-1',
+          initialPlaybackDevices: [
+            PlaybackDevice(
+              id: 'speaker',
+              name: 'iPhone',
+              type: 'Built-in Speaker',
             ),
-          ),
+            PlaybackDevice(
+              id: 'bt-1',
+              name: 'AirPods Pro',
+              type: 'Bluetooth A2DP',
+            ),
+          ],
+          initialPlaybackDeviceId: 'bt-1',
+          initialThemeMode: ThemeMode.system,
         ),
       );
 
@@ -185,10 +177,10 @@ void main() {
     final received = <String>[];
     final sub = controller.listeningDeviceUpdates.listen(received.add);
 
-    controller.emitListeningDeviceUpdate('Microphone connected: USB Mic');
+    controller.emitListeningDeviceUpdate('microphoneConnected: USB Mic');
     await Future<void>.delayed(Duration.zero);
 
-    expect(received, contains('Microphone connected: USB Mic'));
+    expect(received, contains('microphoneConnected: USB Mic'));
 
     await sub.cancel();
     controller.dispose();

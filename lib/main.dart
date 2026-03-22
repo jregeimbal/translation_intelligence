@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localized_locales/flutter_localized_locales.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
@@ -15,6 +16,8 @@ import 'models/provider_settings_selection.dart';
 import 'models/playback_device.dart';
 import 'services/backend_api_client.dart';
 import 'services/app_preferences.dart';
+import 'l10n/app_localizations.dart';
+import 'l10n/app_localizations_ext.dart';
 import 'services/backend_stt_client.dart';
 import 'services/deepgram_recognition_catalog.dart';
 import 'services/firebase_auth_session.dart';
@@ -146,10 +149,15 @@ class _MyAppState extends State<MyApp> {
         : HyperListenTheme.dark();
 
     return MaterialApp(
-      title: 'Mejor Lingo',
+      onGenerateTitle: (context) => context.l10n.appTitle,
       theme: selectedLightTheme,
       darkTheme: selectedDarkTheme,
       themeMode: _themeMode,
+      localizationsDelegates: const [
+        LocaleNamesLocalizationsDelegate(),
+        ...AppLocalizations.localizationsDelegates,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       home: MyHomePage(
         themeMode: _themeMode,
         onThemeModeChanged: _setThemeMode,
@@ -270,13 +278,14 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
   }
 
   String _themeModeLabel(ThemeMode mode) {
+    final l10n = context.l10n;
     switch (mode) {
       case ThemeMode.system:
-        return 'System';
+        return l10n.themeModeSystem;
       case ThemeMode.light:
-        return 'Light';
+        return l10n.themeModeLight;
       case ThemeMode.dark:
-        return 'Dark';
+        return l10n.themeModeDark;
     }
   }
 
@@ -316,6 +325,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final dropdownTextStyle = theme.textTheme.bodySmall?.copyWith(fontSize: 18);
     final deepgramLanguages =
         DeepgramRecognitionCatalog
@@ -327,17 +337,17 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
     return DefaultTabController(
       length: 3,
       child: AlertDialog(
-        title: const Text('Settings'),
+        title: Text(l10n.settingsTitle),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const TabBar(
+              TabBar(
                 tabs: [
-                  Tab(text: 'Providers'),
-                  Tab(text: 'Audio'),
-                  Tab(text: 'Display'),
+                  Tab(text: l10n.tabProviders),
+                  Tab(text: l10n.tabAudio),
+                  Tab(text: l10n.tabDisplay),
                 ],
               ),
               const SizedBox(height: 12),
@@ -349,9 +359,9 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Providers'),
+                          Text(l10n.tabProviders),
                           const SizedBox(height: 12),
-                          const Text('Speech to Text'),
+                          Text(l10n.speechToTextLabel),
                           const SizedBox(height: 8),
                           DropdownMenuFormField<SpeechSttProvider>(
                             initialSelection: _selectedSttProvider,
@@ -365,7 +375,10 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                   (provider) =>
                                       DropdownMenuEntry<SpeechSttProvider>(
                                         value: provider,
-                                        label: provider.label,
+                                        label: localizedSttProviderLabel(
+                                          context,
+                                          provider,
+                                        ),
                                       ),
                                 )
                                 .toList(),
@@ -382,7 +395,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                           if (_selectedSttProvider ==
                               SpeechSttProvider.deepgram) ...[
                             const SizedBox(height: 16),
-                            const Text('Deepgram Model'),
+                            Text(l10n.deepgramModelLabel),
                             const SizedBox(height: 8),
                             DropdownMenuFormField<String>(
                               initialSelection:
@@ -423,7 +436,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                               },
                             ),
                             const SizedBox(height: 16),
-                            const Text('Deepgram Language'),
+                            Text(l10n.deepgramLanguageLabel),
                             const SizedBox(height: 8),
                             DropdownMenuFormField<String>(
                               initialSelection:
@@ -452,7 +465,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                           if (_selectedSttProvider ==
                               SpeechSttProvider.google) ...[
                             const SizedBox(height: 16),
-                            const Text('Google Locale'),
+                            Text(l10n.googleLocaleLabel),
                             const SizedBox(height: 8),
                             DropdownMenuFormField<String>(
                               initialSelection:
@@ -467,7 +480,11 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                       .map(
                                         (entry) => DropdownMenuEntry<String>(
                                           value: entry.value,
-                                          label: entry.key,
+                                          label:
+                                              localizedRecognitionLocaleLabel(
+                                                context,
+                                                entry.value,
+                                              ),
                                         ),
                                       )
                                       .toList(),
@@ -481,7 +498,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             ),
                           ],
                           const SizedBox(height: 16),
-                          const Text('Translation'),
+                          Text(l10n.translationLabel),
                           const SizedBox(height: 8),
                           DropdownMenuFormField<SpeechTranslationProvider>(
                             initialSelection: _selectedTranslationProvider,
@@ -496,7 +513,14 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                   (provider) =>
                                       DropdownMenuEntry<
                                         SpeechTranslationProvider
-                                      >(value: provider, label: provider.label),
+                                      >(
+                                        value: provider,
+                                        label:
+                                            localizedTranslationProviderLabel(
+                                              context,
+                                              provider,
+                                            ),
+                                      ),
                                 )
                                 .toList(),
                             onSelected: (value) {
@@ -507,7 +531,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          const Text('Text to Speech'),
+                          Text(l10n.textToSpeechLabel),
                           const SizedBox(height: 8),
                           DropdownMenuFormField<SpeechOutputProvider>(
                             initialSelection: _selectedOutputProvider,
@@ -521,7 +545,10 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                   (provider) =>
                                       DropdownMenuEntry<SpeechOutputProvider>(
                                         value: provider,
-                                        label: provider.label,
+                                        label: localizedOutputProviderLabel(
+                                          context,
+                                          provider,
+                                        ),
                                       ),
                                 )
                                 .toList(),
@@ -539,17 +566,15 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Audio'),
+                          Text(l10n.tabAudio),
                           const SizedBox(height: 12),
-                          const Text('Listening Device'),
+                          Text(l10n.listeningDeviceLabel),
                           const SizedBox(height: 8),
                           if (_selectedSttProvider !=
                               SpeechSttProvider.deepgram)
-                            const Text(
-                              'Audio input selection is available when Speech to Text is set to Deepgram.',
-                            )
+                            Text(l10n.audioInputSelectionHint)
                           else if (_listeningDevices.isEmpty)
-                            const Text('No input devices detected')
+                            Text(l10n.noInputDevicesDetected)
                           else ...[
                             Builder(
                               builder: (context) {
@@ -565,12 +590,16 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                       orElse: () => null,
                                     );
                                 final details = selected == null
-                                    ? 'Auto (${_listeningDevices.first.label.isNotEmpty ? _listeningDevices.first.label : _listeningDevices.first.id})'
+                                    ? l10n.autoWithDetails(
+                                        _listeningDevices.first.label.isNotEmpty
+                                            ? _listeningDevices.first.label
+                                            : _listeningDevices.first.id,
+                                      )
                                     : selected.label.isNotEmpty
                                     ? selected.label
                                     : selected.id;
 
-                                return Text('Current: $details');
+                                return Text(l10n.currentDetails(details));
                               },
                             ),
                             if (_listeningDevices.length > 1) ...[
@@ -583,9 +612,9 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 textStyle: dropdownTextStyle,
                                 inputDecorationTheme: _dropdownMenuTheme(theme),
                                 dropdownMenuEntries: [
-                                  const DropdownMenuEntry<String?>(
+                                  DropdownMenuEntry<String?>(
                                     value: null,
-                                    label: 'Auto',
+                                    label: l10n.autoLabel,
                                   ),
                                   ..._listeningDevices.map(
                                     (device) => DropdownMenuEntry<String?>(
@@ -607,20 +636,16 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                           const SizedBox(height: 20),
                           const Divider(),
                           const SizedBox(height: 12),
-                          const Text('Playback Device'),
+                          Text(l10n.playbackDeviceLabel),
                           const SizedBox(height: 8),
                           if (!kIsWeb &&
                               defaultTargetPlatform == TargetPlatform.iOS)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.only(bottom: 8),
-                              child: Text(
-                                'Some iOS playback routes are managed by the system and may not always switch programmatically.',
-                              ),
+                              child: Text(l10n.iosPlaybackRoutesHint),
                             ),
                           if (_playbackDevices.isEmpty)
-                            const Text(
-                              'Playback device details unavailable on this platform.',
-                            )
+                            Text(l10n.playbackUnavailableHint)
                           else ...[
                             Builder(
                               builder: (context) {
@@ -639,7 +664,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                     selected?.details ??
                                     _playbackDevices.first.details;
 
-                                return Text('Current: $details');
+                                return Text(l10n.currentDetails(details));
                               },
                             ),
                             if (_playbackDevices.length > 1) ...[
@@ -652,9 +677,9 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                                 textStyle: dropdownTextStyle,
                                 inputDecorationTheme: _dropdownMenuTheme(theme),
                                 dropdownMenuEntries: [
-                                  const DropdownMenuEntry<String?>(
+                                  DropdownMenuEntry<String?>(
                                     value: null,
-                                    label: 'Auto',
+                                    label: l10n.autoLabel,
                                   ),
                                   ..._playbackDevices.map(
                                     (device) => DropdownMenuEntry<String?>(
@@ -678,9 +703,9 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Display'),
+                          Text(l10n.displayLabel),
                           const SizedBox(height: 12),
-                          const Text('Theme Mode'),
+                          Text(l10n.themeModeLabel),
                           const SizedBox(height: 8),
                           DropdownMenuFormField<ThemeMode>(
                             initialSelection: _selectedThemeMode,
@@ -718,7 +743,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
             onPressed: () {
               Navigator.of(context).pop();
             },
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -740,7 +765,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                 ),
               );
             },
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -815,9 +840,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ? snapshot.deepgramRecognitionLanguage
         : DeepgramRecognitionCatalog.defaultRecognitionLanguageForModel(model);
     final targetLanguage =
-        SpeechController.supportedLanguages.values.contains(
-          snapshot.targetLanguage,
-        )
+        SpeechController.supportedLanguages.contains(snapshot.targetLanguage)
         ? snapshot.targetLanguage
         : 'en';
 
@@ -924,8 +947,9 @@ class _MyHomePageState extends State<MyHomePage> {
     showDialog<void>(
       context: context,
       builder: (context) {
+        final l10n = context.l10n;
         return AlertDialog(
-          title: const Text('Debug Audio Stream'),
+          title: Text(l10n.debugAudioStream),
           content: StreamBuilder<int>(
             stream: Stream<int>.periodic(
               const Duration(milliseconds: 250),
@@ -938,66 +962,108 @@ class _MyHomePageState extends State<MyHomePage> {
                   ? null
                   : DateTime.now().difference(startedAt);
               final elapsedLabel = elapsed == null
-                  ? 'n/a'
+                  ? l10n.notAvailableShort
                   : '${elapsed.inMinutes.toString().padLeft(2, '0')}:${(elapsed.inSeconds % 60).toString().padLeft(2, '0')}';
 
               final rows = <MapEntry<String, String>>[
-                MapEntry('Section', _isGroupSection ? 'Group' : '2-way'),
-                MapEntry('Listening Active', _isActiveListening ? 'yes' : 'no'),
                 MapEntry(
-                  'STT Provider',
-                  _activeSessionSttProvider?.name ?? 'n/a',
+                  l10n.debugSection,
+                  _isGroupSection
+                      ? l10n.debugSectionGroup
+                      : l10n.debugSectionTwoWay,
                 ),
                 MapEntry(
-                  'Source Language',
-                  _activeSessionSourceLanguage ?? 'n/a',
+                  l10n.debugListeningActive,
+                  _isActiveListening ? l10n.yes : l10n.no,
                 ),
                 MapEntry(
-                  'Resolved Language Code',
-                  _activeSessionResolvedLanguageCode ?? 'n/a',
+                  l10n.debugSttProvider,
+                  _activeSessionSttProvider == null
+                      ? l10n.notAvailableShort
+                      : localizedSttProviderLabel(
+                          context,
+                          _activeSessionSttProvider!,
+                        ),
                 ),
                 MapEntry(
-                  'Active Sample Rate',
+                  l10n.debugSourceLanguage,
+                  _activeSessionSourceLanguage == null
+                      ? l10n.notAvailableShort
+                      : localizedRecognitionLocaleLabel(
+                          context,
+                          _activeSessionSourceLanguage!,
+                        ),
+                ),
+                MapEntry(
+                  l10n.debugResolvedLanguageCode,
+                  _activeSessionResolvedLanguageCode ?? l10n.notAvailableShort,
+                ),
+                MapEntry(
+                  l10n.debugActiveSampleRate,
                   _activeSessionSampleRate == null
-                      ? 'n/a'
-                      : '${_activeSessionSampleRate!} Hz',
+                      ? l10n.notAvailableShort
+                      : l10n.sampleRateHertz(_activeSessionSampleRate!),
                 ),
                 MapEntry(
-                  'Listening Device Id',
-                  _activeSessionListeningDeviceId ?? 'auto/default',
+                  l10n.debugListeningDeviceId,
+                  _activeSessionListeningDeviceId ?? l10n.autoDefault,
                 ),
                 MapEntry(
-                  'Amplitude (0-1)',
+                  l10n.debugAmplitude,
                   _activeAmplitude.toStringAsFixed(3),
                 ),
-                MapEntry('Session Elapsed', elapsedLabel),
+                MapEntry(l10n.debugSessionElapsed, elapsedLabel),
                 MapEntry(
-                  'Session Started At',
-                  startedAt?.toIso8601String() ?? 'n/a',
+                  l10n.debugSessionStartedAt,
+                  startedAt?.toIso8601String() ?? l10n.notAvailableShort,
                 ),
                 MapEntry(
-                  'Configured STT Provider',
+                  l10n.debugConfiguredSttProvider,
                   _isGroupSection
-                      ? _controller.sttProvider.name
-                      : _twoWayController.sttProvider.name,
+                      ? localizedSttProviderLabel(
+                          context,
+                          _controller.sttProvider,
+                        )
+                      : localizedSttProviderLabel(
+                          context,
+                          _twoWayController.sttProvider,
+                        ),
                 ),
                 MapEntry(
-                  'Configured Deepgram Language',
+                  l10n.debugConfiguredDeepgramLanguage,
                   _isGroupSection
-                      ? _controller.deepgramRecognitionLanguage
-                      : _twoWayController.deepgramRecognitionLanguage,
+                      ? localizedDeepgramLanguageLabel(
+                          context,
+                          _controller.deepgramRecognitionLanguage,
+                        )
+                      : localizedDeepgramLanguageLabel(
+                          context,
+                          _twoWayController.deepgramRecognitionLanguage,
+                        ),
                 ),
                 MapEntry(
-                  'Configured Google Locale',
+                  l10n.debugConfiguredGoogleLocale,
                   _isGroupSection
-                      ? _controller.speechToTextRecognitionLocale
-                      : _twoWayController.speechToTextRecognitionLocale,
+                      ? localizedRecognitionLocaleLabel(
+                          context,
+                          _controller.speechToTextRecognitionLocale,
+                        )
+                      : localizedRecognitionLocaleLabel(
+                          context,
+                          _twoWayController.speechToTextRecognitionLocale,
+                        ),
                 ),
                 MapEntry(
-                  'Configured STT Locale',
+                  l10n.debugConfiguredSttLocale,
                   _isGroupSection
-                      ? _controller.speechToTextRecognitionLocale
-                      : _twoWayController.speechToTextRecognitionLocale,
+                      ? localizedRecognitionLocaleLabel(
+                          context,
+                          _controller.speechToTextRecognitionLocale,
+                        )
+                      : localizedRecognitionLocaleLabel(
+                          context,
+                          _twoWayController.speechToTextRecognitionLocale,
+                        ),
                 ),
               ];
 
@@ -1020,7 +1086,7 @@ class _MyHomePageState extends State<MyHomePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
+              child: Text(l10n.close),
             ),
           ],
         );
@@ -1029,7 +1095,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _showDebouncedListeningDeviceSnackBar(String message) {
-    _listeningDeviceSnackBarDebouncer.schedule(message);
+    _listeningDeviceSnackBarDebouncer.schedule(
+      localizedListeningDeviceUpdate(context, message),
+    );
   }
 
   void _bindListeningDeviceNotifications() {
@@ -1258,8 +1326,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text('Unable to switch playback device on this platform.'),
+          SnackBar(
+            content: Text(context.l10n.unableToSwitchPlaybackDevice),
             duration: Duration(seconds: 2),
           ),
         );
@@ -1394,7 +1462,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return false;
     }
 
-    final targetLanguages = SpeechController.supportedLanguages.values.toSet();
+    final targetLanguages = SpeechController.supportedLanguages.toSet();
     final sourceValues = sourceLanguages.values.toSet();
 
     final supportsCurrentDirection =
@@ -1479,13 +1547,16 @@ class _MyHomePageState extends State<MyHomePage> {
               enableSearch: false,
               requestFocusOnTap: false,
               textStyle: theme.textTheme.bodySmall?.copyWith(fontSize: 18),
-              label: const Text('Source'),
+              label: Text(context.l10n.sourceLabel),
               inputDecorationTheme: fieldTheme,
               dropdownMenuEntries: sourceLanguages.entries
                   .map(
                     (entry) => DropdownMenuEntry<String>(
                       value: entry.value,
-                      label: entry.key,
+                      label: localizedDeepgramLanguageLabel(
+                        context,
+                        entry.value,
+                      ),
                     ),
                   )
                   .toList(growable: false),
@@ -1498,10 +1569,10 @@ class _MyHomePageState extends State<MyHomePage> {
           const SizedBox(width: 8),
           IconButton(
             tooltip: canSwap
-                ? 'Swap source and target language'
+                ? context.l10n.swapLanguagesTooltip
                 : (sourceCode == 'multi' || targetCode == 'multi'
-                      ? 'Swap unavailable when source or target is multi'
-                      : 'Swap unavailable for selected language pair'),
+                      ? context.l10n.swapUnavailableMultiTooltip
+                      : context.l10n.swapUnavailablePairTooltip),
             onPressed: canSwap
                 ? () async => _swapGroupLanguages(sourceLanguages)
                 : null,
@@ -1515,13 +1586,13 @@ class _MyHomePageState extends State<MyHomePage> {
               enableSearch: false,
               requestFocusOnTap: false,
               textStyle: theme.textTheme.bodySmall?.copyWith(fontSize: 18),
-              label: const Text('Target'),
+              label: Text(context.l10n.targetLabel),
               inputDecorationTheme: fieldTheme,
-              dropdownMenuEntries: targetLanguages.entries
+              dropdownMenuEntries: targetLanguages
                   .map(
-                    (entry) => DropdownMenuEntry<String>(
-                      value: entry.value,
-                      label: entry.key,
+                    (languageCode) => DropdownMenuEntry<String>(
+                      value: languageCode,
+                      label: localizedAppLanguageName(context, languageCode),
                     ),
                   )
                   .toList(growable: false),
@@ -1585,14 +1656,14 @@ class _MyHomePageState extends State<MyHomePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Initialization failed: $_initializationError',
+                  context.l10n.initializationFailed(_initializationError),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 FilledButton.icon(
                   onPressed: _initializeControllers,
                   icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Retry'),
+                  label: Text(context.l10n.retry),
                 ),
               ],
             ),
@@ -1632,11 +1703,17 @@ class _MyHomePageState extends State<MyHomePage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Mejor Lingo',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  Text(
+                    context.l10n.appTitle,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  Text('Translation Assistant', style: textRoles.appSubtitle),
+                  Text(
+                    context.l10n.translationAssistant,
+                    style: textRoles.appSubtitle,
+                  ),
                 ],
               ),
             ],
@@ -1645,13 +1722,13 @@ class _MyHomePageState extends State<MyHomePage> {
             if (kDebugMode)
               IconButton(
                 icon: const Icon(Icons.bug_report_outlined),
-                tooltip: 'Debug Audio Stream',
+                tooltip: context.l10n.debugAudioStream,
                 onPressed: _showDebugAudioDialog,
               ),
             if (!_initializing)
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
-                tooltip: 'Settings',
+                tooltip: context.l10n.settingsTitle,
                 onPressed: _showProviderSettingsDialog,
               ),
             const SizedBox(width: 8),
@@ -1717,14 +1794,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 NavigationBar(
                   selectedIndex: _selectedSection,
                   onDestinationSelected: _onSectionSelected,
-                  destinations: const [
+                  destinations: [
                     NavigationDestination(
-                      icon: Icon(Icons.group_rounded),
-                      label: 'Group',
+                      icon: const Icon(Icons.group_rounded),
+                      label: context.l10n.groupLabel,
                     ),
                     NavigationDestination(
-                      icon: Icon(Icons.compare_arrows_rounded),
-                      label: '2-way',
+                      icon: const Icon(Icons.compare_arrows_rounded),
+                      label: context.l10n.twoWayLabel,
                     ),
                   ],
                 ),
