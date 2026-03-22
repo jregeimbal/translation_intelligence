@@ -42,6 +42,7 @@ class _ChatControlBarState extends State<ChatControlBar> {
                 expandedInsets: EdgeInsets.zero,
                 enableSearch: false,
                 requestFocusOnTap: false,
+                textStyle: theme.textTheme.bodySmall?.copyWith(fontSize: 18),
                 inputDecorationTheme: InputDecorationThemeData(
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(

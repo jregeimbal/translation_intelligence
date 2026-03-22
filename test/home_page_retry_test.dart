@@ -14,7 +14,9 @@ class FakeTwoWayChatController extends ChangeNotifier
     implements TwoWayChatController {
   bool listening = false;
   TwoWaySpeaker? listeningSpeaker;
+  @override
   String deepgramRecognitionLanguage = 'multi';
+  @override
   String speechToTextRecognitionLocale = 'multi';
   int startListeningCallCount = 0;
   int stopListeningCallCount = 0;
@@ -35,7 +37,6 @@ class FakeTwoWayChatController extends ChangeNotifier
         return '';
       case #amplitude:
         return 0.0;
-      case #activeSpeaker:
       case #activeSessionSampleRate:
       case #activeSessionSttProvider:
       case #activeSessionSourceLanguage:

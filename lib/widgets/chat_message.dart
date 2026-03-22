@@ -221,8 +221,8 @@ class _ChatMessageListState extends State<ChatMessageList> {
                   : Alignment.centerLeft,
               child: Padding(
                 padding: EdgeInsets.only(
-                  left: isPreferred ? 56 : 12,
-                  right: isPreferred ? 12 : 56,
+                  left: isPreferred ? 56 : 0,
+                  right: isPreferred ? 0 : 56,
                 ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
@@ -465,7 +465,7 @@ class _ChatMessageContent extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ...previousChildren,
-                  if (currentChild != null) currentChild,
+                  ?currentChild,
                 ],
               ),
             );
