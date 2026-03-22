@@ -1,0 +1,147 @@
+{
+  "@@locale": "fr",
+  "appTitle": "Omnialingo",
+  "themeModeSystem": "Système",
+  "themeModeLight": "Clair",
+  "themeModeDark": "Sombre",
+  "settingsTitle": "Paramètres",
+  "tabProviders": "Fournisseurs",
+  "tabAudio": "Audio",
+  "tabDisplay": "Affichage",
+  "speechToTextLabel": "Reconnaissance vocale",
+  "deepgramModelLabel": "Modèle Deepgram",
+  "deepgramLanguageLabel": "Langue Deepgram",
+  "googleLocaleLabel": "Paramètres régionaux Google",
+  "translationLabel": "Traduction",
+  "textToSpeechLabel": "Synthèse vocale",
+  "listeningDeviceLabel": "Appareil d'écoute",
+  "audioInputSelectionHint": "La sélection de l'entrée audio est disponible lorsque la reconnaissance vocale est définie sur Deepgram.",
+  "noInputDevicesDetected": "Aucun appareil d'entrée détecté",
+  "autoLabel": "Auto",
+  "currentDetails": "Actuel : {details}",
+  "@currentDetails": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "autoWithDetails": "Auto ({details})",
+  "@autoWithDetails": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "playbackDeviceLabel": "Appareil de lecture",
+  "iosPlaybackRoutesHint": "Certaines routes de lecture iOS sont gérées par le système et peuvent ne pas toujours être modifiées par programmation.",
+  "playbackUnavailableHint": "Les détails de l'appareil de lecture ne sont pas disponibles sur cette plateforme.",
+  "displayLabel": "Affichage",
+  "themeModeLabel": "Mode du thème",
+  "cancel": "Annuler",
+  "save": "Enregistrer",
+  "multiAuto": "Multi (Auto)",
+  "debugAudioStream": "Déboguer le flux audio",
+  "debugSection": "Section",
+  "debugSectionGroup": "Groupe",
+  "debugSectionTwoWay": "Bidirectionnel",
+  "debugListeningActive": "Écoute active",
+  "yes": "oui",
+  "no": "non",
+  "notAvailableShort": "n/d",
+  "debugSttProvider": "Fournisseur STT",
+  "debugSourceLanguage": "Langue source",
+  "debugResolvedLanguageCode": "Code de langue résolu",
+  "debugActiveSampleRate": "Taux d'échantillonnage actif",
+  "sampleRateHertz": "{sampleRate} Hz",
+  "@sampleRateHertz": {
+    "placeholders": {
+      "sampleRate": {}
+    }
+  },
+  "debugListeningDeviceId": "ID de l'appareil d'écoute",
+  "autoDefault": "auto/par défaut",
+  "debugAmplitude": "Amplitude (0-1)",
+  "debugSessionElapsed": "Session écoulée",
+  "debugSessionStartedAt": "Session commencée à",
+  "debugConfiguredSttProvider": "Fournisseur STT configuré",
+  "debugConfiguredDeepgramLanguage": "Langue Deepgram configurée",
+  "debugConfiguredGoogleLocale": "Paramètres régionaux Google configurés",
+  "debugConfiguredSttLocale": "Paramètres régionaux STT configurés",
+  "close": "Fermer",
+  "unableToSwitchPlaybackDevice": "Impossible de changer l'appareil de lecture sur cette plateforme.",
+  "sourceLabel": "Source",
+  "swapLanguagesTooltip": "Échanger la langue source et cible",
+  "swapUnavailableMultiTooltip": "Échange indisponible lorsque la source ou la cible est multiple",
+  "swapUnavailablePairTooltip": "Échange indisponible pour la paire de langues sélectionnée",
+  "targetLabel": "Cible",
+  "initializationFailed": "Échec de l'initialisation : {error}",
+  "@initializationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "retry": "Réessayer",
+  "translationAssistant": "Assistant de traduction",
+  "groupLabel": "Groupe",
+  "twoWayLabel": "Bidirectionnel",
+  "listeningStatus": "Écoute...",
+  "tapMicToStartListening": "Appuyez sur le micro pour commencer à écouter...",
+  "speechNotAvailable": "Reconnaissance vocale non disponible",
+  "speakerLabel": "Haut-parleur {number}",
+  "@speakerLabel": {
+    "placeholders": {
+      "number": {}
+    }
+  },
+  "hideOriginal": "Masquer l'original",
+  "showOriginal": "Afficher l'original",
+  "jumpToLatest": "Aller au dernier",
+  "guestLabel": "Invité",
+  "primaryLabel": "Principal",
+  "clearChat": "Effacer la discussion",
+  "speakerPanelTitle": "{title} Haut-parleur",
+  "@speakerPanelTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "noMessagesYet": "Aucun message pour le moment",
+  "stopListening": "Arrêter d'écouter",
+  "listen": "Écouter",
+  "primarySpeakerLabel": "Haut-parleur principal",
+  "noneLabel": "Aucun",
+  "hideTranslationOriginalText": "Masquer le texte original de la traduction",
+  "disableAudioPlayback": "Désactiver la lecture audio",
+  "enableAudioPlayback": "Activer la lecture audio",
+  "primarySpeakerInline": "Haut-parleur principal",
+  "noAlignment": "Aucun alignement",
+  "speechUnavailable": "Reconnaissance vocale non disponible",
+  "microphoneConnected": "Microphone connecté",
+  "microphoneDisconnected": "Microphone déconnecté",
+  "audioRouteChanged": "Itinéraire audio modifié",
+  "listeningDeviceListUpdated": "Liste des appareils d'écoute mise à jour",
+  "messageWithDetails": "{message} : {details}",
+  "@messageWithDetails": {
+    "placeholders": {
+      "message": {},
+      "details": {}
+    }
+  },
+  "languageEnglish": "Anglais",
+  "languageSpanish": "Espagnol",
+  "languageFrench": "Français",
+  "languageGerman": "Allemand",
+  "languageChineseSimplified": "Chinois (simplifié)",
+  "languageJapanese": "Japonais",
+  "languageKorean": "Coréen",
+  "languagePortuguese": "Portugais",
+  "languageRussian": "Russe",
+  "languageArabic": "Arabe",
+  "languageHindi": "Hindi",
+  "microphonePermissionDenied": "Permission du microphone refusée",
+  "invalidSpeechApiKey": "Clé API vocale invalide",
+  "sttProviderDeepgram": "Deepgram",
+  "sttProviderGoogle": "Reconnaissance vocale",
+  "translationProviderGoogle": "Google Cloud (Backend)",
+  "translationProviderGoogleMlKit": "Google ML Kit (hérité)",
+  "outputProviderGoogle": "Google",
+  "outputProviderDeepgram": "Deepgram"
+}

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 
 /// Floating action button that toggles speech listening.  Holds its own listen
 /// state via the controller rather than being re-built by the parent.
@@ -86,7 +87,7 @@ class _SpeechFabState extends State<SpeechFab> {
                   }
                 : context.read<SpeechController>().stopListening)
           : null,
-      tooltip: enabled ? 'Listen' : 'Speech unavailable',
+      tooltip: enabled ? context.l10n.listen : context.l10n.speechUnavailable,
       child: child,
     );
   }

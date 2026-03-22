@@ -287,15 +287,21 @@ void main() {
         .setMockMethodCallHandler(recordChannel, null);
   });
 
-  group('Provider label mappings', () {
-    test('SpeechOutputProvider labels are correct', () {
-      expect(SpeechOutputProvider.google.label, equals('Google'));
-      expect(SpeechOutputProvider.deepgram.label, equals('Deepgram'));
+  group('Provider enums', () {
+    test('SpeechOutputProvider exposes expected values', () {
+      expect(
+        SpeechOutputProvider.values,
+        contains(SpeechOutputProvider.google),
+      );
+      expect(
+        SpeechOutputProvider.values,
+        contains(SpeechOutputProvider.deepgram),
+      );
     });
 
-    test('SpeechSttProvider labels are correct', () {
-      expect(SpeechSttProvider.deepgram.label, equals('Deepgram'));
-      expect(SpeechSttProvider.google.label, equals('Speech to Text'));
+    test('SpeechSttProvider exposes expected values', () {
+      expect(SpeechSttProvider.values, contains(SpeechSttProvider.deepgram));
+      expect(SpeechSttProvider.values, contains(SpeechSttProvider.google));
     });
   });
 

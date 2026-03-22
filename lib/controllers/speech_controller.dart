@@ -10,6 +10,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/chat_message.dart';
 import '../models/playback_device.dart';
 import '../models/queued_chat_message.dart';
+import '../services/app_language_catalog.dart';
 import '../services/audio_playback_queue.dart';
 import '../services/backend_api_client.dart';
 import '../services/backend_stt_client.dart';
@@ -334,16 +335,16 @@ class SpeechController extends ChangeNotifier {
     String message;
     switch (eventName) {
       case 'devices_added':
-        message = 'Microphone connected';
+        message = 'microphoneConnected';
         break;
       case 'devices_removed':
-        message = 'Microphone disconnected';
+        message = 'microphoneDisconnected';
         break;
       case 'route_changed':
-        message = 'Audio route changed';
+        message = 'audioRouteChanged';
         break;
       default:
-        message = 'Listening device list updated';
+        message = 'listeningDeviceListUpdated';
     }
 
     if (updatedSelectedId != null) {
@@ -381,14 +382,9 @@ class SpeechController extends ChangeNotifier {
   String _targetLanguage = 'en';
   String get targetLanguage => _targetLanguage;
 
-  /// Friendly name for the current translation language, falling back to
-  /// the raw code if not found in the map.
-  String get targetLanguageName {
-    final entry = supportedLanguages.entries.firstWhere(
-      (e) => e.value == _targetLanguage,
-      orElse: () => MapEntry(_targetLanguage, _targetLanguage),
-    );
-    return entry.key;
+  /// Whether the current translation language is one the app localizes.
+  bool get hasSupportedTargetLanguage {
+    return AppLanguageCatalog.isSupported(_targetLanguage);
   }
 
   void setTargetLanguage(String lang) {
@@ -398,22 +394,8 @@ class SpeechController extends ChangeNotifier {
     }
   }
 
-  /// A small map of user‑friendly names to language codes.  Feel free to
-  /// extend this list as needed; Nova‑3 supports all of them.
-  static const Map<String, String> supportedLanguages = {
-    'English': 'en',
-    'Spanish': 'es',
-    'French': 'fr',
-    'German': 'de',
-    'Chinese (Simplified)': 'zh-CN',
-    'Japanese': 'ja',
-    'Korean': 'ko',
-    'Portuguese': 'pt',
-    'Russian': 'ru',
-    'Arabic': 'ar',
-    'Hindi': 'hi',
-    // add any additional Nova‑3 supported codes here
-  };
+  static const List<String> supportedLanguages =
+      AppLanguageCatalog.supportedLanguageCodes;
 
   Future<void> _translateAndSpeak(ChatMessage msg) async {
     // if this message is from the preferred speaker, we still translate
@@ -572,7 +554,7 @@ class SpeechController extends ChangeNotifier {
     final hasPerm = await _recorder.hasPermission();
     if (!hasPerm) {
       logger.warning('${DateTime.now().toUtc()} Microphone permission denied');
-      _speechError = 'Microphone permission denied';
+      _speechError = 'microphonePermissionDenied';
       _speechEnabled = false;
       notifyListeners();
       return;
@@ -580,7 +562,7 @@ class SpeechController extends ChangeNotifier {
     final isValid = await _speechPipeline.isSpeechApiKeyValid();
     if (!isValid) {
       logger.warning('${DateTime.now().toUtc()} Invalid speech API key');
-      _speechError = 'Invalid speech API key';
+      _speechError = 'invalidSpeechApiKey';
       _speechEnabled = false;
       notifyListeners();
       return;

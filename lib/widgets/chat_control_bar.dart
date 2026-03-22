@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 
 import '../controllers/speech_controller.dart';
 import '../theme/app_theme_resolver.dart';
@@ -26,6 +27,7 @@ class _ChatControlBarState extends State<ChatControlBar> {
     final preferred = controller.preferredSpeaker;
     final theme = Theme.of(context);
     final tokens = resolveAppThemeTokens(theme);
+    final l10n = context.l10n;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -34,7 +36,7 @@ class _ChatControlBarState extends State<ChatControlBar> {
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
         child: Row(
           children: [
-            Text('Primary speaker', style: theme.textTheme.bodyMedium),
+            Text(l10n.primarySpeakerInline, style: theme.textTheme.bodyMedium),
             const SizedBox(width: 8),
             Expanded(
               child: DropdownMenuFormField<int?>(
@@ -66,14 +68,11 @@ class _ChatControlBarState extends State<ChatControlBar> {
                   ),
                 ),
                 dropdownMenuEntries: [
-                  const DropdownMenuEntry<int?>(
-                    value: -1,
-                    label: 'No alignment',
-                  ),
+                  DropdownMenuEntry<int?>(value: -1, label: l10n.noAlignment),
                   ...speakers.map(
                     (s) => DropdownMenuEntry<int?>(
                       value: s,
-                      label: 'Speaker ${s + 1}',
+                      label: l10n.speakerLabel(s + 1),
                     ),
                   ),
                 ],

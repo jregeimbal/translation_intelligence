@@ -9,6 +9,7 @@ import 'package:translation_intelligence/models/two_way_message.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 
 import 'speech_controller_stub.dart';
+import 'test_app.dart';
 
 class FakeTwoWayChatController extends ChangeNotifier
     implements TwoWayChatController {
@@ -119,26 +120,25 @@ void main() {
       authTokenProvider: () async => 'token',
     );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: MyHomePage(
-          themeMode: ThemeMode.light,
-          onThemeModeChanged: (_) {},
-          initializer: initializer,
-        ),
+    await pumpTestApp(
+      tester,
+      MyHomePage(
+        themeMode: ThemeMode.light,
+        onThemeModeChanged: (_) {},
+        initializer: initializer,
       ),
     );
 
     await tester.pump();
 
-    expect(find.textContaining('Initialization failed:'), findsOneWidget);
+    expect(find.textContaining('Initialization failed'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
     await tester.pump();
 
     expect(initializerCalls, 2);
-    expect(find.textContaining('Initialization failed:'), findsNothing);
+    expect(find.textContaining('Initialization failed'), findsNothing);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
     secondAttempt.complete(
@@ -151,7 +151,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Translation Studio'), findsOneWidget);
+    expect(find.text('Mejor Lingo'), findsOneWidget);
     expect(find.text('Tap the mic to start listening...'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Retry'), findsNothing);
   });
@@ -170,16 +170,15 @@ void main() {
       authTokenProvider: () async => 'token',
     );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: MyHomePage(
-          themeMode: ThemeMode.light,
-          onThemeModeChanged: (_) {},
-          initializer: () async => HomePageInitializationBundle(
-            backendApiClient: backendApiClient,
-            controller: controller,
-            twoWayController: twoWayController,
-          ),
+    await pumpTestApp(
+      tester,
+      MyHomePage(
+        themeMode: ThemeMode.light,
+        onThemeModeChanged: (_) {},
+        initializer: () async => HomePageInitializationBundle(
+          backendApiClient: backendApiClient,
+          controller: controller,
+          twoWayController: twoWayController,
         ),
       ),
     );
@@ -211,16 +210,15 @@ void main() {
       authTokenProvider: () async => 'token',
     );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: MyHomePage(
-          themeMode: ThemeMode.light,
-          onThemeModeChanged: (_) {},
-          initializer: () async => HomePageInitializationBundle(
-            backendApiClient: backendApiClient,
-            controller: controller,
-            twoWayController: twoWayController,
-          ),
+    await pumpTestApp(
+      tester,
+      MyHomePage(
+        themeMode: ThemeMode.light,
+        onThemeModeChanged: (_) {},
+        initializer: () async => HomePageInitializationBundle(
+          backendApiClient: backendApiClient,
+          controller: controller,
+          twoWayController: twoWayController,
         ),
       ),
     );

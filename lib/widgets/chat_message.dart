@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/theme/app_theme_resolver.dart';
 
@@ -121,6 +122,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
     final textRoles = resolveAppThemeTextRoles(theme);
     final tokens = resolveAppThemeTokens(theme);
     final hideTranslatedOriginalText = controller.hideTranslatedOriginalText;
+    final l10n = context.l10n;
 
     var messages = controller.chatMessages;
     final optimisticMessages = controller.getOptimisticMessages();
@@ -133,10 +135,10 @@ class _ChatMessageListState extends State<ChatMessageList> {
       final isListening = controller.isListening;
       final speechEnabled = controller.speechEnabled;
       final msgText = isListening
-          ? 'Listening...'
+          ? l10n.listeningStatus
           : (speechEnabled
-                ? 'Tap the mic to start listening...'
-                : 'Speech not available');
+                ? l10n.tapMicToStartListening
+                : l10n.speechNotAvailable);
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 18.0),
         child: Align(
@@ -253,7 +255,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  'Speaker ${msg.speaker! + 1}',
+                                  l10n.speakerLabel(msg.speaker! + 1),
                                   style: textRoles.speakerChip.copyWith(
                                     color: _speakerChipTextColor(
                                       speakerChipColor,
@@ -339,8 +341,8 @@ class _ChatMessageListState extends State<ChatMessageList> {
                                       ),
                                       child: Text(
                                         showOriginal
-                                            ? 'Hide original'
-                                            : 'Show original',
+                                            ? l10n.hideOriginal
+                                            : l10n.showOriginal,
                                         style: textRoles.helperText.copyWith(
                                           color: theme
                                               .colorScheme
@@ -369,7 +371,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
             child: Center(
               child: FilledButton.tonalIcon(
                 icon: const Icon(Icons.arrow_downward_rounded),
-                label: const Text('Jump to latest'),
+                label: Text(l10n.jumpToLatest),
                 onPressed: () {
                   if (_scrollController.hasClients) {
                     _scrollController.animateTo(
@@ -463,10 +465,7 @@ class _ChatMessageContent extends StatelessWidget {
                     ? CrossAxisAlignment.end
                     : CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  ...previousChildren,
-                  ?currentChild,
-                ],
+                children: [...previousChildren, ?currentChild],
               ),
             );
           },

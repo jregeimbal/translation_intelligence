@@ -13,6 +13,7 @@ import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/widgets/footer.dart';
 
 import 'speech_controller_stub.dart';
+import 'test_app.dart';
 
 void main() {
   testWidgets('SpeechFooter shows speakers and hide-original toggle', (
@@ -21,16 +22,13 @@ void main() {
     final controller = TestSpeechController();
     controller.addMessage(ChatMessage('Hello', speaker: 0));
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SizedBox(
-            width: 1000,
-            child: ChangeNotifierProvider<SpeechController>.value(
-              value: controller,
-              child: const SpeechFooter(),
-            ),
-          ),
+    await pumpTestApp(
+      tester,
+      SizedBox(
+        width: 1000,
+        child: ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const SpeechFooter(),
         ),
       ),
     );

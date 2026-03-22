@@ -1,0 +1,348 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for French (`fr`).
+class AppLocalizationsFr extends AppLocalizations {
+  AppLocalizationsFr([String locale = 'fr']) : super(locale);
+
+  @override
+  String get appTitle => 'OmniaLingo';
+
+  @override
+  String get themeModeSystem => 'Système';
+
+  @override
+  String get themeModeLight => 'Clair';
+
+  @override
+  String get themeModeDark => 'Sombre';
+
+  @override
+  String get settingsTitle => 'Paramètres';
+
+  @override
+  String get tabProviders => 'Fournisseurs';
+
+  @override
+  String get tabAudio => 'Audio';
+
+  @override
+  String get tabDisplay => 'Affichage';
+
+  @override
+  String get speechToTextLabel => 'Reconnaissance vocale';
+
+  @override
+  String get deepgramModelLabel => 'Modèle Deepgram';
+
+  @override
+  String get deepgramLanguageLabel => 'Langue Deepgram';
+
+  @override
+  String get googleLocaleLabel => 'Paramètres régionaux Google';
+
+  @override
+  String get translationLabel => 'Traduction';
+
+  @override
+  String get textToSpeechLabel => 'Synthèse vocale';
+
+  @override
+  String get listeningDeviceLabel => 'Appareil d\'écoute';
+
+  @override
+  String get audioInputSelectionHint => 'La sélection de l\'entrée audio est disponible lorsque la reconnaissance vocale est définie sur Deepgram.';
+
+  @override
+  String get noInputDevicesDetected => 'Aucun appareil d\'entrée détecté';
+
+  @override
+  String get autoLabel => 'Auto';
+
+  @override
+  String currentDetails(Object details) {
+    return 'Actuel : $details';
+  }
+
+  @override
+  String autoWithDetails(Object details) {
+    return 'Auto ($details)';
+  }
+
+  @override
+  String get playbackDeviceLabel => 'Appareil de lecture';
+
+  @override
+  String get iosPlaybackRoutesHint => 'Certaines routes de lecture iOS sont gérées par le système et peuvent ne pas toujours être modifiées par programmation.';
+
+  @override
+  String get playbackUnavailableHint => 'Les détails de l\'appareil de lecture ne sont pas disponibles sur cette plateforme.';
+
+  @override
+  String get displayLabel => 'Affichage';
+
+  @override
+  String get themeModeLabel => 'Mode du thème';
+
+  @override
+  String get cancel => 'Annuler';
+
+  @override
+  String get save => 'Enregistrer';
+
+  @override
+  String get multiAuto => 'Multi (Auto)';
+
+  @override
+  String get debugAudioStream => 'Déboguer le flux audio';
+
+  @override
+  String get debugSection => 'Section';
+
+  @override
+  String get debugSectionGroup => 'Groupe';
+
+  @override
+  String get debugSectionTwoWay => 'Bidirectionnel';
+
+  @override
+  String get debugListeningActive => 'Écoute active';
+
+  @override
+  String get yes => 'oui';
+
+  @override
+  String get no => 'non';
+
+  @override
+  String get notAvailableShort => 'n/d';
+
+  @override
+  String get debugSttProvider => 'Fournisseur STT';
+
+  @override
+  String get debugSourceLanguage => 'Langue source';
+
+  @override
+  String get debugResolvedLanguageCode => 'Code de langue résolu';
+
+  @override
+  String get debugActiveSampleRate => 'Taux d\'échantillonnage actif';
+
+  @override
+  String sampleRateHertz(Object sampleRate) {
+    return '$sampleRate Hz';
+  }
+
+  @override
+  String get debugListeningDeviceId => 'ID de l\'appareil d\'écoute';
+
+  @override
+  String get autoDefault => 'auto/par défaut';
+
+  @override
+  String get debugAmplitude => 'Amplitude (0-1)';
+
+  @override
+  String get debugSessionElapsed => 'Session écoulée';
+
+  @override
+  String get debugSessionStartedAt => 'Session commencée à';
+
+  @override
+  String get debugConfiguredSttProvider => 'Fournisseur STT configuré';
+
+  @override
+  String get debugConfiguredDeepgramLanguage => 'Langue Deepgram configurée';
+
+  @override
+  String get debugConfiguredGoogleLocale => 'Paramètres régionaux Google configurés';
+
+  @override
+  String get debugConfiguredSttLocale => 'Paramètres régionaux STT configurés';
+
+  @override
+  String get close => 'Fermer';
+
+  @override
+  String get unableToSwitchPlaybackDevice => 'Impossible de changer l\'appareil de lecture sur cette plateforme.';
+
+  @override
+  String get sourceLabel => 'Source';
+
+  @override
+  String get swapLanguagesTooltip => 'Échanger la langue source et cible';
+
+  @override
+  String get swapUnavailableMultiTooltip => 'Échange indisponible lorsque la source ou la cible est multiple';
+
+  @override
+  String get swapUnavailablePairTooltip => 'Échange indisponible pour la paire de langues sélectionnée';
+
+  @override
+  String get targetLabel => 'Cible';
+
+  @override
+  String initializationFailed(Object error) {
+    return 'Échec de l\'initialisation : $error';
+  }
+
+  @override
+  String get retry => 'Réessayer';
+
+  @override
+  String get translationAssistant => 'Assistant de traduction';
+
+  @override
+  String get groupLabel => 'Groupe';
+
+  @override
+  String get twoWayLabel => 'Bidirectionnel';
+
+  @override
+  String get listeningStatus => 'Écoute...';
+
+  @override
+  String get tapMicToStartListening => 'Appuyez sur le micro pour commencer à écouter...';
+
+  @override
+  String get speechNotAvailable => 'Reconnaissance vocale non disponible';
+
+  @override
+  String speakerLabel(Object number) {
+    return 'Haut-parleur $number';
+  }
+
+  @override
+  String get hideOriginal => 'Masquer l\'original';
+
+  @override
+  String get showOriginal => 'Afficher l\'original';
+
+  @override
+  String get jumpToLatest => 'Aller au dernier';
+
+  @override
+  String get guestLabel => 'Invité';
+
+  @override
+  String get primaryLabel => 'Principal';
+
+  @override
+  String get clearChat => 'Effacer la discussion';
+
+  @override
+  String speakerPanelTitle(Object title) {
+    return '$title Haut-parleur';
+  }
+
+  @override
+  String get noMessagesYet => 'Aucun message pour le moment';
+
+  @override
+  String get stopListening => 'Arrêter d\'écouter';
+
+  @override
+  String get listen => 'Écouter';
+
+  @override
+  String get primarySpeakerLabel => 'Haut-parleur principal';
+
+  @override
+  String get noneLabel => 'Aucun';
+
+  @override
+  String get hideTranslationOriginalText => 'Masquer le texte original de la traduction';
+
+  @override
+  String get disableAudioPlayback => 'Désactiver la lecture audio';
+
+  @override
+  String get enableAudioPlayback => 'Activer la lecture audio';
+
+  @override
+  String get primarySpeakerInline => 'Haut-parleur principal';
+
+  @override
+  String get noAlignment => 'Aucun alignement';
+
+  @override
+  String get speechUnavailable => 'Reconnaissance vocale non disponible';
+
+  @override
+  String get microphoneConnected => 'Microphone connecté';
+
+  @override
+  String get microphoneDisconnected => 'Microphone déconnecté';
+
+  @override
+  String get audioRouteChanged => 'Itinéraire audio modifié';
+
+  @override
+  String get listeningDeviceListUpdated => 'Liste des appareils d\'écoute mise à jour';
+
+  @override
+  String messageWithDetails(Object message, Object details) {
+    return '$message : $details';
+  }
+
+  @override
+  String get languageEnglish => 'Anglais';
+
+  @override
+  String get languageSpanish => 'Espagnol';
+
+  @override
+  String get languageFrench => 'Français';
+
+  @override
+  String get languageGerman => 'Allemand';
+
+  @override
+  String get languageChineseSimplified => 'Chinois (simplifié)';
+
+  @override
+  String get languageJapanese => 'Japonais';
+
+  @override
+  String get languageKorean => 'Coréen';
+
+  @override
+  String get languagePortuguese => 'Portugais';
+
+  @override
+  String get languageRussian => 'Russe';
+
+  @override
+  String get languageArabic => 'Arabe';
+
+  @override
+  String get languageHindi => 'Hindi';
+
+  @override
+  String get microphonePermissionDenied => 'Permission du microphone refusée';
+
+  @override
+  String get invalidSpeechApiKey => 'Clé API vocale invalide';
+
+  @override
+  String get sttProviderDeepgram => 'Deepgram';
+
+  @override
+  String get sttProviderGoogle => 'Reconnaissance vocale';
+
+  @override
+  String get translationProviderGoogle => 'Google Cloud (Backend)';
+
+  @override
+  String get translationProviderGoogleMlKit => 'Google ML Kit (hérité)';
+
+  @override
+  String get outputProviderGoogle => 'Google';
+
+  @override
+  String get outputProviderDeepgram => 'Deepgram';
+}

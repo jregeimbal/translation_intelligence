@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 
 import '../controllers/two_way_chat_controller.dart';
 import '../models/two_way_message.dart';
@@ -28,13 +29,16 @@ class _TwoWayChatViewState extends State<TwoWayChatView> {
             Expanded(
               child: Transform.rotate(
                 angle: math.pi,
-                child: _SpeakerPanel(title: 'Guest', role: TwoWaySpeaker.guest),
+                child: _SpeakerPanel(
+                  title: context.l10n.guestLabel,
+                  role: TwoWaySpeaker.guest,
+                ),
               ),
             ),
             const SizedBox(height: 10),
             Expanded(
               child: _SpeakerPanel(
-                title: 'Primary',
+                title: context.l10n.primaryLabel,
                 role: TwoWaySpeaker.primary,
               ),
             ),
@@ -45,7 +49,7 @@ class _TwoWayChatViewState extends State<TwoWayChatView> {
             alignment: Alignment.center,
             child: IconButton.filledTonal(
               icon: const Icon(Icons.refresh_rounded),
-              tooltip: 'Clear chat',
+              tooltip: context.l10n.clearChat,
               style: IconButton.styleFrom(
                 backgroundColor: theme.colorScheme.primaryContainer.withValues(
                   alpha: 0.7,
@@ -159,16 +163,12 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
     final theme = Theme.of(context);
     final textRoles = resolveAppThemeTextRoles(theme);
     final tokens = resolveAppThemeTokens(theme);
+    final l10n = context.l10n;
 
     final activeLanguage = _isPrimary
         ? controller.primaryLanguage
         : controller.guestLanguage;
-    final languageLabel = TwoWayChatController.supportedLanguages.entries
-        .firstWhere(
-          (entry) => entry.value == activeLanguage,
-          orElse: () => MapEntry(activeLanguage, activeLanguage),
-        )
-        .key;
+    final languageLabel = localizedAppLanguageName(context, activeLanguage);
     final isListeningThisPanel =
         controller.isListening && controller.activeSpeaker == widget.role;
     final isListeningOtherPanel =
@@ -199,7 +199,7 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
           Row(
             children: [
               Text(
-                '${widget.title} Speaker',
+                l10n.speakerPanelTitle(widget.title),
                 style: theme.textTheme.titleMedium,
               ),
               const Spacer(),
@@ -237,13 +237,11 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
                   borderSide: BorderSide.none,
                 ),
               ),
-              dropdownMenuEntries: TwoWayChatController
-                  .supportedLanguages
-                  .entries
+              dropdownMenuEntries: TwoWayChatController.supportedLanguages
                   .map(
-                    (entry) => DropdownMenuEntry<String>(
-                      value: entry.value,
-                      label: entry.key,
+                    (languageCode) => DropdownMenuEntry<String>(
+                      value: languageCode,
+                      label: localizedAppLanguageName(context, languageCode),
                     ),
                   )
                   .toList(),
@@ -274,9 +272,9 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
                       ? Text(
                           controller.isListening && isListeningThisPanel
                               ? (controller.lastWords.isEmpty
-                                    ? 'Listening...'
+                                    ? l10n.listeningStatus
                                     : controller.lastWords)
-                              : 'No messages yet',
+                              : l10n.noMessagesYet,
                           style: textRoles.helperText,
                         )
                       : ListView.separated(
@@ -303,7 +301,7 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
                     bottom: 10,
                     child: FilledButton.tonalIcon(
                       icon: const Icon(Icons.arrow_downward_rounded),
-                      label: const Text('Jump to latest'),
+                      label: Text(l10n.jumpToLatest),
                       onPressed: () {
                         if (_scrollController.hasClients) {
                           _scrollController.animateTo(
@@ -363,12 +361,17 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
               icon: Icon(
                 isListeningThisPanel ? Icons.stop_rounded : Icons.mic_rounded,
               ),
-              label: Text(isListeningThisPanel ? 'Stop listening' : 'Listen'),
+              label: Text(
+                isListeningThisPanel ? l10n.stopListening : l10n.listen,
+              ),
             ),
           ),
           if (controller.speechError.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(controller.speechError, style: textRoles.errorText),
+            Text(
+              localizedSpeechError(context, controller.speechError),
+              style: textRoles.errorText,
+            ),
           ],
         ],
       ),
