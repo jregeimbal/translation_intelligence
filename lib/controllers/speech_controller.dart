@@ -14,6 +14,7 @@ import '../services/app_language_catalog.dart';
 import '../services/audio_playback_queue.dart';
 import '../services/backend_api_client.dart';
 import '../services/backend_stt_client.dart';
+import '../services/mic_activation_sound_player.dart';
 import '../services/speech_pipeline.dart';
 import '../services/speech_output_provider.dart';
 import '../services/speech_stt_provider.dart';
@@ -30,6 +31,7 @@ final logger = Logger('SpeechController'); // Create a logger with a name
 /// can rebuild independently.
 class SpeechController extends ChangeNotifier {
   final SpeechPipeline _speechPipeline;
+  final MicActivationSoundPlayer _micActivationSoundPlayer;
   Duration _finalResultGroupingWindow;
   final Duration _audioPlaybackCompletionTimeout;
   final AudioRecorder _recorder = AudioRecorder();
@@ -71,6 +73,7 @@ class SpeechController extends ChangeNotifier {
     BackendApiClient? backendApiClient,
     BackendSttClient? backendSttClient,
     SpeechPipeline? speechPipeline,
+    MicActivationSoundPlayer? micActivationSoundPlayer,
     Duration finalResultGroupingWindow = const Duration(seconds: 2),
     Duration audioPlaybackCompletionTimeout = const Duration(seconds: 30),
   }) : _speechPipeline =
@@ -80,6 +83,8 @@ class SpeechController extends ChangeNotifier {
              backendApiClient: backendApiClient,
              backendSttClient: backendSttClient,
            ),
+       _micActivationSoundPlayer =
+           micActivationSoundPlayer ?? DefaultMicActivationSoundPlayer(),
        _finalResultGroupingWindow = finalResultGroupingWindow,
        _audioPlaybackCompletionTimeout = audioPlaybackCompletionTimeout;
 
@@ -613,6 +618,7 @@ class SpeechController extends ChangeNotifier {
 
     _isListening = true;
     notifyListeners();
+    unawaited(_micActivationSoundPlayer.play());
   }
 
   /// Stop the microphone stream and send any pending words as a message.
@@ -969,6 +975,7 @@ class SpeechController extends ChangeNotifier {
     unawaited(_ampSub?.cancel() ?? Future.value());
     unawaited(_listeningDeviceChangeSub?.cancel() ?? Future.value());
     unawaited(_listeningDeviceUpdateController.close());
+    unawaited(_micActivationSoundPlayer.dispose());
     _recorder.dispose();
     _audioPlayer?.dispose();
     super.dispose();
