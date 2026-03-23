@@ -1694,9 +1694,18 @@ class _MyHomePageState extends State<MyHomePage> {
                   color: theme.colorScheme.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  Icons.translate_rounded,
-                  color: theme.colorScheme.primary,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/icon_omnialingo.png',
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.translate_rounded,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
