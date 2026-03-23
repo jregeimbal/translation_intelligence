@@ -1697,7 +1697,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.asset(
-                    'assets/icon_omnialingo.png',
+                    'icon_omnia.png',
                     width: 40,
                     height: 40,
                     fit: BoxFit.contain,
