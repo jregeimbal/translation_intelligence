@@ -9,6 +9,7 @@ import '../models/two_way_message.dart';
 import '../services/app_language_catalog.dart';
 import '../services/backend_api_client.dart';
 import '../services/backend_stt_client.dart';
+import '../services/mic_activation_sound_player.dart';
 import '../services/speech_pipeline.dart';
 import '../services/speech_output_provider.dart';
 import '../services/speech_stt_provider.dart';
@@ -16,6 +17,7 @@ import '../services/speech_translation_provider.dart';
 
 class TwoWayChatController extends ChangeNotifier {
   final SpeechPipeline _speechPipeline;
+  final MicActivationSoundPlayer _micActivationSoundPlayer;
   final AudioRecorder _recorder = AudioRecorder();
   AudioPlayer? _audioPlayer;
 
@@ -45,11 +47,17 @@ class TwoWayChatController extends ChangeNotifier {
     String deepgramApiKey = '',
     BackendApiClient? backendApiClient,
     BackendSttClient? backendSttClient,
-  }) : _speechPipeline = SpeechPipeline(
-         deepgramApiKey: deepgramApiKey,
-         backendApiClient: backendApiClient,
-         backendSttClient: backendSttClient,
-       );
+    SpeechPipeline? speechPipeline,
+    MicActivationSoundPlayer? micActivationSoundPlayer,
+  }) : _speechPipeline =
+           speechPipeline ??
+           SpeechPipeline(
+             deepgramApiKey: deepgramApiKey,
+             backendApiClient: backendApiClient,
+             backendSttClient: backendSttClient,
+           ),
+       _micActivationSoundPlayer =
+           micActivationSoundPlayer ?? DefaultMicActivationSoundPlayer();
 
   bool get speechEnabled => _speechEnabled;
   bool get isListening => _isListening;
@@ -232,6 +240,7 @@ class TwoWayChatController extends ChangeNotifier {
     _activeSpeaker = speaker;
     _lastWords = '';
     notifyListeners();
+    unawaited(_micActivationSoundPlayer.play());
 
     _listenSub = session.resultStream.listen((result) {
       unawaited(
@@ -361,6 +370,7 @@ class TwoWayChatController extends ChangeNotifier {
     unawaited(_recognitionSession?.stop() ?? Future.value());
     unawaited(_ampSub?.cancel() ?? Future.value());
     _audioPlayer?.dispose();
+    unawaited(_micActivationSoundPlayer.dispose());
     unawaited(_recorder.dispose().catchError((_) {}));
     super.dispose();
   }
