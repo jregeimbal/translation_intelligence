@@ -7,4 +7,4 @@ analysis_options.yaml
 *.log
 *.md
 *service-account*.json
-tutti-lingo-google-cloud-service-account.json
+omnia-lingo-google-cloud-service-account.json

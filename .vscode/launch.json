@@ -13,7 +13,7 @@
                 "DEEPGRAM_API_KEY": "18ee2d7d2f6e1048b68e925c6c7ab083d4d63d2f",
                 "FIREBASE_PROJECT_ID": "tutti-lingo",
                 "FIREBASE_WEB_API_KEY": "AIzaSyBDCTRkDbXpsnLzfpewRaOEo3-LOgxv-p8",
-                "GOOGLE_SERVICE_ACCOUNT_JSON_PATH": "tutti-lingo-google-cloud-service-account.json",
+                "GOOGLE_SERVICE_ACCOUNT_JSON_PATH": "omnia-lingo-google-cloud-service-account.json",
                 "ALLOWED_ORIGINS": "http://localhost:55555",
                 "SERVER_HOST": "0.0.0.0",
                 "PORT": "8080"
