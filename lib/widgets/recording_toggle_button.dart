@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
+import 'package:translation_intelligence/services/system_sound_effects.dart';
 
 /// Floating action button that toggles speech listening.  Holds its own listen
 /// state via the controller rather than being re-built by the parent.
@@ -80,6 +81,7 @@ class _SpeechFabState extends State<SpeechFab> {
                 ? () async {
                     setState(() => _processing = true);
                     try {
+                      await playMicActivationSound();
                       await context.read<SpeechController>().startListening();
                     } finally {
                       setState(() => _processing = false);

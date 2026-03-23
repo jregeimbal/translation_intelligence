@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
+import 'package:translation_intelligence/services/system_sound_effects.dart';
 
 import '../controllers/two_way_chat_controller.dart';
 import '../models/two_way_message.dart';
@@ -355,9 +356,14 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
             child: FilledButton.icon(
               onPressed: (!controller.speechEnabled || isListeningOtherPanel)
                   ? null
-                  : () => context.read<TwoWayChatController>().toggleListening(
-                      widget.role,
-                    ),
+                  : () async {
+                      if (!isListeningThisPanel) {
+                        await playMicActivationSound();
+                      }
+                      await context.read<TwoWayChatController>().toggleListening(
+                        widget.role,
+                      );
+                    },
               icon: Icon(
                 isListeningThisPanel ? Icons.stop_rounded : Icons.mic_rounded,
               ),
