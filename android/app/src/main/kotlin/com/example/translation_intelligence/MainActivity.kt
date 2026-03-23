@@ -1,4 +1,4 @@
-package com.speechlogic.tuttilingo
+package com.speechlogic.omnialingo
 
 import android.content.Context
 import android.media.AudioDeviceCallback
@@ -28,7 +28,7 @@ class MainActivity : FlutterActivity() {
 
 		MethodChannel(
 			flutterEngine.dartExecutor.binaryMessenger,
-			"com.speechlogic.tuttilingo/audio_record"
+			"com.speechlogic.omnialingo/audio_record"
 		).setMethodCallHandler { call, result ->
 			when (call.method) {
 				"getMinBufferSize" -> {
@@ -66,7 +66,7 @@ class MainActivity : FlutterActivity() {
 
 		EventChannel(
 			flutterEngine.dartExecutor.binaryMessenger,
-			"com.speechlogic.tuttilingo/audio_route_events"
+			"com.speechlogic.omnialingo/audio_route_events"
 		).setStreamHandler(object : EventChannel.StreamHandler {
 			override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
 				deviceEventSink = events
