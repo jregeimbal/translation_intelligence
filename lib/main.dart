@@ -1698,6 +1698,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   borderRadius: BorderRadius.circular(12),
                   child: Image.asset(
                     'icon_omnia.png',
+                    filterQuality: FilterQuality.high,
                     width: 40,
                     height: 40,
                     fit: BoxFit.contain,
