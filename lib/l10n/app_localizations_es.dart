@@ -24,13 +24,42 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsTitle => 'Configuración';
 
   @override
-  String get tabProviders => 'Proveedores';
+  String get settingsQuickSettingsTitle => 'Opciones principales';
 
   @override
-  String get tabAudio => 'Audio';
+  String get settingsQuickSettingsDescription => 'Elige el idioma que OmniaLingo debe escuchar, el idioma al que debe traducir y el micrófono que debe usar.';
 
   @override
-  String get tabDisplay => 'Pantalla';
+  String get settingsAdvancedToggle => 'Mostrar opciones avanzadas';
+
+  @override
+  String get settingsAdvancedDescription => 'Cambia motores de reconocimiento, traducción o voz solo si necesitas ajustar el comportamiento o resolver un problema.';
+
+  @override
+  String get sourceLanguageHint => 'Este es el idioma que OmniaLingo debe escuchar.';
+
+  @override
+  String get targetLanguageHint => 'Este es el idioma al que OmniaLingo traduce en el modo Grupo.';
+
+  @override
+  String get listeningDeviceHint => 'Déjalo en Auto a menos que quieras forzar un micrófono específico.';
+
+  @override
+  String get deepgramModelHint => 'Los distintos modelos de Deepgram admiten distintos idiomas de origen.';
+
+  @override
+  String settingsModelAdjustedLanguage(Object language) {
+    return 'Este modelo no admite tu idioma de origen anterior, así que OmniaLingo cambió a $language.';
+  }
+
+  @override
+  String get tabProviders => 'Reconocimiento de voz';
+
+  @override
+  String get tabAudio => 'Dispositivos de audio';
+
+  @override
+  String get tabDisplay => 'Apariencia';
 
   @override
   String get speechToTextLabel => 'Voz a texto';

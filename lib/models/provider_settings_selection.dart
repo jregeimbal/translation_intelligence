@@ -8,6 +8,7 @@ class ProviderSettingsSelection {
   final SpeechSttProvider sttProvider;
   final SpeechTranslationProvider translationProvider;
   final SpeechOutputProvider outputProvider;
+  final String targetLanguage;
   final String deepgramRecognitionModel;
   final String deepgramRecognitionLanguage;
   final String speechToTextRecognitionLocale;
@@ -20,6 +21,7 @@ class ProviderSettingsSelection {
     required this.sttProvider,
     required this.translationProvider,
     required this.outputProvider,
+    required this.targetLanguage,
     required this.deepgramRecognitionModel,
     required this.deepgramRecognitionLanguage,
     required this.speechToTextRecognitionLocale,

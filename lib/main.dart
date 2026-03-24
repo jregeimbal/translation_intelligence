@@ -844,25 +844,29 @@ class _MyHomePageState extends State<MyHomePage> {
           _controller.speechToTextRecognitionLocale;
     });
 
-    final selection = await showDialog<ProviderSettingsSelection>(
-      context: context,
-      builder: (context) {
-        return ProviderSettingsDialog(
-          initialSttProvider: _sttProvider,
-          initialTranslationProvider: _translationProvider,
-          initialOutputProvider: _outputProvider,
-          initialDeepgramRecognitionModel: _deepgramRecognitionModel,
-          initialDeepgramRecognitionLanguage: _deepgramRecognitionLanguage,
-          initialSpeechToTextRecognitionLocale: _speechToTextRecognitionLocale,
-          initialSpeechToTextRecognitionLocales:
-              _speechToTextRecognitionLocales,
-          initialListeningDevices: _listeningDevices,
-          initialListeningDeviceId: _listeningDeviceId,
-          initialPlaybackDevices: _playbackDevices,
-          initialPlaybackDeviceId: _playbackDeviceId,
-          initialThemeMode: widget.themeMode,
-        );
-      },
+    final selection = await Navigator.of(context).push<ProviderSettingsSelection>(
+      MaterialPageRoute<ProviderSettingsSelection>(
+        fullscreenDialog: true,
+        builder: (context) {
+          return ProviderSettingsDialog(
+            initialSttProvider: _sttProvider,
+            initialTranslationProvider: _translationProvider,
+            initialOutputProvider: _outputProvider,
+            initialTargetLanguage: _targetLanguage,
+            targetLanguages: SpeechController.supportedLanguages,
+            initialDeepgramRecognitionModel: _deepgramRecognitionModel,
+            initialDeepgramRecognitionLanguage: _deepgramRecognitionLanguage,
+            initialSpeechToTextRecognitionLocale: _speechToTextRecognitionLocale,
+            initialSpeechToTextRecognitionLocales:
+                _speechToTextRecognitionLocales,
+            initialListeningDevices: _listeningDevices,
+            initialListeningDeviceId: _listeningDeviceId,
+            initialPlaybackDevices: _playbackDevices,
+            initialPlaybackDeviceId: _playbackDeviceId,
+            initialThemeMode: widget.themeMode,
+          );
+        },
+      ),
     );
 
     if (selection == null) {
@@ -890,6 +894,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     if (selection.outputProvider != _outputProvider) {
       _setOutputProvider(selection.outputProvider);
+    }
+    if (selection.targetLanguage != _targetLanguage) {
+      setState(() {
+        _targetLanguage = selection.targetLanguage;
+        _controller.setTargetLanguage(selection.targetLanguage);
+      });
     }
     if (selection.deepgramRecognitionModel != _deepgramRecognitionModel) {
       _setDeepgramRecognitionModel(selection.deepgramRecognitionModel);

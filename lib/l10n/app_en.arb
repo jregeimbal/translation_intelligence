@@ -5,9 +5,23 @@
   "themeModeLight": "Light",
   "themeModeDark": "Dark",
   "settingsTitle": "Settings",
-  "tabProviders": "Providers",
-  "tabAudio": "Audio",
-  "tabDisplay": "Display",
+  "settingsQuickSettingsTitle": "Essentials",
+  "settingsQuickSettingsDescription": "Choose the language OmniaLingo listens for, the language it translates into, and the microphone it should use.",
+  "settingsAdvancedToggle": "Show advanced options",
+  "settingsAdvancedDescription": "Only change recognition engines, translation engines, or voice output if you need to troubleshoot or fine-tune behavior.",
+  "sourceLanguageHint": "This is the language OmniaLingo listens for.",
+  "targetLanguageHint": "This is the language OmniaLingo translates into in Group mode.",
+  "listeningDeviceHint": "Leave this on Auto unless you want to force a specific microphone.",
+  "deepgramModelHint": "Different Deepgram models support different source languages.",
+  "settingsModelAdjustedLanguage": "This model does not support your previous source language, so OmniaLingo switched to {language}.",
+  "@settingsModelAdjustedLanguage": {
+    "placeholders": {
+      "language": {}
+    }
+  },
+  "tabProviders": "Voice Recognition",
+  "tabAudio": "Audio Devices",
+  "tabDisplay": "Appearance",
   "speechToTextLabel": "Speech to Text",
   "deepgramModelLabel": "Deepgram Model",
   "deepgramLanguageLabel": "Deepgram Language",

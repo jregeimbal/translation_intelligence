@@ -127,22 +127,76 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// No description provided for @settingsQuickSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Essentials'**
+  String get settingsQuickSettingsTitle;
+
+  /// No description provided for @settingsQuickSettingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the language OmniaLingo listens for, the language it translates into, and the microphone it should use.'**
+  String get settingsQuickSettingsDescription;
+
+  /// No description provided for @settingsAdvancedToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show advanced options'**
+  String get settingsAdvancedToggle;
+
+  /// No description provided for @settingsAdvancedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Only change recognition engines, translation engines, or voice output if you need to troubleshoot or fine-tune behavior.'**
+  String get settingsAdvancedDescription;
+
+  /// No description provided for @sourceLanguageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the language OmniaLingo listens for.'**
+  String get sourceLanguageHint;
+
+  /// No description provided for @targetLanguageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the language OmniaLingo translates into in Group mode.'**
+  String get targetLanguageHint;
+
+  /// No description provided for @listeningDeviceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave this on Auto unless you want to force a specific microphone.'**
+  String get listeningDeviceHint;
+
+  /// No description provided for @deepgramModelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Different Deepgram models support different source languages.'**
+  String get deepgramModelHint;
+
+  /// No description provided for @settingsModelAdjustedLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'This model does not support your previous source language, so OmniaLingo switched to {language}.'**
+  String settingsModelAdjustedLanguage(Object language);
+
   /// No description provided for @tabProviders.
   ///
   /// In en, this message translates to:
-  /// **'Providers'**
+  /// **'Voice Recognition'**
   String get tabProviders;
 
   /// No description provided for @tabAudio.
   ///
   /// In en, this message translates to:
-  /// **'Audio'**
+  /// **'Audio Devices'**
   String get tabAudio;
 
   /// No description provided for @tabDisplay.
   ///
   /// In en, this message translates to:
-  /// **'Display'**
+  /// **'Appearance'**
   String get tabDisplay;
 
   /// No description provided for @speechToTextLabel.
