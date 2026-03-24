@@ -310,7 +310,7 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                 ),
                 DropdownMenuFormField<String>(
                   key: ValueKey<String>(
-                    'source-${_selectedSttProvider.name}-${_selectedDeepgramRecognitionModel}',
+                    'source-${_selectedSttProvider.name}-$_selectedDeepgramRecognitionModel',
                   ),
                   initialSelection: _selectedSourceLanguage,
                   expandedInsets: EdgeInsets.zero,
