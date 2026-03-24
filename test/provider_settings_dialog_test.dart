@@ -13,7 +13,7 @@ import 'test_app.dart';
 
 void main() {
   testWidgets(
-    'ProviderSettingsDialog shows Settings title, Providers sub-header, and ordered labels',
+    'ProviderSettingsDialog shows essentials-first full-screen settings page',
     (tester) async {
       await pumpTestApp(
         tester,
@@ -21,6 +21,8 @@ void main() {
           initialSttProvider: SpeechSttProvider.deepgram,
           initialTranslationProvider: SpeechTranslationProvider.google,
           initialOutputProvider: SpeechOutputProvider.google,
+          initialTargetLanguage: 'en',
+          targetLanguages: ['en', 'es'],
           initialDeepgramRecognitionModel: 'nova-3',
           initialDeepgramRecognitionLanguage: 'multi',
           initialSpeechToTextRecognitionLocale:
@@ -38,38 +40,77 @@ void main() {
       );
 
       expect(find.text('Settings'), findsOneWidget);
-      expect(find.text('Providers'), findsWidgets);
+      expect(find.text('Essentials'), findsOneWidget);
+      expect(find.text('Voice Recognition'), findsOneWidget);
+      expect(find.text('Source'), findsOneWidget);
+      expect(find.text('Target'), findsOneWidget);
+      expect(find.text('Listening Device'), findsOneWidget);
+      expect(find.text('Show advanced options'), findsOneWidget);
+      expect(find.text('Speech to Text'), findsNothing);
+      expect(find.text('Deepgram Model'), findsNothing);
 
-      final textWidgets = tester.widgetList<Text>(
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byType(Text),
-        ),
+      await tester.scrollUntilVisible(
+        find.text('Audio Devices'),
+        300,
+        scrollable: find.byType(Scrollable).first,
       );
+      expect(find.text('Audio Devices'), findsOneWidget);
 
-      final labels = textWidgets
-          .map((widget) => widget.data)
-          .whereType<String>()
-          .toList(growable: false);
-
-      final speechToTextIndex = labels.indexOf('Speech to Text');
-      final deepgramModelIndex = labels.indexOf('Deepgram Model');
-      final deepgramLanguageIndex = labels.indexOf('Deepgram Language');
-      final translationIndex = labels.indexOf('Translation');
-      final textToSpeechIndex = labels.indexOf('Text to Speech');
-
-      expect(speechToTextIndex, isNonNegative);
-      expect(deepgramModelIndex, isNonNegative);
-      expect(deepgramLanguageIndex, isNonNegative);
-      expect(translationIndex, isNonNegative);
-      expect(textToSpeechIndex, isNonNegative);
-      expect(speechToTextIndex, lessThan(translationIndex));
-      expect(speechToTextIndex, lessThan(deepgramModelIndex));
-      expect(deepgramModelIndex, lessThan(deepgramLanguageIndex));
-      expect(deepgramLanguageIndex, lessThan(translationIndex));
-      expect(translationIndex, lessThan(textToSpeechIndex));
+      await tester.scrollUntilVisible(
+        find.text('Appearance'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Appearance'), findsOneWidget);
     },
   );
+
+  testWidgets('ProviderSettingsDialog reveals advanced provider choices', (
+    tester,
+  ) async {
+    await pumpTestApp(
+      tester,
+      const ProviderSettingsDialog(
+        initialSttProvider: SpeechSttProvider.deepgram,
+        initialTranslationProvider: SpeechTranslationProvider.google,
+        initialOutputProvider: SpeechOutputProvider.google,
+        initialTargetLanguage: 'en',
+        targetLanguages: ['en', 'es'],
+        initialDeepgramRecognitionModel: 'nova-3',
+        initialDeepgramRecognitionLanguage: 'multi',
+        initialSpeechToTextRecognitionLocale:
+            SpeechToTextService.defaultRecognitionLanguage,
+        initialSpeechToTextRecognitionLocales: {
+          'multi': SpeechToTextService.defaultRecognitionLanguage,
+          'en-US': 'en-US',
+        },
+        initialListeningDevices: [],
+        initialListeningDeviceId: null,
+        initialPlaybackDevices: [],
+        initialPlaybackDeviceId: null,
+        initialThemeMode: ThemeMode.system,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byType(Switch),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final advancedToggle = find.widgetWithText(
+      SwitchListTile,
+      'Show advanced options',
+    );
+    await tester.ensureVisible(advancedToggle);
+    await tester.pumpAndSettle();
+    await tester.tap(advancedToggle);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Speech to Text'), findsOneWidget);
+    expect(find.text('Deepgram Model'), findsOneWidget);
+    expect(find.text('Translation'), findsOneWidget);
+    expect(find.text('Text to Speech'), findsOneWidget);
+  });
 
   testWidgets('ProviderSettingsDialog shows current listening device details', (
     tester,
@@ -80,6 +121,8 @@ void main() {
         initialSttProvider: SpeechSttProvider.deepgram,
         initialTranslationProvider: SpeechTranslationProvider.google,
         initialOutputProvider: SpeechOutputProvider.google,
+        initialTargetLanguage: 'en',
+        targetLanguages: ['en', 'es'],
         initialDeepgramRecognitionModel: 'nova-3',
         initialDeepgramRecognitionLanguage: 'multi',
         initialSpeechToTextRecognitionLocale:
@@ -104,10 +147,6 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Audio'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Audio'), findsWidgets);
     expect(find.text('Listening Device'), findsOneWidget);
     expect(find.text('Current: Auto (Built-in Microphone)'), findsOneWidget);
     expect(find.text('No input devices detected'), findsNothing);
@@ -122,6 +161,8 @@ void main() {
           initialSttProvider: SpeechSttProvider.deepgram,
           initialTranslationProvider: SpeechTranslationProvider.google,
           initialOutputProvider: SpeechOutputProvider.google,
+          initialTargetLanguage: 'en',
+          targetLanguages: ['en', 'es'],
           initialDeepgramRecognitionModel: 'nova-3',
           initialDeepgramRecognitionLanguage: 'multi',
           initialSpeechToTextRecognitionLocale:
@@ -152,14 +193,11 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Audio'));
-      await tester.pumpAndSettle();
-
       expect(find.text('Current: USB Microphone'), findsOneWidget);
 
       final deviceDropdown = find.byWidgetPredicate((widget) {
         return widget is DropdownMenuFormField<String?> &&
-            widget.initialValue == 'usb-1';
+        widget.initialValue == 'usb-1';
       });
       expect(deviceDropdown, findsOneWidget);
 
