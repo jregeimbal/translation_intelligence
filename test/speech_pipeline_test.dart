@@ -6,7 +6,6 @@ import 'package:record/record.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
-import 'package:translation_intelligence/services/backend_stt_client.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
@@ -25,10 +24,6 @@ class _FakeSpeechPipeline extends SpeechPipeline {
   _FakeSpeechPipeline()
     : super(
         backendApiClient: BackendApiClient(
-          baseUrl: 'https://api.example.com',
-          authTokenProvider: () async => 'token',
-        ),
-        backendSttClient: BackendSttClient(
           baseUrl: 'https://api.example.com',
           authTokenProvider: () async => 'token',
         ),
@@ -103,10 +98,6 @@ void main() {
       hasPermission = true;
       controller = SpeechController(
         backendApiClient: BackendApiClient(
-          baseUrl: 'https://api.example.com',
-          authTokenProvider: () async => 'token',
-        ),
-        backendSttClient: BackendSttClient(
           baseUrl: 'https://api.example.com',
           authTokenProvider: () async => 'token',
         ),
@@ -232,10 +223,6 @@ void main() {
           baseUrl: 'https://api.example.com',
           authTokenProvider: () async => 'token',
         ),
-        backendSttClient: BackendSttClient(
-          baseUrl: 'https://api.example.com',
-          authTokenProvider: () async => 'token',
-        ),
         speechPipeline: fakePipeline,
       );
       addTearDown(localController.dispose);
@@ -259,10 +246,6 @@ void main() {
           );
         final localController = SpeechController(
           backendApiClient: BackendApiClient(
-            baseUrl: 'https://api.example.com',
-            authTokenProvider: () async => 'token',
-          ),
-          backendSttClient: BackendSttClient(
             baseUrl: 'https://api.example.com',
             authTokenProvider: () async => 'token',
           ),
@@ -294,10 +277,6 @@ void main() {
         final fakePipeline = _FakeSpeechPipeline();
         final localController = SpeechController(
           backendApiClient: BackendApiClient(
-            baseUrl: 'https://api.example.com',
-            authTokenProvider: () async => 'token',
-          ),
-          backendSttClient: BackendSttClient(
             baseUrl: 'https://api.example.com',
             authTokenProvider: () async => 'token',
           ),

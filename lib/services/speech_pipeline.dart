@@ -10,7 +10,6 @@ import '../models/playback_device.dart';
 import '../models/speech_recognition_models.dart';
 import '../models/speech_recognition_session.dart';
 import 'backend_api_client.dart';
-import 'backend_stt_client.dart';
 import 'deepgram_recognition_catalog.dart';
 import 'live_recognition_service.dart';
 import 'mlkit_translation_service.dart';
@@ -40,7 +39,6 @@ class SpeechPipeline {
   ];
 
   final BackendApiClient? _backendApiClient;
-  final BackendSttClient? _backendSttClient;
   final LiveRecognitionService? _recognitionService;
   final SpeechToTextService _speechToTextService;
   final MlKitTranslationService _mlKitTranslationService;
@@ -57,7 +55,6 @@ class SpeechPipeline {
   SpeechPipeline({
     String deepgramApiKey = '',
     BackendApiClient? backendApiClient,
-    BackendSttClient? backendSttClient,
     LiveRecognitionService? recognitionService,
     SpeechOutputProvider initialOutputProvider = SpeechOutputProvider.google,
     SpeechSttProvider initialSttProvider = SpeechSttProvider.deepgram,
@@ -66,7 +63,6 @@ class SpeechPipeline {
     SpeechToTextService? speechToTextService,
     MlKitTranslationService? mlKitTranslationService,
   }) : _backendApiClient = backendApiClient,
-       _backendSttClient = backendSttClient,
        _recognitionService = recognitionService,
        _speechToTextService = speechToTextService ?? SpeechToTextService(),
        _mlKitTranslationService =
@@ -295,9 +291,9 @@ class SpeechPipeline {
     switch (_sttProvider) {
       case SpeechSttProvider.deepgram:
         final capture = await startMicrophoneCapture(recorder);
-        final backendSttClient = _backendSttClient;
-        if (backendSttClient != null) {
-          return backendSttClient.startRecognitionSession(
+        final backendApiClient = _backendApiClient;
+        if (backendApiClient != null) {
+          return backendApiClient.startRecognitionSession(
             audioStream: capture.audioStream,
             amplitudeStream: capture.amplitudeStream,
             stopCapture: capture.stop,
