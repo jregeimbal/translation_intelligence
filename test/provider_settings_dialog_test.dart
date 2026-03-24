@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
-import 'package:translation_intelligence/main.dart';
 import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_to_text_service.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
+import 'package:translation_intelligence/widgets/provider_settings_dialog.dart';
 
 import 'speech_controller_stub.dart';
 import 'test_app.dart';
