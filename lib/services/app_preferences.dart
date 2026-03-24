@@ -9,6 +9,7 @@ class AppPreferencesSnapshot {
   final String targetLanguage;
   final bool hideTranslatedOriginalText;
   final bool audioPlaybackEnabled;
+  final bool hasCompletedFirstLaunchWalkthrough;
 
   const AppPreferencesSnapshot({
     required this.deepgramRecognitionModel,
@@ -17,6 +18,7 @@ class AppPreferencesSnapshot {
     required this.targetLanguage,
     required this.hideTranslatedOriginalText,
     required this.audioPlaybackEnabled,
+    required this.hasCompletedFirstLaunchWalkthrough,
   });
 }
 
@@ -30,6 +32,8 @@ class AppPreferences {
   static const _hideTranslatedOriginalTextKey =
       'pref.hideTranslatedOriginalText';
   static const _audioPlaybackEnabledKey = 'pref.audioPlaybackEnabled';
+  static const _hasCompletedFirstLaunchWalkthroughKey =
+      'pref.hasCompletedFirstLaunchWalkthrough';
 
   final Future<SharedPreferences> Function() _getPreferences;
 
@@ -54,6 +58,8 @@ class AppPreferences {
         preferences.getBool(_hideTranslatedOriginalTextKey) ?? true;
     final audioPlaybackEnabled =
         preferences.getBool(_audioPlaybackEnabledKey) ?? true;
+    final hasCompletedFirstLaunchWalkthrough =
+        preferences.getBool(_hasCompletedFirstLaunchWalkthroughKey) ?? false;
 
     return AppPreferencesSnapshot(
       deepgramRecognitionModel: deepgramRecognitionModel,
@@ -62,6 +68,7 @@ class AppPreferences {
       targetLanguage: targetLanguage,
       hideTranslatedOriginalText: hideTranslatedOriginalText,
       audioPlaybackEnabled: audioPlaybackEnabled,
+      hasCompletedFirstLaunchWalkthrough: hasCompletedFirstLaunchWalkthrough,
     );
   }
 
@@ -93,5 +100,10 @@ class AppPreferences {
   Future<void> setAudioPlaybackEnabled(bool value) async {
     final preferences = await _getPreferences();
     await preferences.setBool(_audioPlaybackEnabledKey, value);
+  }
+
+  Future<void> setHasCompletedFirstLaunchWalkthrough(bool value) async {
+    final preferences = await _getPreferences();
+    await preferences.setBool(_hasCompletedFirstLaunchWalkthroughKey, value);
   }
 }

@@ -4,7 +4,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/services/mic_activation_sound_player.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
+
+class _FakeMicActivationSoundPlayer implements MicActivationSoundPlayer {
+  @override
+  Future<void> play() async {}
+
+  @override
+  Future<void> dispose() async {}
+}
 
 class _FakeSpeechPipeline extends SpeechPipeline {
   final StreamController<SpeechRecognitionResult> resultController =
@@ -67,6 +76,18 @@ class _FakeSpeechPipeline extends SpeechPipeline {
   }
 }
 
+SpeechController _buildController(
+  _FakeSpeechPipeline pipeline, {
+  Duration finalResultGroupingWindow = Duration.zero,
+}) {
+  return SpeechController(
+    deepgramApiKey: 'test-deepgram',
+    speechPipeline: pipeline,
+    micActivationSoundPlayer: _FakeMicActivationSoundPlayer(),
+    finalResultGroupingWindow: finalResultGroupingWindow,
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -111,11 +132,7 @@ void main() {
 
     setUp(() {
       pipeline = _FakeSpeechPipeline();
-      controller = SpeechController(
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: pipeline,
-        finalResultGroupingWindow: Duration.zero,
-      );
+      controller = _buildController(pipeline);
     });
 
     tearDown(() async {
@@ -278,9 +295,8 @@ void main() {
 
     test('speechFinal result is committed after grouping window', () async {
       final groupedPipeline = _FakeSpeechPipeline();
-      final groupedController = SpeechController(
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
+      final groupedController = _buildController(
+        groupedPipeline,
         finalResultGroupingWindow: const Duration(milliseconds: 30),
       );
 
@@ -444,9 +460,8 @@ void main() {
       'optimistic messages expose pending final transcript before commit',
       () async {
         final groupedPipeline = _FakeSpeechPipeline();
-        final groupedController = SpeechController(
-          deepgramApiKey: 'test-deepgram',
-          speechPipeline: groupedPipeline,
+        final groupedController = _buildController(
+          groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 120),
         );
 
@@ -477,9 +492,8 @@ void main() {
       'optimistic messages expose pending diarized finals by speaker',
       () async {
         final groupedPipeline = _FakeSpeechPipeline();
-        final groupedController = SpeechController(
-          deepgramApiKey: 'test-deepgram',
-          speechPipeline: groupedPipeline,
+        final groupedController = _buildController(
+          groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 120),
         );
 
@@ -515,9 +529,8 @@ void main() {
 
     test('consecutive partials overwrite optimistic messages', () async {
       final groupedPipeline = _FakeSpeechPipeline();
-      final groupedController = SpeechController(
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
+      final groupedController = _buildController(
+        groupedPipeline,
         finalResultGroupingWindow: const Duration(milliseconds: 50),
       );
 
@@ -563,9 +576,8 @@ void main() {
 
     test('consecutive final transcripts are grouped within window', () async {
       final groupedPipeline = _FakeSpeechPipeline();
-      final groupedController = SpeechController(
-        deepgramApiKey: 'test-deepgram',
-        speechPipeline: groupedPipeline,
+      final groupedController = _buildController(
+        groupedPipeline,
         finalResultGroupingWindow: const Duration(milliseconds: 50),
       );
 
@@ -604,9 +616,8 @@ void main() {
       'consecutive final transcripts are grouped within window even when it takes awhile for second message to be final',
       () async {
         final groupedPipeline = _FakeSpeechPipeline();
-        final groupedController = SpeechController(
-          deepgramApiKey: 'test-deepgram',
-          speechPipeline: groupedPipeline,
+        final groupedController = _buildController(
+          groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 50),
         );
 
@@ -655,9 +666,8 @@ void main() {
       'consecutive final transcripts exceeding finalResultGroupingWindow are not grouped',
       () async {
         final groupedPipeline = _FakeSpeechPipeline();
-        final groupedController = SpeechController(
-          deepgramApiKey: 'test-deepgram',
-          speechPipeline: groupedPipeline,
+        final groupedController = _buildController(
+          groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 50),
         );
 
@@ -941,9 +951,8 @@ void main() {
       'interleaved speakers flush independently when one continues speaking',
       () async {
         final groupedPipeline = _FakeSpeechPipeline();
-        final groupedController = SpeechController(
-          deepgramApiKey: 'test-deepgram',
-          speechPipeline: groupedPipeline,
+        final groupedController = _buildController(
+          groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 100),
         );
 
@@ -993,9 +1002,8 @@ void main() {
       'partial from another speaker does not delay pending final flush',
       () async {
         final groupedPipeline = _FakeSpeechPipeline();
-        final groupedController = SpeechController(
-          deepgramApiKey: 'test-deepgram',
-          speechPipeline: groupedPipeline,
+        final groupedController = _buildController(
+          groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 100),
         );
 

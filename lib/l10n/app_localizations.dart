@@ -100,7 +100,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Mejor Lingo'**
+  /// **'Omnialingo'**
   String get appTitle;
 
   /// No description provided for @themeModeSystem.
@@ -451,10 +451,106 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get retry;
 
+  /// No description provided for @walkthroughWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to OmniaLingo'**
+  String get walkthroughWelcomeTitle;
+
+  /// No description provided for @walkthroughWelcomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Here is a quick walkthrough of the essentials before your first conversation.'**
+  String get walkthroughWelcomeBody;
+
+  /// No description provided for @walkthroughDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss walkthrough'**
+  String get walkthroughDismiss;
+
+  /// No description provided for @walkthroughHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get walkthroughHelp;
+
+  /// No description provided for @walkthroughSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get walkthroughSkip;
+
+  /// No description provided for @walkthroughBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get walkthroughBack;
+
+  /// No description provided for @walkthroughNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get walkthroughNext;
+
+  /// No description provided for @walkthroughGetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get walkthroughGetStarted;
+
+  /// No description provided for @walkthroughModesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the right mode'**
+  String get walkthroughModesTitle;
+
+  /// No description provided for @walkthroughModesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Group when one speaker or a group is talking into a shared microphone and everyone wants live translated captions. Use 2-way when two people are handing the device back and forth for a conversation.'**
+  String get walkthroughModesBody;
+
+  /// No description provided for @walkthroughLanguagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Source and target languages'**
+  String get walkthroughLanguagesTitle;
+
+  /// No description provided for @walkthroughLanguagesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Source is the language OmniaLingo listens for. Target is the language it translates into. In 2-way mode, each side chooses its own language so each person can follow the conversation in the language they prefer.'**
+  String get walkthroughLanguagesBody;
+
+  /// No description provided for @walkthroughMicrophoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone and permissions'**
+  String get walkthroughMicrophoneTitle;
+
+  /// No description provided for @walkthroughMicrophoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the microphone button to start or stop listening. The first time you use it, allow microphone access when your device asks. If access was denied earlier, re-enable the microphone for OmniaLingo in your device settings.'**
+  String get walkthroughMicrophoneBody;
+
+  /// No description provided for @walkthroughPrimarySpeakerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What Primary Speaker means'**
+  String get walkthroughPrimarySpeakerTitle;
+
+  /// No description provided for @walkthroughPrimarySpeakerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'In Group mode, Primary Speaker highlights one speaker\'s messages and aligns them so that person\'s side is easier to follow. Choose it when you want one participant\'s translated text to stand out.'**
+  String get walkthroughPrimarySpeakerBody;
+
   /// No description provided for @translationAssistant.
   ///
   /// In en, this message translates to:
-  /// **'Translation Assistant'**
+  /// **'Real-Time Voice Translator'**
   String get translationAssistant;
 
   /// No description provided for @groupLabel.
