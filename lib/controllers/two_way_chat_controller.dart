@@ -8,7 +8,6 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/two_way_message.dart';
 import '../services/app_language_catalog.dart';
 import '../services/backend_api_client.dart';
-import '../services/backend_stt_client.dart';
 import '../services/mic_activation_sound_player.dart';
 import '../services/speech_pipeline.dart';
 import '../services/speech_output_provider.dart';
@@ -46,7 +45,6 @@ class TwoWayChatController extends ChangeNotifier {
   TwoWayChatController({
     String deepgramApiKey = '',
     BackendApiClient? backendApiClient,
-    BackendSttClient? backendSttClient,
     SpeechPipeline? speechPipeline,
     MicActivationSoundPlayer? micActivationSoundPlayer,
   }) : _speechPipeline =
@@ -54,7 +52,6 @@ class TwoWayChatController extends ChangeNotifier {
            SpeechPipeline(
              deepgramApiKey: deepgramApiKey,
              backendApiClient: backendApiClient,
-             backendSttClient: backendSttClient,
            ),
        _micActivationSoundPlayer =
            micActivationSoundPlayer ?? DefaultMicActivationSoundPlayer();

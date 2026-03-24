@@ -18,7 +18,6 @@ import 'services/backend_api_client.dart';
 import 'services/app_preferences.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/app_localizations_ext.dart';
-import 'services/backend_stt_client.dart';
 import 'services/deepgram_recognition_catalog.dart';
 import 'services/firebase_auth_session.dart';
 import 'services/runtime_config.dart';
@@ -615,14 +614,9 @@ class _MyHomePageState extends State<MyHomePage> {
       baseUrl: runtimeConfig.apiBaseUrl,
       authTokenProvider: authSession.getIdToken,
     );
-    final backendSttClient = BackendSttClient(
-      baseUrl: runtimeConfig.apiBaseUrl,
-      authTokenProvider: authSession.getIdToken,
-    );
 
     final controller = SpeechController(
       backendApiClient: backendApiClient,
-      backendSttClient: backendSttClient,
     );
     controller.setSttProvider(_sttProvider);
     controller.setTranslationProvider(_translationProvider);
@@ -641,7 +635,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final twoWayController = TwoWayChatController(
       backendApiClient: backendApiClient,
-      backendSttClient: backendSttClient,
     );
     twoWayController.setSttProvider(_sttProvider);
     twoWayController.setTranslationProvider(_translationProvider);

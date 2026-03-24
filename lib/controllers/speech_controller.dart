@@ -13,7 +13,6 @@ import '../models/queued_chat_message.dart';
 import '../services/app_language_catalog.dart';
 import '../services/audio_playback_queue.dart';
 import '../services/backend_api_client.dart';
-import '../services/backend_stt_client.dart';
 import '../services/mic_activation_sound_player.dart';
 import '../services/speech_pipeline.dart';
 import '../services/speech_output_provider.dart';
@@ -71,7 +70,6 @@ class SpeechController extends ChangeNotifier {
   SpeechController({
     String deepgramApiKey = '',
     BackendApiClient? backendApiClient,
-    BackendSttClient? backendSttClient,
     SpeechPipeline? speechPipeline,
     MicActivationSoundPlayer? micActivationSoundPlayer,
     Duration finalResultGroupingWindow = const Duration(seconds: 2),
@@ -81,7 +79,6 @@ class SpeechController extends ChangeNotifier {
            SpeechPipeline(
              deepgramApiKey: deepgramApiKey,
              backendApiClient: backendApiClient,
-             backendSttClient: backendSttClient,
            ),
        _micActivationSoundPlayer =
            micActivationSoundPlayer ?? DefaultMicActivationSoundPlayer(),
