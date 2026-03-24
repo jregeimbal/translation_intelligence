@@ -11,6 +11,15 @@ import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
+import 'package:translation_intelligence/services/mic_activation_sound_player.dart';
+
+class _FakeMicActivationSoundPlayer implements MicActivationSoundPlayer {
+  @override
+  Future<void> play() async {}
+
+  @override
+  Future<void> dispose() async {}
+}
 
 class _FakeSpeechPipeline extends SpeechPipeline {
   _FakeSpeechPipeline()
@@ -258,6 +267,7 @@ void main() {
             authTokenProvider: () async => 'token',
           ),
           speechPipeline: fakePipeline,
+          micActivationSoundPlayer: _FakeMicActivationSoundPlayer(),
         );
         addTearDown(() async {
           await results.close();
@@ -292,6 +302,7 @@ void main() {
             authTokenProvider: () async => 'token',
           ),
           speechPipeline: fakePipeline,
+          micActivationSoundPlayer: _FakeMicActivationSoundPlayer(),
         );
         addTearDown(localController.dispose);
 

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:translation_intelligence/main.dart';
 import 'package:translation_intelligence/models/two_way_message.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
+import 'package:translation_intelligence/services/app_preferences.dart';
 
 import 'speech_controller_stub.dart';
 import 'test_app.dart';
@@ -91,6 +92,10 @@ class FakeTwoWayChatController extends ChangeNotifier
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  Future<void> markWalkthroughSeen() {
+    return AppPreferences().setHasCompletedFirstLaunchWalkthrough(true);
+  }
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
@@ -98,6 +103,7 @@ void main() {
   testWidgets('MyHomePage retries initialization after failure', (
     tester,
   ) async {
+    await markWalkthroughSeen();
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -151,7 +157,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Mejor Lingo'), findsOneWidget);
+    expect(find.byTooltip('Settings'), findsOneWidget);
     expect(find.text('Tap the mic to start listening...'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Retry'), findsNothing);
   });
@@ -159,6 +165,7 @@ void main() {
   testWidgets('saving settings restarts active group listening', (
     tester,
   ) async {
+    await markWalkthroughSeen();
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -198,6 +205,7 @@ void main() {
   testWidgets('changing source language restarts active group listening', (
     tester,
   ) async {
+    await markWalkthroughSeen();
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 

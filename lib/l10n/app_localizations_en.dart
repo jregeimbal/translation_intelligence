@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'OmniaLingo';
+  String get appTitle => 'Omnialingo';
 
   @override
   String get themeModeSystem => 'System';
@@ -192,6 +192,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retry => 'Retry';
+
+  @override
+  String get walkthroughWelcomeTitle => 'Welcome to OmniaLingo';
+
+  @override
+  String get walkthroughWelcomeBody => 'Here is a quick walkthrough of the essentials before your first conversation.';
+
+  @override
+  String get walkthroughDismiss => 'Dismiss walkthrough';
+
+  @override
+  String get walkthroughHelp => 'Help';
+
+  @override
+  String get walkthroughSkip => 'Skip';
+
+  @override
+  String get walkthroughBack => 'Back';
+
+  @override
+  String get walkthroughNext => 'Next';
+
+  @override
+  String get walkthroughGetStarted => 'Get Started';
+
+  @override
+  String get walkthroughModesTitle => 'Choose the right mode';
+
+  @override
+  String get walkthroughModesBody => 'Use Group when one speaker or a group is talking into a shared microphone and everyone wants live translated captions. Use 2-way when two people are handing the device back and forth for a conversation.';
+
+  @override
+  String get walkthroughLanguagesTitle => 'Source and target languages';
+
+  @override
+  String get walkthroughLanguagesBody => 'Source is the language OmniaLingo listens for. Target is the language it translates into. In 2-way mode, each side chooses its own language so each person can follow the conversation in the language they prefer.';
+
+  @override
+  String get walkthroughMicrophoneTitle => 'Microphone and permissions';
+
+  @override
+  String get walkthroughMicrophoneBody => 'Tap the microphone button to start or stop listening. The first time you use it, allow microphone access when your device asks. If access was denied earlier, re-enable the microphone for OmniaLingo in your device settings.';
+
+  @override
+  String get walkthroughPrimarySpeakerTitle => 'What Primary Speaker means';
+
+  @override
+  String get walkthroughPrimarySpeakerBody => 'In Group mode, Primary Speaker highlights one speaker\'s messages and aligns them so that person\'s side is easier to follow. Choose it when you want one participant\'s translated text to stand out.';
 
   @override
   String get translationAssistant => 'Real-Time Voice Translator';

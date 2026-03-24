@@ -30,6 +30,7 @@ import 'theme/app_theme_resolver.dart';
 import 'theme/hyper_linguist_theme.dart';
 import 'theme/hyper_listen_theme.dart';
 import 'widgets/chat_message.dart';
+import 'widgets/first_launch_walkthrough_dialog.dart';
 import 'widgets/footer.dart';
 import 'widgets/group_language_bar.dart';
 import 'widgets/provider_settings_dialog.dart';
@@ -241,6 +242,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String? _listeningDeviceId;
   String? _playbackDeviceId;
   AppPreferencesSnapshot? _lastPersistedPreferences;
+  bool _hasCompletedFirstLaunchWalkthrough = false;
+  bool _walkthroughShownThisSession = false;
 
   bool get _isGroupSection => _selectedSection == 0;
 
@@ -292,7 +295,11 @@ class _MyHomePageState extends State<MyHomePage> {
       targetLanguage: targetLanguage,
       hideTranslatedOriginalText: snapshot.hideTranslatedOriginalText,
       audioPlaybackEnabled: snapshot.audioPlaybackEnabled,
+      hasCompletedFirstLaunchWalkthrough:
+          snapshot.hasCompletedFirstLaunchWalkthrough,
     );
+    _hasCompletedFirstLaunchWalkthrough =
+        snapshot.hasCompletedFirstLaunchWalkthrough;
   }
 
   void _persistControllerPreferences() {
@@ -305,6 +312,7 @@ class _MyHomePageState extends State<MyHomePage> {
       targetLanguage: _controller.targetLanguage,
       hideTranslatedOriginalText: _controller.hideTranslatedOriginalText,
       audioPlaybackEnabled: _controller.audioPlaybackEnabled,
+      hasCompletedFirstLaunchWalkthrough: _hasCompletedFirstLaunchWalkthrough,
     );
 
     final previous = _lastPersistedPreferences;
@@ -348,6 +356,56 @@ class _MyHomePageState extends State<MyHomePage> {
     unawaited(
       _appPreferences.setAudioPlaybackEnabled(snapshot.audioPlaybackEnabled),
     );
+  }
+
+  Future<void> _completeFirstLaunchWalkthrough() async {
+    if (_hasCompletedFirstLaunchWalkthrough) return;
+
+    _hasCompletedFirstLaunchWalkthrough = true;
+    final previous = _lastPersistedPreferences;
+    if (previous != null) {
+      _lastPersistedPreferences = AppPreferencesSnapshot(
+        deepgramRecognitionModel: previous.deepgramRecognitionModel,
+        deepgramRecognitionLanguage: previous.deepgramRecognitionLanguage,
+        speechToTextRecognitionLocale: previous.speechToTextRecognitionLocale,
+        targetLanguage: previous.targetLanguage,
+        hideTranslatedOriginalText: previous.hideTranslatedOriginalText,
+        audioPlaybackEnabled: previous.audioPlaybackEnabled,
+        hasCompletedFirstLaunchWalkthrough: true,
+      );
+    }
+
+    await _appPreferences.setHasCompletedFirstLaunchWalkthrough(true);
+  }
+
+  Future<void> _showWalkthrough({required bool markCompleted}) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => const FirstLaunchWalkthroughDialog(),
+    );
+
+    if (!mounted || !markCompleted) return;
+    await _completeFirstLaunchWalkthrough();
+  }
+
+  Future<void> _maybeShowFirstLaunchWalkthrough() async {
+    if (!mounted ||
+        _initializing ||
+        _initializationError.isNotEmpty ||
+        _hasCompletedFirstLaunchWalkthrough ||
+        _walkthroughShownThisSession) {
+      return;
+    }
+
+    _walkthroughShownThisSession = true;
+
+    await _showWalkthrough(markCompleted: true);
+  }
+
+  Future<void> _showHelpWalkthrough() async {
+    if (!mounted || _initializing || _initializationError.isNotEmpty) return;
+    await _showWalkthrough(markCompleted: false);
   }
 
   SpeechSttProvider? get _activeSessionSttProvider => _isGroupSection
@@ -650,6 +708,10 @@ class _MyHomePageState extends State<MyHomePage> {
           _controller.speechToTextRecognitionLocale;
       _targetLanguage = _controller.targetLanguage;
       _initializing = false;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_maybeShowFirstLaunchWalkthrough());
     });
   }
 
@@ -1056,6 +1118,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           actions: [
+            if (!_initializing)
+              IconButton(
+                icon: const Icon(Icons.help_outline_rounded),
+                tooltip: context.l10n.walkthroughHelp,
+                onPressed: _showHelpWalkthrough,
+              ),
             if (kDebugMode)
               IconButton(
                 icon: const Icon(Icons.bug_report_outlined),

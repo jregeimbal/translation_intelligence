@@ -9,7 +9,7 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get appTitle => 'OmniaLingo';
+  String get appTitle => 'Omnialingo';
 
   @override
   String get themeModeSystem => 'Système';
@@ -192,6 +192,54 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get retry => 'Réessayer';
+
+  @override
+  String get walkthroughWelcomeTitle => 'Bienvenue dans OmniaLingo';
+
+  @override
+  String get walkthroughWelcomeBody => 'Voici une présentation rapide de l\'essentiel avant votre première conversation.';
+
+  @override
+  String get walkthroughDismiss => 'Fermer la présentation';
+
+  @override
+  String get walkthroughHelp => 'Aide';
+
+  @override
+  String get walkthroughSkip => 'Ignorer';
+
+  @override
+  String get walkthroughBack => 'Retour';
+
+  @override
+  String get walkthroughNext => 'Suivant';
+
+  @override
+  String get walkthroughGetStarted => 'Commencer';
+
+  @override
+  String get walkthroughModesTitle => 'Choisissez le bon mode';
+
+  @override
+  String get walkthroughModesBody => 'Utilisez Groupe lorsqu\'une personne ou un groupe parle dans un microphone partagé et que tout le monde veut des sous-titres traduits en direct. Utilisez Bidirectionnel lorsque deux personnes se passent l\'appareil pendant une conversation.';
+
+  @override
+  String get walkthroughLanguagesTitle => 'Langues source et cible';
+
+  @override
+  String get walkthroughLanguagesBody => 'La source est la langue qu\'OmniaLingo écoute. La cible est la langue dans laquelle il traduit. En mode bidirectionnel, chaque côté choisit sa propre langue afin que chacun puisse suivre la conversation dans la langue qu\'il préfère.';
+
+  @override
+  String get walkthroughMicrophoneTitle => 'Microphone et autorisations';
+
+  @override
+  String get walkthroughMicrophoneBody => 'Appuyez sur le bouton du microphone pour démarrer ou arrêter l\'écoute. La première fois, autorisez l\'accès au microphone lorsque l\'appareil le demande. Si l\'accès a déjà été refusé, réactivez le microphone pour OmniaLingo dans les réglages de l\'appareil.';
+
+  @override
+  String get walkthroughPrimarySpeakerTitle => 'Que signifie Interlocuteur principal';
+
+  @override
+  String get walkthroughPrimarySpeakerBody => 'En mode Groupe, Interlocuteur principal met en évidence les messages d\'une personne et les aligne pour rendre ce côté plus facile à suivre. Choisissez-le lorsque vous souhaitez faire ressortir le texte traduit d\'un participant.';
 
   @override
   String get translationAssistant => 'Assistant de traduction';

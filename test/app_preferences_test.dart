@@ -20,6 +20,7 @@ void main() {
     expect(snapshot.targetLanguage, 'en');
     expect(snapshot.hideTranslatedOriginalText, isTrue);
     expect(snapshot.audioPlaybackEnabled, isTrue);
+    expect(snapshot.hasCompletedFirstLaunchWalkthrough, isFalse);
   });
 
   test('persists and reloads saved preferences', () async {
@@ -31,6 +32,7 @@ void main() {
     await preferences.setTargetLanguage('fr');
     await preferences.setHideTranslatedOriginalText(false);
     await preferences.setAudioPlaybackEnabled(false);
+    await preferences.setHasCompletedFirstLaunchWalkthrough(true);
 
     final snapshot = await preferences.load();
 
@@ -40,5 +42,6 @@ void main() {
     expect(snapshot.targetLanguage, 'fr');
     expect(snapshot.hideTranslatedOriginalText, isFalse);
     expect(snapshot.audioPlaybackEnabled, isFalse);
+    expect(snapshot.hasCompletedFirstLaunchWalkthrough, isTrue);
   });
 }
