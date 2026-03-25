@@ -14,7 +14,7 @@
                 "FIREBASE_PROJECT_ID": "tutti-lingo",
                 "FIREBASE_WEB_API_KEY": "AIzaSyBDCTRkDbXpsnLzfpewRaOEo3-LOgxv-p8",
                 "GOOGLE_SERVICE_ACCOUNT_JSON_PATH": "omnia-lingo-google-cloud-service-account.json",
-                "ALLOWED_ORIGINS": "http://localhost:55555",
+                "ALLOWED_ORIGINS": "http://localhost:3000",
                 "SERVER_HOST": "0.0.0.0",
                 "PORT": "8080"
             },
@@ -24,10 +24,12 @@
             "name": "App (debug)",
             "request": "launch",
             "type": "dart",
+            "flutterMode": "debug",
             "args": [
                 "--web-hostname=localhost",
-                "--web-port=55555",
-                "--dart-define", "API_BASE_URL=http://localhost:8080"
+                "--web-port=3000",
+                "--dart-define", "API_BASE_URL=http://localhost:8080",
+                "--flavor", "dev"
             ],
         },
         {
@@ -37,7 +39,7 @@
             "flutterMode": "profile",
             "args": [
                 "--web-hostname=0.0.0.0",
-                "--web-port=55555",
+                "--web-port=3000",
                 "--dart-define", "API_BASE_URL=http://localhost:8080"
             ],
         },
@@ -48,7 +50,7 @@
             "flutterMode": "release",
             "args": [
                 "--web-hostname=localhost",
-                "--web-port=55555",
+                "--web-port=3000",
                 "--dart-define", "API_BASE_URL=http://localhost:8080"
             ],
         },
@@ -59,7 +61,7 @@
             "flutterMode": "release",
             "args": [
                 "--web-hostname=localhost",
-                "--web-port=55555",
+                "--web-port=3000",
                 "--dart-define", "NO_DOTENV_OVERRIDE=true",
                 "--dart-define", "API_BASE_URL=https://translation-intelligence-server-807627897911.us-central1.run.app"
             ],
