@@ -3,16 +3,25 @@ import 'package:logging/logging.dart';
 
 import '../models/live_stt_models.dart';
 
+typedef DeepgramLiveListen = Stream<dynamic> Function(
+  Stream<List<int>> audioStream, {
+  Map<String, dynamic>? queryParams,
+});
+
 abstract class LiveSpeechRecognitionService {
   Stream<LiveSttResult> start(LiveSttStreamInput input);
 }
 
 class DeepgramLiveSpeechRecognitionService
     implements LiveSpeechRecognitionService {
-  DeepgramLiveSpeechRecognitionService({required String apiKey})
-    : _deepgram = Deepgram(apiKey);
+  DeepgramLiveSpeechRecognitionService({
+    required String apiKey,
+    DeepgramLiveListen? liveListen,
+  }) : _deepgram = Deepgram(apiKey),
+       _liveListen = liveListen;
 
   final Deepgram _deepgram;
+  final DeepgramLiveListen? _liveListen;
   final Logger _logger = Logger('DeepgramLiveSpeechRecognitionService');
 
   @override
@@ -42,9 +51,9 @@ class DeepgramLiveSpeechRecognitionService
       'language=${params['language']} sampleRate=${params['sample_rate']}',
     );
 
-    return _deepgram.listen.live(input.audioStream, queryParams: params).map((
-      result,
-    ) {
+    final liveListen = _liveListen ?? _deepgram.listen.live;
+
+    return liveListen(input.audioStream, queryParams: params).map((result) {
       final words = (result.words as Iterable)
           .map<LiveSttWord>(
             (word) => LiveSttWord(
