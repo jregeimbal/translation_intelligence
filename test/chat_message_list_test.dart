@@ -49,6 +49,33 @@ void main() {
 
       expect(find.text('buffered preview text...'), findsOneWidget);
       expect(find.textContaining('Listening...'), findsNothing);
+
+      double bufferedPreviewOpacity() {
+        final textFinder = find.byWidgetPredicate(
+          (widget) =>
+              widget is Text &&
+              widget.data == null &&
+              widget.textSpan?.toPlainText() == 'buffered preview text...',
+        );
+        expect(textFinder, findsOneWidget);
+
+        final opacityAncestors = find
+            .ancestor(of: textFinder, matching: find.byType(Opacity))
+            .evaluate()
+            .map((element) => element.widget)
+            .whereType<Opacity>()
+            .toList(growable: false);
+
+        expect(opacityAncestors, isNotEmpty);
+        return opacityAncestors.first.opacity;
+      }
+
+      expect(bufferedPreviewOpacity(), closeTo(0.2, 0.001));
+
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('buffered preview text...'), findsOneWidget);
+      expect(bufferedPreviewOpacity(), closeTo(0.2, 0.001));
     });
 
     testWidgets('shows idle prompt when empty and idle', (tester) async {

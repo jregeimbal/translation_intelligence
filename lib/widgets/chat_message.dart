@@ -433,6 +433,7 @@ class _ChatMessageContent extends StatelessWidget {
               key: ValueKey<String>(message.id),
               text: message.original,
               isFinal: message.isFinal,
+              stabilizePartialOpacity: !message.isFinal,
               textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
               style: bodyStyle,
             )
@@ -521,6 +522,7 @@ class _ChatMessageContent extends StatelessWidget {
 class _AnimatedRecognitionMessageText extends StatefulWidget {
   final String text;
   final bool isFinal;
+  final bool stabilizePartialOpacity;
   final TextStyle? style;
   final TextAlign? textAlign;
 
@@ -528,6 +530,7 @@ class _AnimatedRecognitionMessageText extends StatefulWidget {
     super.key,
     required this.text,
     required this.isFinal,
+    this.stabilizePartialOpacity = false,
     required this.style,
     this.textAlign,
   });
@@ -561,13 +564,24 @@ class _AnimatedRecognitionMessageTextState
   double _currentOpacity = _startingOpacity;
   double _targetOpacity = _startingOpacity;
 
+  double _resolveTargetOpacity() {
+    if (widget.isFinal) {
+      return 1.0;
+    }
+    return widget.stabilizePartialOpacity ? _startingOpacity : _partialOpacity;
+  }
+
   @override
   void initState() {
     super.initState();
+    final nextOpacity = _resolveTargetOpacity();
+    if (nextOpacity == _startingOpacity) {
+      return;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
-        _targetOpacity = widget.isFinal ? 1.0 : _partialOpacity;
+        _targetOpacity = nextOpacity;
       });
     });
   }
@@ -575,7 +589,7 @@ class _AnimatedRecognitionMessageTextState
   @override
   void didUpdateWidget(covariant _AnimatedRecognitionMessageText oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final nextOpacity = widget.isFinal ? 1.0 : _partialOpacity;
+    final nextOpacity = _resolveTargetOpacity();
     if (_targetOpacity == nextOpacity) return;
     setState(() {
       _currentOpacity = _targetOpacity;
