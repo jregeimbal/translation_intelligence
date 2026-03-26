@@ -25,10 +25,10 @@ export '../models/speech_recognition_session.dart'
 
 class SpeechPipeline {
   static const MethodChannel _audioRecordChannel = MethodChannel(
-    'com.speechlogic.omnialingo/audio_record',
+    'com.speechlogic.tuttilingo/audio_record',
   );
   static const EventChannel _audioRouteEventChannel = EventChannel(
-    'com.speechlogic.omnialingo/audio_route_events',
+    'com.speechlogic.tuttilingo/audio_route_events',
   );
 
   static const List<int> _sampleRateFallbackOrder = <int>[

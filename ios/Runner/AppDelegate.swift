@@ -4,7 +4,7 @@ import AVFAudio
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
-  private static let audioRecordChannelName = "com.speechlogic.omnialingo/audio_record"
+  private static let audioRecordChannelName = "com.speechlogic.tuttilingo/audio_record"
   private var routeEventSink: FlutterEventSink?
   private var routeChangeObserver: NSObjectProtocol?
 
@@ -47,7 +47,7 @@ import AVFAudio
     }
 
     let eventChannel = FlutterEventChannel(
-      name: "com.speechlogic.omnialingo/audio_route_events",
+      name: "com.speechlogic.tuttilingo/audio_route_events",
       binaryMessenger: registrar.messenger()
     )
     eventChannel.setStreamHandler(self)
