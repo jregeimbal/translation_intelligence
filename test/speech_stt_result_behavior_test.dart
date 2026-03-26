@@ -435,6 +435,32 @@ void main() {
       expect(controller.getOptimisticMessages(), isEmpty);
     });
 
+    test('partial diarized words set preferred speaker before queueing', () async {
+      await controller.init();
+      await controller.startListening();
+
+      pipeline.resultController.add(
+        SpeechRecognitionResult(
+          isFinal: false,
+          words: [
+            SpeechRecognitionWord(word: 'Hello', speaker: 0),
+            SpeechRecognitionWord(word: 'there', speaker: 0),
+            SpeechRecognitionWord(word: 'General', speaker: 1),
+          ],
+        ),
+      );
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.chatMessages, isEmpty);
+      expect(controller.preferredSpeaker, equals(0));
+
+      final optimistic = controller.getOptimisticMessages();
+      expect(optimistic.length, equals(2));
+      expect(optimistic[0].speaker, equals(0));
+      expect(optimistic[1].speaker, equals(1));
+    });
+
     test('final words take precedence over transcript fallback', () async {
       await controller.init();
       await controller.startListening();
@@ -611,6 +637,115 @@ void main() {
       groupedController.dispose();
       await groupedPipeline.disposeFake();
     });
+
+    test('partial is still displayed with grouped results', () async {
+      final groupedPipeline = _FakeSpeechPipeline();
+      final groupedController = _buildController(
+        groupedPipeline,
+        finalResultGroupingWindow: const Duration(milliseconds: 50),
+      );
+
+      await groupedController.init();
+      await groupedController.startListening();
+
+      groupedPipeline.resultController.add(
+        SpeechRecognitionResult(
+          words: [
+            SpeechRecognitionWord(word: 'hello', speaker: 0),
+          ],
+          isFinal: true,
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      groupedPipeline.resultController.add(
+        SpeechRecognitionResult(
+          words: [
+            SpeechRecognitionWord(word: 'there', speaker: 0),
+          ],
+          isFinal: true,
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      groupedPipeline.resultController.add(
+        SpeechRecognitionResult(
+          words: [
+            SpeechRecognitionWord(word: 'how', speaker: 0),
+            SpeechRecognitionWord(word: 'are', speaker: 0),
+            SpeechRecognitionWord(word: 'you?', speaker: 0),
+          ],
+          isFinal: false,
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      final optimistic = groupedController.getOptimisticMessages();
+      expect(groupedController.chatMessages, isEmpty);
+      expect(optimistic.length, equals(1));
+      expect(optimistic[0].original, equals('hello, there, how are you?'));
+      expect(optimistic[0].speaker, equals(0));
+      expect(optimistic[0].groups.length, equals(3));
+      expect(optimistic[0].groups.last.original, equals('how are you?'));
+
+      await groupedController.stopListening();
+      groupedController.dispose();
+      await groupedPipeline.disposeFake();
+    });
+
+    test(
+      'folded partial group keeps its id when it becomes queued',
+      () async {
+        final groupedPipeline = _FakeSpeechPipeline();
+        final groupedController = _buildController(
+          groupedPipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 120),
+        );
+
+        await groupedController.init();
+        await groupedController.startListening();
+
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult(
+            words: [SpeechRecognitionWord(word: 'hello', speaker: 0)],
+            isFinal: true,
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult(
+            words: [SpeechRecognitionWord(word: 'there', speaker: 0)],
+            isFinal: false,
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        final optimisticWithPartial = groupedController.getOptimisticMessages();
+        expect(optimisticWithPartial, hasLength(1));
+        final livePartialGroupId = optimisticWithPartial.single.groups.last.id;
+        expect(
+          livePartialGroupId,
+          equals('${optimisticWithPartial.single.id}_g1'),
+        );
+
+        groupedPipeline.resultController.add(
+          SpeechRecognitionResult(
+            words: [SpeechRecognitionWord(word: 'there', speaker: 0)],
+            isFinal: true,
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        final optimisticQueued = groupedController.getOptimisticMessages();
+        expect(optimisticQueued, hasLength(1));
+        expect(optimisticQueued.single.groups.last.id, equals(livePartialGroupId));
+
+        await groupedController.stopListening();
+        groupedController.dispose();
+        await groupedPipeline.disposeFake();
+      },
+    );
 
     test(
       'consecutive final transcripts are grouped within window even when it takes awhile for second message to be final',

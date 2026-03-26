@@ -148,41 +148,67 @@ class SpeechController extends ChangeNotifier {
         )
         .toList();
 
-    Map<int, List<SpeechRecognitionWord>> mergedBySpeaker = {};
+      final mergedBySpeaker = <int?, List<SpeechRecognitionWord>>{};
 
-    // Group words by speaker, using -1 for unknown speakers
-    for (var word in words) {
-      final key = word.speaker ?? -1; // Use -1 as the key for unknown speakers
-      mergedBySpeaker[key] = [...?mergedBySpeaker[key], word];
-    }
-
-    // Add a comma to the end of existing messages if the same speaker continues speaking in a new message
-    for (var newMsg in newMessages) {
-      if (mergedBySpeaker.containsKey(newMsg.speaker ?? -1)) {
-        newMsg.original = '${newMsg.original},';
+      for (final word in words) {
+        mergedBySpeaker[word.speaker] = [...?mergedBySpeaker[word.speaker], word];
       }
-      newMsg.isFinal = isFinal;
-    }
 
-    if (words.isNotEmpty) {
-      // Merge words into existing messages by speaker, or create new messages if no existing message for that speaker
-      for (var word in words) {
-        if (newMessages.any((m) => m.speaker == word.speaker)) {
-          // If there's already a message for this speaker, append the new word to it
-          final existingMsg = newMessages.firstWhere(
-            (m) => m.speaker == word.speaker,
-          );
-          existingMsg.original = '${existingMsg.original} ${word.word}';
+      for (var index = 0; index < newMessages.length; index++) {
+        final newMsg = newMessages[index];
+        final speakerWords = mergedBySpeaker.remove(newMsg.speaker);
+        if (speakerWords == null || speakerWords.isEmpty) {
+          continue;
+        }
+
+        final partialText = speakerWords.map((word) => word.word).join(' ').trim();
+        if (partialText.isEmpty) {
+          continue;
+        }
+
+        final separator = RegExp(r'[.!?]$').hasMatch(newMsg.original.trimRight())
+            ? ' '
+            : ', ';
+        final updatedOriginal = '${newMsg.original}$separator$partialText';
+
+        if (newMsg.groups.isNotEmpty) {
+          final liveGroupId = '${newMsg.id}_g${newMsg.groups.length}';
+          final updatedGroups = List<ChatMessageGroup>.from(newMsg.groups)
+            ..add(
+              ChatMessageGroup(
+                id: liveGroupId,
+                original: partialText,
+              ),
+            );
+          newMessages[index] = ChatMessage(
+            updatedOriginal,
+            speaker: newMsg.speaker,
+            isFinal: isFinal,
+            id: newMsg.id,
+            timestamp: newMsg.timestamp,
+            groups: updatedGroups,
+          )..translation = newMsg.translation;
         } else {
-          // If there's no existing message for this speaker, create a new one
-          newMessages.add(
-            ChatMessage(word.word, speaker: word.speaker, isFinal: isFinal),
-          );
+          newMsg.original = updatedOriginal;
+          newMsg.isFinal = isFinal;
         }
       }
 
+      for (final entry in mergedBySpeaker.entries) {
+        final partialText = entry.value.map((word) => word.word).join(' ').trim();
+        if (partialText.isEmpty) {
+          continue;
+        }
+        newMessages.add(
+          ChatMessage(
+            partialText,
+            speaker: entry.key,
+            isFinal: isFinal,
+          ),
+        );
+      }
+
       logger.info('wordsToMessages newMessages: ${newMessages.toString()}');
-    }
     return newMessages;
   }
 
@@ -711,6 +737,7 @@ class SpeechController extends ChangeNotifier {
     final shouldAdvanceToQueue = result.isFinal || result.speechFinal;
 
     if (result.words.isNotEmpty) {
+      _maybeDefaultPreferred(result.words.first.speaker);
       logger.info(
         '${DateTime.now().toUtc()} RECOGNIZED: ${result.wordsToText()} - FINAL: ${result.isFinal} - SPEECH_FINAL: ${result.speechFinal}',
       );
@@ -727,7 +754,7 @@ class SpeechController extends ChangeNotifier {
       logger.finest(
         '${DateTime.now().toUtc()} RECOGNIZED RESULT WITH NO WORDS - FINAL: ${result.isFinal} - SPEECH_FINAL: ${result.speechFinal}',
       );
-      if (result.speechFinal && _partialWords.isNotEmpty) {
+      if (shouldAdvanceToQueue && _partialWords.isNotEmpty) {
         final bufferedResult = SpeechRecognitionResult(
           isFinal: false,
           speechFinal: true,
