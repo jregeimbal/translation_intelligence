@@ -5,12 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
+import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
+import 'package:translation_intelligence/services/mic_activation_sound_player.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
-import 'package:translation_intelligence/services/mic_activation_sound_player.dart';
 
 class _FakeMicActivationSoundPlayer implements MicActivationSoundPlayer {
   @override
@@ -32,6 +33,10 @@ class _FakeSpeechPipeline extends SpeechPipeline {
   bool apiKeyValid = true;
   int startRecognitionCalls = 0;
   String? lastSourceLanguage;
+  final StreamController<dynamic> routeChanges =
+      StreamController<dynamic>.broadcast();
+  List<PlaybackDevice> playbackDevices = const [];
+  String? currentPlaybackRouteId;
   SpeechRecognitionSession session = SpeechRecognitionSession(
     resultStream: Stream<SpeechRecognitionResult>.empty(),
     amplitudeStream: Stream<double>.empty(),
@@ -42,6 +47,15 @@ class _FakeSpeechPipeline extends SpeechPipeline {
 
   @override
   Future<bool> isSpeechApiKeyValid() async => apiKeyValid;
+
+  @override
+  Future<List<PlaybackDevice>> listPlaybackDevices() async => playbackDevices;
+
+  @override
+  Future<String?> getCurrentPlaybackDeviceId() async => currentPlaybackRouteId;
+
+  @override
+  Stream<dynamic> listeningDeviceRouteChanges() => routeChanges.stream;
 
   @override
   Future<SpeechRecognitionSession> startRecognitionSession(
@@ -57,6 +71,10 @@ class _FakeSpeechPipeline extends SpeechPipeline {
     lastSourceLanguage = sourceLanguage;
     return session;
   }
+
+  Future<void> disposeFake() async {
+    await routeChanges.close();
+  }
 }
 
 void main() {
@@ -65,6 +83,7 @@ void main() {
   const audioGlobalChannel = MethodChannel('xyz.luan/audioplayers.global');
   const recordChannel = MethodChannel('com.llfbandit.record/messages');
   var hasPermission = true;
+  List<Map<String, dynamic>> mockInputDevices = const [];
 
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -79,6 +98,9 @@ void main() {
           }
           if (call.method == 'hasPermission') {
             return hasPermission;
+          }
+          if (call.method == 'listInputDevices') {
+            return mockInputDevices;
           }
           return null;
         });
@@ -96,6 +118,7 @@ void main() {
 
     setUp(() {
       hasPermission = true;
+      mockInputDevices = const [];
       controller = SpeechController(
         backendApiClient: BackendApiClient(
           baseUrl: 'https://api.example.com',
@@ -294,5 +317,91 @@ void main() {
         expect(fakePipeline.startRecognitionCalls, equals(1));
       },
     );
+
+    test(
+      'route changes refresh devices and emit listening device update',
+      () async {
+        final fakePipeline = _FakeSpeechPipeline()
+          ..playbackDevices = const [
+            PlaybackDevice(id: 'speaker', name: 'Phone', type: 'Built-in'),
+          ]
+          ..currentPlaybackRouteId = 'speaker';
+        final localController = SpeechController(
+          backendApiClient: BackendApiClient(
+            baseUrl: 'https://api.example.com',
+            authTokenProvider: () async => 'token',
+          ),
+          speechPipeline: fakePipeline,
+        );
+        addTearDown(() async {
+          await fakePipeline.disposeFake();
+          localController.dispose();
+        });
+
+        mockInputDevices = const [
+          {'id': 'built-in', 'label': 'Built-in Mic'},
+        ];
+
+        await localController.init();
+        localController.setListeningDeviceId('built-in');
+
+        final received = <String>[];
+        final sub = localController.listeningDeviceUpdates.listen(received.add);
+        addTearDown(sub.cancel);
+
+        mockInputDevices = const [
+          {'id': 'usb', 'label': 'USB Mic'},
+        ];
+        fakePipeline.playbackDevices = const [
+          PlaybackDevice(id: 'bt', name: 'AirPods', type: 'Bluetooth'),
+        ];
+        fakePipeline.currentPlaybackRouteId = 'bt';
+
+        fakePipeline.routeChanges.add({'event': 'devices_added'});
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(localController.listeningDevices.map((d) => d.id), ['usb']);
+        expect(localController.listeningDeviceId, isNull);
+        expect(localController.playbackDevices.map((d) => d.id), ['bt']);
+        expect(localController.playbackDeviceId, equals('bt'));
+        expect(received, contains('microphoneConnected'));
+      },
+    );
+
+    test('route changes with no effective device change do not emit update', () async {
+      final fakePipeline = _FakeSpeechPipeline()
+        ..playbackDevices = const [
+          PlaybackDevice(id: 'speaker', name: 'Phone', type: 'Built-in'),
+        ]
+        ..currentPlaybackRouteId = 'speaker';
+      final localController = SpeechController(
+        backendApiClient: BackendApiClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token',
+        ),
+        speechPipeline: fakePipeline,
+      );
+      addTearDown(() async {
+        await fakePipeline.disposeFake();
+        localController.dispose();
+      });
+
+      mockInputDevices = const [
+        {'id': 'built-in', 'label': 'Built-in Mic'},
+      ];
+
+      await localController.init();
+
+      final received = <String>[];
+      final sub = localController.listeningDeviceUpdates.listen(received.add);
+      addTearDown(sub.cancel);
+
+      fakePipeline.routeChanges.add({'event': 'route_changed'});
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(received, isEmpty);
+    });
   });
 }
