@@ -1,5 +1,5 @@
 name: translation_intelligence_server
-description: Backend API for Omnialingo Real-Time Voice Translator
+description: Backend API for OmniaLingo Real-Time Voice Translator
 publish_to: 'none'
 version: 0.1.0
 

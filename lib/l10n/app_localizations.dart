@@ -100,7 +100,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Omnialingo'**
+  /// **'OmniaLingo'**
   String get appTitle;
 
   /// No description provided for @themeModeSystem.
@@ -307,6 +307,18 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// No description provided for @languageSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search languages'**
+  String get languageSearchHint;
+
+  /// No description provided for @noMatchingLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching languages'**
+  String get noMatchingLanguages;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:
@@ -316,8 +328,14 @@ abstract class AppLocalizations {
   /// No description provided for @multiAuto.
   ///
   /// In en, this message translates to:
-  /// **'Multi (Auto)'**
+  /// **'Multilingual'**
   String get multiAuto;
+
+  /// No description provided for @multiAutoDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'English, Spanish, French, German, Hindi, Russian, Portuguese, Japanese, Italian, and Dutch'**
+  String get multiAutoDetails;
 
   /// No description provided for @debugAudioStream.
   ///

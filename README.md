@@ -1,4 +1,4 @@
-# Omnialingo: Real-Time Voice Translator
+# OmniaLingo: Real-Time Voice Translator
 
 This Flutter app captures speech locally, uses Deepgram for live recognition,
 and now sends translation and text-to-speech requests through a Dart backend.

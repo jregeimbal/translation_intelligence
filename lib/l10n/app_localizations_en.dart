@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Omnialingo';
+  String get appTitle => 'OmniaLingo';
 
   @override
   String get themeModeSystem => 'System';
@@ -120,10 +120,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get languageSearchHint => 'Search languages';
+
+  @override
+  String get noMatchingLanguages => 'No matching languages';
+
+  @override
   String get save => 'Save';
 
   @override
-  String get multiAuto => 'Multi (Auto)';
+  String get multiAuto => 'Multilingual';
+
+  @override
+  String get multiAutoDetails => 'English, Spanish, French, German, Hindi, Russian, Portuguese, Japanese, Italian, and Dutch';
 
   @override
   String get debugAudioStream => 'Debug Audio Stream';

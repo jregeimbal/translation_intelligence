@@ -83,6 +83,26 @@ String localizedDeepgramLanguageLabel(BuildContext context, String localeCode) {
   return _localizedLocaleName(context, localeCode) ?? localeCode;
 }
 
+String? localizedRecognitionLocaleHelperText(
+  BuildContext context,
+  String localeCode,
+) {
+  if (localeCode == 'multi') {
+    return context.l10n.multiAutoDetails;
+  }
+  return null;
+}
+
+String? localizedDeepgramLanguageHelperText(
+  BuildContext context,
+  String localeCode,
+) {
+  if (localeCode == 'multi') {
+    return context.l10n.multiAutoDetails;
+  }
+  return null;
+}
+
 String localizedSttProviderLabel(
   BuildContext context,
   SpeechSttProvider provider,
