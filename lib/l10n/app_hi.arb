@@ -1,0 +1,180 @@
+{
+  "@@locale": "hi",
+  "appTitle": "ओमनियालिंगो",
+  "themeModeSystem": "सिस्टम",
+  "themeModeLight": "लाइट",
+  "themeModeDark": "डार्क",
+  "settingsTitle": "सेटिंग्स",
+  "settingsQuickSettingsTitle": "मुख्य विकल्प",
+  "settingsQuickSettingsDescription": "वह भाषा चुनें जिसे OmniaLingo सुने, वह भाषा जिसमें यह अनुवाद करे, और वह माइक्रोफ़ोन जिसका इसे उपयोग करना चाहिए।",
+  "settingsAdvancedToggle": "उन्नत विकल्प दिखाएं",
+  "settingsAdvancedDescription": "पहचान इंजन, अनुवाद इंजन या वॉइस आउटपुट केवल तभी बदलें जब आपको समस्या निवारण या व्यवहार को सूक्ष्म रूप से समायोजित करना हो।",
+  "sourceLanguageHint": "यह वह भाषा है जिसे OmniaLingo सुनता है।",
+  "targetLanguageHint": "यह वह भाषा है जिसमें OmniaLingo समूह मोड में अनुवाद करता है।",
+  "listeningDeviceHint": "इसे Auto पर रहने दें, जब तक कि आप किसी विशेष माइक्रोफ़ोन को मजबूरन चुनना न चाहें।",
+  "deepgramModelHint": "अलग-अलग Deepgram मॉडल अलग-अलग स्रोत भाषाओं का समर्थन करते हैं।",
+  "settingsModelAdjustedLanguage": "यह मॉडल आपकी पिछली स्रोत भाषा का समर्थन नहीं करता, इसलिए OmniaLingo ने {language} पर स्विच कर दिया।",
+  "@settingsModelAdjustedLanguage": {
+    "placeholders": {
+      "language": {}
+    }
+  },
+  "tabProviders": "वॉइस रिकग्निशन",
+  "tabAudio": "ऑडियो डिवाइस",
+  "tabDisplay": "दिखावट",
+  "speechToTextLabel": "स्पीच टू टेक्स्ट",
+  "deepgramModelLabel": "Deepgram मॉडल",
+  "deepgramLanguageLabel": "Deepgram भाषा",
+  "googleLocaleLabel": "Google लोकेल",
+  "translationLabel": "अनुवाद",
+  "textToSpeechLabel": "टेक्स्ट टू स्पीच",
+  "listeningDeviceLabel": "सुनने का डिवाइस",
+  "audioInputSelectionHint": "ऑडियो इनपुट चयन तब उपलब्ध है जब Speech to Text को Deepgram पर सेट किया गया हो।",
+  "noInputDevicesDetected": "कोई इनपुट डिवाइस नहीं मिला",
+  "autoLabel": "ऑटो",
+  "currentDetails": "वर्तमान: {details}",
+  "@currentDetails": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "autoWithDetails": "ऑटो ({details})",
+  "@autoWithDetails": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "playbackDeviceLabel": "प्लेबैक डिवाइस",
+  "iosPlaybackRoutesHint": "कुछ iOS प्लेबैक रूट सिस्टम द्वारा प्रबंधित होते हैं और हमेशा प्रोग्रामेटिक रूप से बदले नहीं जा सकते।",
+  "playbackUnavailableHint": "इस प्लेटफ़ॉर्म पर प्लेबैक डिवाइस का विवरण उपलब्ध नहीं है।",
+  "displayLabel": "डिस्प्ले",
+  "themeModeLabel": "थीम मोड",
+  "cancel": "रद्द करें",
+  "languageSearchHint": "भाषाएँ खोजें",
+  "noMatchingLanguages": "कोई मेल खाती भाषा नहीं मिली",
+  "save": "सहेजें",
+  "multiAuto": "बहुभाषी",
+  "multiAutoDetails": "अंग्रेज़ी, स्पेनिश, फ़्रेंच, जर्मन, हिंदी, रूसी, पुर्तगाली, जापानी, इतालवी और डच",
+  "debugAudioStream": "ऑडियो स्ट्रीम डीबग करें",
+  "debugSection": "सेक्शन",
+  "debugSectionGroup": "समूह",
+  "debugSectionTwoWay": "2-तरफ़ा",
+  "debugListeningActive": "सुनना सक्रिय",
+  "yes": "हाँ",
+  "no": "नहीं",
+  "notAvailableShort": "उपलब्ध नहीं",
+  "debugSttProvider": "STT प्रदाता",
+  "debugSourceLanguage": "स्रोत भाषा",
+  "debugResolvedLanguageCode": "Resolved Language Code",
+  "debugActiveSampleRate": "सक्रिय सैंपल रेट",
+  "sampleRateHertz": "{sampleRate} Hz",
+  "@sampleRateHertz": {
+    "placeholders": {
+      "sampleRate": {}
+    }
+  },
+  "debugListeningDeviceId": "सुनने वाले डिवाइस की ID",
+  "autoDefault": "ऑटो/डिफ़ॉल्ट",
+  "debugAmplitude": "एम्प्लिट्यूड (0-1)",
+  "debugSessionElapsed": "सत्र अवधि",
+  "debugSessionStartedAt": "सत्र शुरू होने का समय",
+  "debugConfiguredSttProvider": "कॉन्फ़िगर किया गया STT प्रदाता",
+  "debugConfiguredDeepgramLanguage": "कॉन्फ़िगर की गई Deepgram भाषा",
+  "debugConfiguredGoogleLocale": "कॉन्फ़िगर किया गया Google लोकेल",
+  "debugConfiguredSttLocale": "कॉन्फ़िगर किया गया STT लोकेल",
+  "close": "बंद करें",
+  "unableToSwitchPlaybackDevice": "इस प्लेटफ़ॉर्म पर प्लेबैक डिवाइस बदला नहीं जा सका।",
+  "sourceLabel": "स्रोत",
+  "swapLanguagesTooltip": "स्रोत और लक्ष्य भाषा बदलें",
+  "swapUnavailableMultiTooltip": "जब स्रोत या लक्ष्य बहुभाषी हो, तब अदला-बदली उपलब्ध नहीं है",
+  "swapUnavailablePairTooltip": "चयनित भाषा जोड़ी के लिए अदला-बदली उपलब्ध नहीं है",
+  "targetLabel": "लक्ष्य",
+  "initializationFailed": "इनिशियलाइज़ेशन विफल: {error}",
+  "@initializationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "retry": "पुनः प्रयास करें",
+  "walkthroughWelcomeTitle": "OmniaLingo में आपका स्वागत है",
+  "walkthroughWelcomeBody": "आपकी पहली बातचीत से पहले आवश्यक बातों का यह एक छोटा परिचय है।",
+  "walkthroughDismiss": "वॉकथ्रू बंद करें",
+  "walkthroughHelp": "मदद",
+  "walkthroughSkip": "छोड़ें",
+  "walkthroughBack": "वापस",
+  "walkthroughNext": "आगे",
+  "walkthroughGetStarted": "शुरू करें",
+  "walkthroughModesTitle": "सही मोड चुनें",
+  "walkthroughModesBody": "Group का उपयोग तब करें जब कोई एक व्यक्ति या समूह साझा माइक्रोफ़ोन में बोल रहा हो और सभी को लाइव अनुवादित कैप्शन चाहिए हों। 2-way का उपयोग तब करें जब दो लोग बातचीत के दौरान डिवाइस एक-दूसरे को दे रहे हों।",
+  "walkthroughLanguagesTitle": "स्रोत और लक्ष्य भाषाएँ",
+  "walkthroughLanguagesBody": "स्रोत वह भाषा है जिसे OmniaLingo सुनता है। लक्ष्य वह भाषा है जिसमें यह अनुवाद करता है। 2-way मोड में, दोनों पक्ष अपनी-अपनी भाषा चुनते हैं ताकि हर व्यक्ति बातचीत को अपनी पसंदीदा भाषा में समझ सके।",
+  "walkthroughMicrophoneTitle": "माइक्रोफ़ोन और अनुमतियाँ",
+  "walkthroughMicrophoneBody": "सुनना शुरू या बंद करने के लिए माइक्रोफ़ोन बटन दबाएँ। पहली बार उपयोग पर, जब आपका डिवाइस पूछे, तो माइक्रोफ़ोन की अनुमति दें। यदि पहले अनुमति अस्वीकार की थी, तो डिवाइस सेटिंग्स में OmniaLingo के लिए माइक्रोफ़ोन पुनः सक्षम करें।",
+  "walkthroughPrimarySpeakerTitle": "Primary Speaker का अर्थ",
+  "walkthroughPrimarySpeakerBody": "Group मोड में, Primary Speaker एक व्यक्ति के संदेशों को हाइलाइट करता है और उन्हें ऐसे संरेखित करता है कि उस व्यक्ति का पक्ष समझना आसान हो जाए। जब आप चाहते हों कि किसी एक प्रतिभागी का अनुवादित टेक्स्ट अधिक स्पष्ट दिखे, तब इसे चुनें।",
+  "translationAssistant": "रियल-टाइम वॉइस ट्रांसलेटर",
+  "groupLabel": "समूह",
+  "twoWayLabel": "2-तरफ़ा",
+  "listeningStatus": "सुन रहा है...",
+  "tapMicToStartListening": "सुनना शुरू करने के लिए माइक्रोफ़ोन दबाएँ...",
+  "speechNotAvailable": "स्पीच उपलब्ध नहीं है",
+  "speakerLabel": "स्पीकर {number}",
+  "@speakerLabel": {
+    "placeholders": {
+      "number": {}
+    }
+  },
+  "hideOriginal": "मूल छिपाएँ",
+  "showOriginal": "मूल दिखाएँ",
+  "jumpToLatest": "नवीनतम पर जाएँ",
+  "guestLabel": "अतिथि",
+  "primaryLabel": "प्राथमिक",
+  "clearChat": "चैट साफ़ करें",
+  "speakerPanelTitle": "{title} स्पीकर",
+  "@speakerPanelTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "noMessagesYet": "अभी तक कोई संदेश नहीं",
+  "stopListening": "सुनना बंद करें",
+  "listen": "सुनें",
+  "primarySpeakerLabel": "Primary Speaker",
+  "noneLabel": "कोई नहीं",
+  "hideTranslationOriginalText": "अनुवाद का मूल पाठ छिपाएँ",
+  "disableAudioPlayback": "ऑडियो प्लेबैक बंद करें",
+  "enableAudioPlayback": "ऑडियो प्लेबैक चालू करें",
+  "primarySpeakerInline": "Primary speaker",
+  "noAlignment": "कोई संरेखण नहीं",
+  "speechUnavailable": "स्पीच उपलब्ध नहीं है",
+  "microphoneConnected": "माइक्रोफ़ोन कनेक्ट हुआ",
+  "microphoneDisconnected": "माइक्रोफ़ोन डिस्कनेक्ट हुआ",
+  "audioRouteChanged": "ऑडियो रूट बदला गया",
+  "listeningDeviceListUpdated": "सुनने वाले डिवाइसों की सूची अपडेट हुई",
+  "messageWithDetails": "{message}: {details}",
+  "@messageWithDetails": {
+    "placeholders": {
+      "message": {},
+      "details": {}
+    }
+  },
+  "languageEnglish": "अंग्रेज़ी",
+  "languageSpanish": "स्पेनिश",
+  "languageFrench": "फ़्रेंच",
+  "languageGerman": "जर्मन",
+  "languageChineseSimplified": "चीनी (सरलीकृत)",
+  "languageJapanese": "जापानी",
+  "languageKorean": "कोरियाई",
+  "languagePortuguese": "पुर्तगाली",
+  "languageRussian": "रूसी",
+  "languageArabic": "अरबी",
+  "languageHindi": "हिंदी",
+  "microphonePermissionDenied": "माइक्रोफ़ोन अनुमति अस्वीकृत",
+  "invalidSpeechApiKey": "अमान्य स्पीच API कुंजी",
+  "sttProviderDeepgram": "Deepgram",
+  "sttProviderGoogle": "Speech to Text",
+  "translationProviderGoogle": "Google Cloud (Backend)",
+  "translationProviderGoogleMlKit": "Google ML Kit (Legacy)",
+  "outputProviderGoogle": "Google",
+  "outputProviderDeepgram": "Deepgram"
+}
