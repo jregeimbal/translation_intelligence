@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -eu
+
+if [ "${SKIP_PUBSPEC_BUILD_BUMP:-0}" = "1" ]; then
+  exit 0
+fi
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+if [ ! -f pubspec.yaml ]; then
+  exit 0
+fi
+
+dart run tool/bump_build_number.dart
+git add pubspec.yaml

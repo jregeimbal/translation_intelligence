@@ -100,6 +100,25 @@ flutter pub get
 flutter run
 ```
 
+### 5. Enable local build-number bumps on commit
+
+This repository includes a versioned Git `pre-commit` hook in `.githooks/` that
+increments the `+build` suffix in `pubspec.yaml` before each local commit and
+re-stages the file automatically.
+
+Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-commit
+```
+
+To skip the bump for a one-off commit:
+
+```bash
+SKIP_PUBSPEC_BUILD_BUMP=1 git commit ...
+```
+
 See `docs/server-deployment.md` for a fuller local setup and Cloud Run
 deployment guide.
 
