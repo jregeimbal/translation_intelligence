@@ -7,6 +7,7 @@ import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_to_text_service.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
 import 'package:translation_intelligence/widgets/provider_settings_dialog.dart';
+import 'package:translation_intelligence/widgets/searchable_selection_field.dart';
 
 import 'speech_controller_stub.dart';
 import 'test_app.dart';
@@ -111,6 +112,59 @@ void main() {
     expect(find.text('Translation'), findsOneWidget);
     expect(find.text('Text to Speech'), findsOneWidget);
   });
+
+  testWidgets(
+    'ProviderSettingsDialog filters target language options in the bottom sheet',
+    (tester) async {
+      await pumpTestApp(
+        tester,
+        const ProviderSettingsDialog(
+          initialSttProvider: SpeechSttProvider.deepgram,
+          initialTranslationProvider: SpeechTranslationProvider.google,
+          initialOutputProvider: SpeechOutputProvider.google,
+          initialTargetLanguage: 'en',
+          targetLanguages: ['en', 'es', 'fr'],
+          initialDeepgramRecognitionModel: 'nova-3',
+          initialDeepgramRecognitionLanguage: 'multi',
+          initialSpeechToTextRecognitionLocale:
+              SpeechToTextService.defaultRecognitionLanguage,
+          initialSpeechToTextRecognitionLocales: {
+            'multi': SpeechToTextService.defaultRecognitionLanguage,
+            'en-US': 'en-US',
+          },
+          initialListeningDevices: [],
+          initialListeningDeviceId: null,
+          initialPlaybackDevices: [],
+          initialPlaybackDeviceId: null,
+          initialThemeMode: ThemeMode.system,
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('target-language-settings')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(SearchableSelectionField.searchFieldKey),
+        'span',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(ListTile),
+          matching: find.text('Spanish'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('target-language-settings')),
+          matching: find.text('Spanish'),
+        ),
+        findsWidgets,
+      );
+    },
+  );
 
   testWidgets('ProviderSettingsDialog shows current listening device details', (
     tester,

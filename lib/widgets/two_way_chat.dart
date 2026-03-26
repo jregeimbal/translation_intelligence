@@ -8,6 +8,7 @@ import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 import '../controllers/two_way_chat_controller.dart';
 import '../models/two_way_message.dart';
 import '../theme/app_theme_resolver.dart';
+import 'searchable_selection_field.dart';
 
 class TwoWayChatView extends StatefulWidget {
   const TwoWayChatView({super.key});
@@ -208,11 +209,12 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
           ),
           if (controller.canChangeLanguages) ...[
             const SizedBox(height: 10),
-            DropdownMenuFormField<String>(
-              initialSelection: activeLanguage,
-              expandedInsets: EdgeInsets.zero,
-              enableSearch: false,
-              requestFocusOnTap: false,
+            SearchableSelectionField<String>(
+              title: widget.title,
+              searchHintText: l10n.languageSearchHint,
+              emptyText: l10n.noMatchingLanguages,
+              selectedValue: activeLanguage,
+              selectedLabel: localizedAppLanguageName(context, activeLanguage),
               textStyle: theme.textTheme.bodySmall?.copyWith(fontSize: 18),
               inputDecorationTheme: InputDecorationThemeData(
                 isDense: true,
@@ -237,16 +239,17 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
                   borderSide: BorderSide.none,
                 ),
               ),
-              dropdownMenuEntries: TwoWayChatController.supportedLanguages
+              options: TwoWayChatController.supportedLanguages
                   .map(
-                    (languageCode) => DropdownMenuEntry<String>(
+                    (languageCode) => SearchableSelectionOption<String>(
                       value: languageCode,
                       label: localizedAppLanguageName(context, languageCode),
+                      supportingText: languageCode,
+                      searchTerms: [languageCode],
                     ),
                   )
                   .toList(),
               onSelected: (value) {
-                if (value == null) return;
                 if (_isPrimary) {
                   context.read<TwoWayChatController>().setPrimaryLanguage(
                     value,

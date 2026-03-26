@@ -9,6 +9,7 @@ import '../services/deepgram_recognition_catalog.dart';
 import '../services/speech_output_provider.dart';
 import '../services/speech_stt_provider.dart';
 import '../services/speech_translation_provider.dart';
+import 'searchable_selection_field.dart';
 
 class ProviderSettingsDialog extends StatefulWidget {
   final SpeechSttProvider initialSttProvider;
@@ -144,13 +145,22 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
       DeepgramRecognitionCatalog.supportedRecognitionLanguagesByModel[
           DeepgramRecognitionCatalog.defaultRecognitionModel]!;
 
-  List<DropdownMenuEntry<String>> _sourceLanguageEntries() {
+  List<SearchableSelectionOption<String>> _sourceLanguageOptions() {
     if (_selectedSttProvider == SpeechSttProvider.google) {
       return _speechToTextRecognitionLocales.entries
           .map(
-            (entry) => DropdownMenuEntry<String>(
+            (entry) => SearchableSelectionOption<String>(
               value: entry.value,
               label: localizedRecognitionLocaleLabel(context, entry.value),
+              supportingText:
+                  localizedRecognitionLocaleHelperText(context, entry.value) ??
+                  entry.value,
+              searchTerms: [
+                entry.key,
+                entry.value,
+                localizedRecognitionLocaleHelperText(context, entry.value) ??
+                    '',
+              ],
             ),
           )
           .toList(growable: false);
@@ -158,9 +168,17 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
 
     return _deepgramLanguages.entries
         .map(
-          (entry) => DropdownMenuEntry<String>(
+          (entry) => SearchableSelectionOption<String>(
             value: entry.value,
             label: localizedDeepgramLanguageLabel(context, entry.value),
+            supportingText:
+                localizedDeepgramLanguageHelperText(context, entry.value) ??
+                entry.value,
+            searchTerms: [
+              entry.key,
+              entry.value,
+              localizedDeepgramLanguageHelperText(context, entry.value) ?? '',
+            ],
           ),
         )
         .toList(growable: false);
@@ -308,19 +326,36 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                   l10n.sourceLabel,
                   hint: l10n.sourceLanguageHint,
                 ),
-                DropdownMenuFormField<String>(
+                SearchableSelectionField<String>(
                   key: ValueKey<String>(
                     'source-${_selectedSttProvider.name}-$_selectedDeepgramRecognitionModel',
                   ),
-                  initialSelection: _selectedSourceLanguage,
-                  expandedInsets: EdgeInsets.zero,
-                  enableSearch: false,
-                  requestFocusOnTap: false,
+                  title: l10n.sourceLabel,
+                  searchHintText: l10n.languageSearchHint,
+                  emptyText: l10n.noMatchingLanguages,
+                  selectedValue: _selectedSourceLanguage,
+                  selectedLabel: _selectedSttProvider == SpeechSttProvider.google
+                      ? localizedRecognitionLocaleLabel(
+                          context,
+                          _selectedSourceLanguage,
+                        )
+                      : localizedDeepgramLanguageLabel(
+                          context,
+                          _selectedSourceLanguage,
+                        ),
+                  helperText: _selectedSttProvider == SpeechSttProvider.google
+                      ? localizedRecognitionLocaleHelperText(
+                          context,
+                          _selectedSourceLanguage,
+                        )
+                      : localizedDeepgramLanguageHelperText(
+                          context,
+                          _selectedSourceLanguage,
+                        ),
                   textStyle: dropdownTextStyle,
                   inputDecorationTheme: _dropdownMenuTheme(theme),
-                  dropdownMenuEntries: _sourceLanguageEntries(),
+                  options: _sourceLanguageOptions(),
                   onSelected: (value) {
-                    if (value == null) return;
                     _setSelectedSourceLanguage(value);
                   },
                 ),
@@ -330,26 +365,32 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                   l10n.targetLabel,
                   hint: l10n.targetLanguageHint,
                 ),
-                DropdownMenuFormField<String>(
-                  initialSelection: _selectedTargetLanguage,
-                  expandedInsets: EdgeInsets.zero,
-                  enableSearch: false,
-                  requestFocusOnTap: false,
+                SearchableSelectionField<String>(
+                  key: const ValueKey<String>('target-language-settings'),
+                  title: l10n.targetLabel,
+                  searchHintText: l10n.languageSearchHint,
+                  emptyText: l10n.noMatchingLanguages,
+                  selectedValue: _selectedTargetLanguage,
+                  selectedLabel: localizedAppLanguageName(
+                    context,
+                    _selectedTargetLanguage,
+                  ),
                   textStyle: dropdownTextStyle,
                   inputDecorationTheme: _dropdownMenuTheme(theme),
-                  dropdownMenuEntries: widget.targetLanguages
+                  options: widget.targetLanguages
                       .map(
-                        (languageCode) => DropdownMenuEntry<String>(
+                        (languageCode) => SearchableSelectionOption<String>(
                           value: languageCode,
                           label: localizedAppLanguageName(
                             context,
                             languageCode,
                           ),
+                          supportingText: languageCode,
+                          searchTerms: [languageCode],
                         ),
                       )
                       .toList(growable: false),
                   onSelected: (value) {
-                    if (value == null) return;
                     setState(() {
                       _selectedTargetLanguage = value;
                     });
@@ -509,27 +550,32 @@ class _ProviderSettingsDialogState extends State<ProviderSettingsDialog> {
                   if (_selectedSttProvider == SpeechSttProvider.google) ...[
                     _buildSpacing(),
                     _buildFieldLabel(theme, l10n.googleLocaleLabel),
-                    DropdownMenuFormField<String>(
+                    SearchableSelectionField<String>(
                       key: const ValueKey<String>('google-locale-settings'),
-                      initialSelection: _selectedSpeechToTextRecognitionLocale,
-                      expandedInsets: EdgeInsets.zero,
-                      enableSearch: false,
-                      requestFocusOnTap: false,
+                      title: l10n.googleLocaleLabel,
+                      searchHintText: l10n.languageSearchHint,
+                      emptyText: l10n.noMatchingLanguages,
+                      selectedValue: _selectedSpeechToTextRecognitionLocale,
+                      selectedLabel: localizedRecognitionLocaleLabel(
+                        context,
+                        _selectedSpeechToTextRecognitionLocale,
+                      ),
                       textStyle: dropdownTextStyle,
                       inputDecorationTheme: _dropdownMenuTheme(theme),
-                      dropdownMenuEntries: _speechToTextRecognitionLocales.entries
+                      options: _speechToTextRecognitionLocales.entries
                           .map(
-                            (entry) => DropdownMenuEntry<String>(
+                            (entry) => SearchableSelectionOption<String>(
                               value: entry.value,
                               label: localizedRecognitionLocaleLabel(
                                 context,
                                 entry.value,
                               ),
+                              supportingText: entry.value,
+                              searchTerms: [entry.key, entry.value],
                             ),
                           )
                           .toList(growable: false),
                       onSelected: (value) {
-                        if (value == null) return;
                         setState(() {
                           _selectedSpeechToTextRecognitionLocale = value;
                         });

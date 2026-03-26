@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations_ext.dart';
 import '../theme/app_theme_resolver.dart';
+import 'searchable_selection_field.dart';
 
 class GroupLanguageBar extends StatelessWidget {
   final Map<String, String> sourceLanguages;
@@ -62,27 +63,46 @@ class GroupLanguageBar extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: DropdownMenuFormField<String>(
-              initialSelection: sourceCode,
-              expandedInsets: EdgeInsets.zero,
-              enableSearch: false,
-              requestFocusOnTap: false,
+            child: SearchableSelectionField<String>(
+              title: context.l10n.sourceLabel,
+              searchHintText: context.l10n.languageSearchHint,
+              emptyText: context.l10n.noMatchingLanguages,
+              selectedValue: sourceCode,
+              selectedLabel: localizedDeepgramLanguageLabel(
+                context,
+                sourceCode,
+              ),
+              labelText: context.l10n.sourceLabel,
               textStyle: theme.textTheme.bodySmall?.copyWith(fontSize: 18),
-              label: Text(context.l10n.sourceLabel),
               inputDecorationTheme: fieldTheme,
-              dropdownMenuEntries: sourceLanguages.entries
+              options: sourceLanguages.entries
                   .map(
-                    (entry) => DropdownMenuEntry<String>(
+                    (entry) => SearchableSelectionOption<String>(
                       value: entry.value,
                       label: localizedDeepgramLanguageLabel(
                         context,
                         entry.value,
                       ),
+                      supportingText:
+                          localizedDeepgramLanguageHelperText(
+                            context,
+                            entry.value,
+                          ) ??
+                          entry.value,
+                      searchTerms: [
+                        entry.key,
+                        entry.value,
+                        localizedDeepgramLanguageHelperText(
+                              context,
+                              entry.value,
+                            ) ??
+                            '',
+                      ],
                     ),
                   )
                   .toList(growable: false),
               onSelected: (value) async {
-                if (value == null || value == sourceCode) return;
+                if (value == sourceCode) return;
                 await onSourceSelected(value);
               },
             ),
@@ -99,24 +119,27 @@ class GroupLanguageBar extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: DropdownMenuFormField<String>(
-              initialSelection: targetCode,
-              expandedInsets: EdgeInsets.zero,
-              enableSearch: false,
-              requestFocusOnTap: false,
+            child: SearchableSelectionField<String>(
+              title: context.l10n.targetLabel,
+              searchHintText: context.l10n.languageSearchHint,
+              emptyText: context.l10n.noMatchingLanguages,
+              selectedValue: targetCode,
+              selectedLabel: localizedAppLanguageName(context, targetCode),
+              labelText: context.l10n.targetLabel,
               textStyle: theme.textTheme.bodySmall?.copyWith(fontSize: 18),
-              label: Text(context.l10n.targetLabel),
               inputDecorationTheme: fieldTheme,
-              dropdownMenuEntries: targetLanguages
+              options: targetLanguages
                   .map(
-                    (languageCode) => DropdownMenuEntry<String>(
+                    (languageCode) => SearchableSelectionOption<String>(
                       value: languageCode,
                       label: localizedAppLanguageName(context, languageCode),
+                      supportingText: languageCode,
+                      searchTerms: [languageCode],
                     ),
                   )
                   .toList(growable: false),
               onSelected: (value) {
-                if (value == null || value == targetCode) return;
+                if (value == targetCode) return;
                 onTargetSelected(value);
               },
             ),
