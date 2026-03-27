@@ -39,17 +39,11 @@ void main() {
         'translation': 'hello world',
         'id': 'msg_123',
         'timestamp': '2026-03-25T10:15:30.000Z',
+        'sourceLanguageCode': 'es',
+        'targetLanguageCode': 'en',
         'groups': [
-          {
-            'id': 'g1',
-            'original': 'hola',
-            'translation': 'hello',
-          },
-          {
-            'id': 'g2',
-            'original': 'mundo',
-            'translation': 'world',
-          },
+          {'id': 'g1', 'original': 'hola', 'translation': 'hello'},
+          {'id': 'g2', 'original': 'mundo', 'translation': 'world'},
         ],
       });
 
@@ -58,6 +52,8 @@ void main() {
       expect(message.isFinal, isTrue);
       expect(message.translation, equals('hello world'));
       expect(message.id, equals('msg_123'));
+      expect(message.sourceLanguageCode, equals('es'));
+      expect(message.targetLanguageCode, equals('en'));
       expect(
         message.timestamp,
         equals(DateTime.parse('2026-03-25T10:15:30.000Z')),
@@ -79,17 +75,11 @@ void main() {
         isFinal: true,
         id: 'msg_123',
         timestamp: timestamp,
+        sourceLanguageCode: 'es',
+        targetLanguageCode: 'en',
         groups: const [
-          ChatMessageGroup(
-            id: 'g1',
-            original: 'hola',
-            translation: 'hello',
-          ),
-          ChatMessageGroup(
-            id: 'g2',
-            original: 'mundo',
-            translation: 'world',
-          ),
+          ChatMessageGroup(id: 'g1', original: 'hola', translation: 'hello'),
+          ChatMessageGroup(id: 'g2', original: 'mundo', translation: 'world'),
         ],
       )..translation = 'hello world';
 
@@ -100,17 +90,11 @@ void main() {
         'translation': 'hello world',
         'id': 'msg_123',
         'timestamp': timestamp.toIso8601String(),
+        'sourceLanguageCode': 'es',
+        'targetLanguageCode': 'en',
         'groups': [
-          {
-            'id': 'g1',
-            'original': 'hola',
-            'translation': 'hello',
-          },
-          {
-            'id': 'g2',
-            'original': 'mundo',
-            'translation': 'world',
-          },
+          {'id': 'g1', 'original': 'hola', 'translation': 'hello'},
+          {'id': 'g2', 'original': 'mundo', 'translation': 'world'},
         ],
       });
     });

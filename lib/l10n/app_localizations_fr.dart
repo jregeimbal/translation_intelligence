@@ -315,6 +315,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get jumpToLatest => 'Aller au dernier';
 
   @override
+  String get suggestedResponseTitle => 'Réponse suggérée';
+
+  @override
+  String suggestedResponseOriginalLabel(Object language) {
+    return 'En $language';
+  }
+
+  @override
+  String suggestedResponseTranslatedLabel(Object language) {
+    return 'Traduit pour vous ($language)';
+  }
+
+  @override
   String get guestLabel => 'Invité';
 
   @override

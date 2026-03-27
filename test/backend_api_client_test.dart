@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:translation_intelligence/models/suggested_response.dart';
 import 'package:translation_intelligence/models/speech_connection_debug_info.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
@@ -130,6 +131,92 @@ void main() {
       );
 
       expect(bytes, Uint8List.fromList(const [4, 5, 6]));
+    });
+
+    test('suggestResponse posts message context and parses response', () async {
+      final client = BackendApiClient(
+        baseUrl: 'https://api.example.com',
+        authTokenProvider: () async => 'token-suggest',
+        httpClient: _FakeHttpClient((request) async {
+          final streamed = request as http.Request;
+          expect(jsonDecode(streamed.body), {
+            'messageText': 'hola',
+            'messageTranslation': 'hello',
+            'sourceLanguageCode': 'es',
+            'targetLanguageCode': 'en',
+          });
+          return http.Response(
+            jsonEncode(
+              const SuggestedResponse(
+                originalText: 'claro que si',
+                translatedText: 'of course',
+                sourceLanguageCode: 'es',
+                targetLanguageCode: 'en',
+              ).toJson(),
+            ),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      final suggestion = await client.suggestResponse(
+        messageText: 'hola',
+        messageTranslation: 'hello',
+        sourceLanguageCode: 'es',
+        targetLanguageCode: 'en',
+      );
+
+      expect(suggestion, isNotNull);
+      expect(suggestion!.originalText, 'claro que si');
+      expect(suggestion.translatedText, 'of course');
+    });
+
+    test('suggestResponse returns null on non-200 response', () async {
+      final client = BackendApiClient(
+        baseUrl: 'https://api.example.com',
+        authTokenProvider: () async => 'token-suggest',
+        httpClient: _FakeHttpClient((request) async {
+          return http.Response('server unavailable', 503);
+        }),
+      );
+
+      final suggestion = await client.suggestResponse(
+        messageText: 'hola',
+        messageTranslation: 'hello',
+        sourceLanguageCode: 'es',
+        targetLanguageCode: 'en',
+      );
+
+      expect(suggestion, isNull);
+    });
+
+    test('suggestResponse returns null on invalid payload', () async {
+      final client = BackendApiClient(
+        baseUrl: 'https://api.example.com',
+        authTokenProvider: () async => 'token-suggest',
+        httpClient: _FakeHttpClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'originalText': '   ',
+              'translatedText': 'of course',
+              'sourceLanguageCode': 'es',
+              'targetLanguageCode': 'en',
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      final suggestion = await client.suggestResponse(
+        messageText: 'hola',
+        messageTranslation: 'hello',
+        sourceLanguageCode: 'es',
+        targetLanguageCode: 'en',
+      );
+
+      expect(suggestion, isNull);
     });
 
     test('buildSttWebSocketUri converts http base URL to ws endpoint', () {

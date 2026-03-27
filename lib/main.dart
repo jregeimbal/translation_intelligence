@@ -14,6 +14,7 @@ import 'controllers/two_way_chat_controller.dart';
 import 'firebase_options.dart';
 import 'models/provider_settings_selection.dart';
 import 'models/playback_device.dart';
+import 'models/suggested_response.dart';
 import 'models/two_way_message.dart';
 import 'services/backend_api_client.dart';
 import 'services/app_preferences.dart';
@@ -218,6 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late TwoWayChatController _twoWayController;
   late BackendApiClient _backendApiClient;
   StreamSubscription<String>? _listeningDeviceUpdateSub;
+  StreamSubscription<SuggestedResponseEvent>? _suggestedResponseSub;
   late final DebouncedMessageDispatcher _listeningDeviceSnackBarDebouncer;
   bool _initializing = true;
   bool _controllersReady = false;
@@ -254,6 +256,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     _listeningDeviceUpdateSub?.cancel();
     _listeningDeviceUpdateSub = null;
+    _suggestedResponseSub?.cancel();
+    _suggestedResponseSub = null;
     if (_controllersReady) {
       _controller.dispose();
       _twoWayController.dispose();
@@ -606,6 +610,49 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _bindSuggestedResponseNotifications() {
+    _suggestedResponseSub?.cancel();
+    _suggestedResponseSub = _controller.suggestedResponses.listen((event) {
+      if (!mounted || _initializing || !_isGroupSection) {
+        return;
+      }
+      _showSuggestedResponseSnackBar(event);
+    });
+  }
+
+  void _showSuggestedResponseSnackBar(SuggestedResponseEvent event) {
+    final sourceLanguageLabel = localizedAppLanguageName(
+      context,
+      event.response.sourceLanguageCode,
+    );
+    final targetLanguageLabel = localizedAppLanguageName(
+      context,
+      event.response.targetLanguageCode,
+    );
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 10),
+          content: _SuggestedResponseSnackBarContent(
+            title: context.l10n.suggestedResponseTitle,
+            closeTooltip: context.l10n.close,
+            onClose: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+            originalLabel: context.l10n.suggestedResponseOriginalLabel(
+              sourceLanguageLabel,
+            ),
+            translatedLabel: context.l10n.suggestedResponseTranslatedLabel(
+              targetLanguageLabel,
+            ),
+            originalText: event.response.originalText,
+            translatedText: event.response.translatedText,
+          ),
+        ),
+      );
+  }
+
   Future<void> _startGroupListeningWithDebugDialog() async {
     try {
       await _controller.startListening();
@@ -723,6 +770,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _backendClientReady = true;
     _controllersReady = true;
     _bindListeningDeviceNotifications();
+    _bindSuggestedResponseNotifications();
     setState(() {
       _listeningDevices = _controller.listeningDevices;
       _listeningDeviceId = _controller.listeningDeviceId;
@@ -985,6 +1033,9 @@ class _MyHomePageState extends State<MyHomePage> {
       } catch (_) {}
     }
     if (!mounted) return;
+    if (index != 0) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    }
     setState(() {
       _selectedSection = index;
     });
@@ -1276,6 +1327,81 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SuggestedResponseSnackBarContent extends StatelessWidget {
+  const _SuggestedResponseSnackBarContent({
+    required this.title,
+    required this.closeTooltip,
+    required this.onClose,
+    required this.originalLabel,
+    required this.translatedLabel,
+    required this.originalText,
+    required this.translatedText,
+  });
+
+  final String title;
+  final String closeTooltip;
+  final VoidCallback onClose;
+  final String originalLabel;
+  final String translatedLabel;
+  final String originalText;
+  final String translatedText;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.onInverseSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: closeTooltip,
+              onPressed: onClose,
+              visualDensity: VisualDensity.compact,
+              icon: Icon(
+                Icons.close,
+                color: theme.colorScheme.onInverseSurface,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          originalLabel,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onInverseSurface.withValues(alpha: 0.82),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(originalText),
+        const SizedBox(height: 8),
+        Text(
+          translatedLabel,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onInverseSurface.withValues(alpha: 0.82),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(translatedText),
+      ],
     );
   }
 }

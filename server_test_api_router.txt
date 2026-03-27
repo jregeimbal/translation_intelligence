@@ -1,0 +1,6 @@
+00:00 +0: loading test/api_router_test.dart
+00:00 +0: ApiRouter health responds ok
+00:00 +1: ApiRouter translate delegates to translation service
+00:00 +2: ApiRouter tts routes to provider service
+00:00 +3: ApiRouter suggest delegates to suggestion service
+00:00 +4: All tests passed!

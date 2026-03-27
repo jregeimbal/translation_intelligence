@@ -9,7 +9,7 @@ class GoogleAuthClientFactory {
   GoogleAuthClientFactory.testing() : _credentials = null;
 
   final ServiceAccountCredentials? _credentials;
-  AuthClient? _client;
+  final Map<String, AuthClient> _clientsByScopeKey = <String, AuthClient>{};
 
   Future<AuthClient> getClient(List<String> scopes) async {
     final credentials = _credentials;
@@ -19,12 +19,22 @@ class GoogleAuthClientFactory {
       );
     }
 
-    _client ??= await clientViaServiceAccount(credentials, scopes);
-    return _client!;
+    final normalizedScopes = List<String>.from(scopes)..sort();
+    final scopeKey = normalizedScopes.join(' ');
+    final existingClient = _clientsByScopeKey[scopeKey];
+    if (existingClient != null) {
+      return existingClient;
+    }
+
+    final client = await clientViaServiceAccount(credentials, normalizedScopes);
+    _clientsByScopeKey[scopeKey] = client;
+    return client;
   }
 
   Future<void> close() async {
-    _client?.close();
-    _client = null;
+    for (final client in _clientsByScopeKey.values) {
+      client.close();
+    }
+    _clientsByScopeKey.clear();
   }
 }

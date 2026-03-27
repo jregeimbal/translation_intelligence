@@ -6,6 +6,7 @@ import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/models/speech_recognition_models.dart';
+import 'package:translation_intelligence/models/suggested_response.dart';
 import 'package:translation_intelligence/services/deepgram_recognition_catalog.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
@@ -60,6 +61,8 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   String? lastReplayedTranslation;
   final StreamController<String> _listeningDeviceUpdatesController =
       StreamController<String>.broadcast();
+  final StreamController<SuggestedResponseEvent> _suggestedResponsesController =
+      StreamController<SuggestedResponseEvent>.broadcast();
 
   void addMessage(ChatMessage msg) {
     _chatMessages.add(msg);
@@ -75,6 +78,12 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   void emitListeningDeviceUpdate(String message) {
     if (!_listeningDeviceUpdatesController.isClosed) {
       _listeningDeviceUpdatesController.add(message);
+    }
+  }
+
+  void emitSuggestedResponse(SuggestedResponseEvent event) {
+    if (!_suggestedResponsesController.isClosed) {
+      _suggestedResponsesController.add(event);
     }
   }
 
@@ -152,6 +161,10 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   @override
   Stream<String> get listeningDeviceUpdates =>
       _listeningDeviceUpdatesController.stream;
+
+  @override
+  Stream<SuggestedResponseEvent> get suggestedResponses =>
+      _suggestedResponsesController.stream;
 
   @override
   int? get activeSessionSampleRate => null;
@@ -338,6 +351,7 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   @override
   void dispose() {
     _listeningDeviceUpdatesController.close();
+    _suggestedResponsesController.close();
     super.dispose();
   }
 }

@@ -1,0 +1,25 @@
+00:00 +0: loading test/api_router_test.dart
+00:00 +0: test/api_router_test.dart: ApiRouter health responds ok
+00:00 +1: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +2: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +3: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +4: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +5: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +6: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +7: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +8: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +9: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +10: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +11: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +12: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +13: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +14: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +15: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +16: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +17: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +18: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +19: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +20: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +21: test/api_server_websocket_routing_test.dart: ApiServer websocket routing routes websocket upgrades to live STT handler before HTTP middleware
+00:00 +22: test/api_server_websocket_routing_test.dart: ApiServer websocket routing health endpoint still uses HTTP pipeline
+00:00 +23: All tests passed!

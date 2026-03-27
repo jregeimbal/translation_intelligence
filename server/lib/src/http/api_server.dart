@@ -10,6 +10,7 @@ import 'package:shelf_web_socket/shelf_web_socket.dart';
 import '../config/app_config.dart';
 import '../services/google_auth_client_factory.dart';
 import '../services/stt_service.dart';
+import '../services/suggestion_service.dart';
 import '../services/translation_service.dart';
 import '../services/tts_service.dart';
 import 'api_router.dart';
@@ -32,6 +33,7 @@ class ApiServer {
     TranslationService? translationService,
     TtsService? googleTtsService,
     TtsService? deepgramTtsService,
+    SuggestionService? suggestionService,
   }) : _config = config,
        _serve = serve,
        _googleAuthClientFactory = googleAuthClientFactory,
@@ -44,6 +46,18 @@ class ApiServer {
        _translationService =
            translationService ??
            GoogleCloudTranslationService(authFactory: googleAuthClientFactory),
+       _suggestionService =
+           suggestionService ??
+           GeminiSuggestionService(
+             authFactory: googleAuthClientFactory,
+             projectId: config.googleCloudProjectId,
+             model: config.geminiModel,
+             translationService:
+                 translationService ??
+                 GoogleCloudTranslationService(
+                   authFactory: googleAuthClientFactory,
+                 ),
+           ),
        _googleTtsService =
            googleTtsService ??
            GoogleCloudTtsService(authFactory: googleAuthClientFactory),
@@ -73,6 +87,7 @@ class ApiServer {
     TranslationService? translationService,
     TtsService? googleTtsService,
     TtsService? deepgramTtsService,
+    SuggestionService? suggestionService,
   }) {
     return ApiServer._(
       config: config,
@@ -84,6 +99,7 @@ class ApiServer {
       translationService: translationService,
       googleTtsService: googleTtsService,
       deepgramTtsService: deepgramTtsService,
+      suggestionService: suggestionService,
     );
   }
 
@@ -94,6 +110,7 @@ class ApiServer {
   final LiveSpeechRecognitionService _liveSpeechRecognitionService;
   final MetricsRegistry _metricsRegistry;
   final TranslationService _translationService;
+  final SuggestionService _suggestionService;
   final TtsService _googleTtsService;
   final TtsService _deepgramTtsService;
   late final LiveSttConnectionHandler _liveSttConnectionHandler =
@@ -122,6 +139,7 @@ class ApiServer {
       translationService: _translationService,
       googleTtsService: _googleTtsService,
       deepgramTtsService: _deepgramTtsService,
+      suggestionService: _suggestionService,
     );
 
     return router.router.call;
@@ -132,6 +150,7 @@ class ApiServer {
       translationService: _translationService,
       googleTtsService: _googleTtsService,
       deepgramTtsService: _deepgramTtsService,
+      suggestionService: _suggestionService,
     );
 
     final rateLimiter = RateLimiter(window: const Duration(minutes: 1));
@@ -154,7 +173,7 @@ class ApiServer {
 
   Handler buildHandler() {
     Logger('ApiServer').info(
-      'Configured routes: /v1/health, /v1/capabilities, /v1/translate, /v1/tts, /v1/stt/live',
+      'Configured routes: /v1/health, /v1/capabilities, /v1/translate, /v1/tts, /v1/suggest, /v1/stt/live',
     );
 
     final webSocketHandler = _buildWebSocketHandler();

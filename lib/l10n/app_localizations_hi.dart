@@ -315,6 +315,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get jumpToLatest => 'नवीनतम पर जाएँ';
 
   @override
+  String get suggestedResponseTitle => 'सुझाया गया जवाब';
+
+  @override
+  String suggestedResponseOriginalLabel(Object language) {
+    return '$language में';
+  }
+
+  @override
+  String suggestedResponseTranslatedLabel(Object language) {
+    return 'आपके लिए अनुवादित ($language)';
+  }
+
+  @override
   String get guestLabel => 'अतिथि';
 
   @override

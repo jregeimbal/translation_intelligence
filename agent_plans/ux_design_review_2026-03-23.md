@@ -3,7 +3,7 @@ OmniaLingo UX/Design Review
 main.dart is ~1,824 lines containing MyApp, ProviderSettingsDialog, DebouncedMessageDispatcher, and _MyHomePageState all in one file. The settings dialog alone is 450+ lines of widget build code. This makes it harder to iterate on individual UX surfaces. Extract ProviderSettingsDialog and the language bar into dedicated widget files.
 
 2. No Onboarding or First-Run Experience
-There's zero onboarding, welcome screen, or tutorial. A real-time voice translation tool requires users to understand:
+There's zero onboarding, welcome screen, or tutorial. A ai-powered voice translation tool requires users to understand:
 
 Which mode to use (Group vs. 2-way)
 How source/target language selection works

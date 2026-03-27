@@ -11,6 +11,8 @@ void main() {
           original: 'hola',
           speaker: 2,
           translation: 'hello',
+          sourceLanguageCode: 'es',
+          targetLanguageCode: 'en',
         );
 
         final chat = queued.toChatMessage(isFinal: true);
@@ -20,6 +22,8 @@ void main() {
         expect(chat.id, equals('q1'));
         expect(chat.isFinal, isTrue);
         expect(chat.translation, equals('hello'));
+        expect(chat.sourceLanguageCode, equals('es'));
+        expect(chat.targetLanguageCode, equals('en'));
       },
     );
 

@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:record/record.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/models/suggested_response.dart';
+import 'package:translation_intelligence/services/backend_api_client.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 
 class _FakeTtsSpeechPipeline extends SpeechPipeline {
@@ -36,6 +40,7 @@ class _FakeTtsSpeechPipeline extends SpeechPipeline {
     bool detectLanguage = false,
   }) async {
     return SpeechRecognitionSession(
+      sourceLanguage: sourceLanguage,
       resultStream: resultController.stream,
       amplitudeStream: amplitudeController.stream,
       stop: () async {},
@@ -76,6 +81,24 @@ class _FakeTtsSpeechPipeline extends SpeechPipeline {
   Future<void> disposeFake() async {
     await resultController.close();
     await amplitudeController.close();
+  }
+}
+
+class _FakeSuggestionHttpClient extends http.BaseClient {
+  _FakeSuggestionHttpClient(this._handler);
+
+  final Future<http.Response> Function(http.BaseRequest request) _handler;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final response = await _handler(request);
+    return http.StreamedResponse(
+      Stream<List<int>>.value(response.bodyBytes),
+      response.statusCode,
+      headers: response.headers,
+      reasonPhrase: response.reasonPhrase,
+      request: request,
+    );
   }
 }
 
@@ -197,6 +220,123 @@ void main() {
       expect(pipeline.translateCallCount, equals(1));
       expect(pipeline.synthesizeCallCount, equals(0));
     });
+
+    test(
+      'eligible queued non-primary message emits suggested response event before commit',
+      () async {
+        Map<String, dynamic>? capturedBody;
+        final backendApiClient = BackendApiClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token-suggest',
+          httpClient: _FakeSuggestionHttpClient((request) async {
+            final streamed = request as http.Request;
+            capturedBody = jsonDecode(streamed.body) as Map<String, dynamic>;
+            return http.Response(
+              jsonEncode(
+                const SuggestedResponse(
+                  originalText: 'claro que si',
+                  translatedText: 'of course',
+                  sourceLanguageCode: 'es',
+                  targetLanguageCode: 'en',
+                ).toJson(),
+              ),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }),
+        );
+
+        final suggestionController = SpeechController(
+          deepgramApiKey: 'test-deepgram',
+          backendApiClient: backendApiClient,
+          speechPipeline: pipeline,
+          finalResultGroupingWindow: const Duration(milliseconds: 120),
+        );
+
+        await suggestionController.init();
+        suggestionController.setPreferredSpeaker(0);
+        suggestionController.setDeepgramRecognitionLanguage('es');
+        final eventFuture = suggestionController.suggestedResponses.first;
+
+        await suggestionController.startListening();
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: true,
+            words: [
+              SpeechRecognitionWord(word: 'hola', speaker: 1),
+              SpeechRecognitionWord(word: 'final', speaker: 1),
+            ],
+          ),
+        );
+
+        final event = await eventFuture.timeout(const Duration(seconds: 1));
+
+        expect(suggestionController.chatMessages, isEmpty);
+        expect(suggestionController.getOptimisticMessages(), hasLength(1));
+        expect(
+          event.messageId,
+          suggestionController.getOptimisticMessages().first.id,
+        );
+        expect(event.response.originalText, 'claro que si');
+        expect(event.response.translatedText, 'of course');
+        expect(capturedBody, {
+          'messageText': 'hola final',
+          'messageTranslation': 'hola final-translated',
+          'sourceLanguageCode': 'es',
+          'targetLanguageCode': 'en',
+        });
+
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+
+        expect(suggestionController.chatMessages, hasLength(1));
+
+        await suggestionController.stopListening();
+        suggestionController.dispose();
+        backendApiClient.close();
+      },
+    );
+
+    test(
+      'multi-language sessions suppress suggested response generation',
+      () async {
+        final backendApiClient = BackendApiClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token-suggest',
+          httpClient: _FakeSuggestionHttpClient((request) async {
+            fail(
+              'suggest endpoint should not be called for unresolved language',
+            );
+          }),
+        );
+
+        final suggestionController = SpeechController(
+          deepgramApiKey: 'test-deepgram',
+          backendApiClient: backendApiClient,
+          speechPipeline: pipeline,
+          finalResultGroupingWindow: Duration.zero,
+        );
+
+        await suggestionController.init();
+        suggestionController.setPreferredSpeaker(0);
+
+        await suggestionController.startListening();
+        pipeline.resultController.add(
+          SpeechRecognitionResult(
+            isFinal: true,
+            words: [SpeechRecognitionWord(word: 'hello', speaker: 1)],
+          ),
+        );
+
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(suggestionController.chatMessages, hasLength(1));
+
+        await suggestionController.stopListening();
+        suggestionController.dispose();
+        backendApiClient.close();
+      },
+    );
 
     test(
       'TTS synthesis uses mapped language code for selected target language',
