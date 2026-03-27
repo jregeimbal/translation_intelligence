@@ -29,8 +29,7 @@
             "args": [
                 "--web-hostname=localhost",
                 "--web-port=3000",
-                "--dart-define", "API_BASE_URL=http://localhost:8080",
-                "--flavor", "dev"
+                "--dart-define", "API_BASE_URL=http://localhost:8080"
             ],
         },
         {
