@@ -14,6 +14,7 @@ import 'controllers/two_way_chat_controller.dart';
 import 'firebase_options.dart';
 import 'models/provider_settings_selection.dart';
 import 'models/playback_device.dart';
+import 'models/two_way_message.dart';
 import 'services/backend_api_client.dart';
 import 'services/app_preferences.dart';
 import 'l10n/app_localizations.dart';
@@ -33,6 +34,7 @@ import 'widgets/first_launch_walkthrough_dialog.dart';
 import 'widgets/footer.dart';
 import 'widgets/group_language_bar.dart';
 import 'widgets/provider_settings_dialog.dart';
+import 'widgets/speech_connection_debug_dialog.dart';
 import 'widgets/two_way_chat.dart';
 
 void main() async {
@@ -604,6 +606,38 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  Future<void> _startGroupListeningWithDebugDialog() async {
+    try {
+      await _controller.startListening();
+    } catch (error) {
+      if (!mounted) return;
+      final handled = await SpeechConnectionDebugDialog.showIfAvailable(
+        context,
+        error,
+      );
+      if (!handled) {
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> _startTwoWayListeningWithDebugDialog(
+    TwoWaySpeaker speaker,
+  ) async {
+    try {
+      await _twoWayController.startListening(speaker);
+    } catch (error) {
+      if (!mounted) return;
+      final handled = await SpeechConnectionDebugDialog.showIfAvailable(
+        context,
+        error,
+      );
+      if (!handled) {
+        rethrow;
+      }
+    }
+  }
+
   Future<HomePageInitializationBundle> _createInitializationBundle() async {
     final runtimeConfig = RuntimeConfig.fromDotEnv(dotenv);
     final authSession = FirebaseAuthSession(
@@ -768,7 +802,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     if (restartListening) {
-      await _controller.startListening();
+      await _startGroupListeningWithDebugDialog();
     }
   }
 
@@ -788,7 +822,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     if (restartListening) {
-      await _controller.startListening();
+      await _startGroupListeningWithDebugDialog();
     }
   }
 
@@ -928,10 +962,10 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     if (restartGroupListening) {
-      await _controller.startListening();
+      await _startGroupListeningWithDebugDialog();
     }
     if (restartTwoWayListening && restartTwoWaySpeaker != null) {
-      await _twoWayController.startListening(restartTwoWaySpeaker);
+      await _startTwoWayListeningWithDebugDialog(restartTwoWaySpeaker);
     }
   }
 
@@ -1000,7 +1034,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     if (restartListening) {
-      await _controller.startListening();
+      await _startGroupListeningWithDebugDialog();
     }
   }
 

@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../models/speech_connection_debug_info.dart';
 import '../models/speech_recognition_models.dart';
 import '../models/speech_recognition_session.dart';
 import 'speech_output_provider.dart';
@@ -19,15 +20,18 @@ class BackendApiClient {
     required Future<String> Function() authTokenProvider,
     http.Client? httpClient,
     WebSocketConnector? webSocketConnector,
+    Duration startupTimeout = const Duration(seconds: 10),
   }) : _baseUri = Uri.parse(baseUrl),
        _authTokenProvider = authTokenProvider,
        _httpClient = httpClient ?? http.Client(),
-       _webSocketConnector = webSocketConnector ?? WebSocketChannel.connect;
+       _webSocketConnector = webSocketConnector ?? WebSocketChannel.connect,
+       _startupTimeout = startupTimeout;
 
   final Uri _baseUri;
   final Future<String> Function() _authTokenProvider;
   final http.Client _httpClient;
   final WebSocketConnector _webSocketConnector;
+  final Duration _startupTimeout;
 
   Future<bool> isAvailable() async {
     final response = await _httpClient.get(_resolve('/v1/health'));
@@ -80,7 +84,12 @@ class BackendApiClient {
         throw const FormatException('Backend translation response was invalid');
       }
 
-      if (nullWhenUnchanged && translatedText.toLowerCase().trim().replaceAll(RegExp(r'[^\w\s]+'), '') == text.toLowerCase().trim().replaceAll(RegExp(r'[^\w\s]+'), '')) {
+      if (nullWhenUnchanged &&
+          translatedText.toLowerCase().trim().replaceAll(
+                RegExp(r'[^\w\s]+'),
+                '',
+              ) ==
+              text.toLowerCase().trim().replaceAll(RegExp(r'[^\w\s]+'), '')) {
         return null;
       }
 
@@ -131,168 +140,355 @@ class BackendApiClient {
     String? listeningDeviceId,
   }) async {
     final wsUri = buildSttWebSocketUri();
-    developer.log(
-      'Starting backend STT websocket uri=$wsUri sourceLanguage=$sourceLanguage sampleRate=$sampleRate model=${model ?? 'default'}',
-      name: 'BackendApiClient',
+    final initialDebugInfo = SpeechConnectionDebugInfo(
+      transport: 'backend-websocket',
+      phase: 'preconnect',
+      uri: wsUri,
+      sourceLanguage: sourceLanguage,
+      sampleRate: sampleRate,
+      model: model,
+      language: language,
+      diarize: diarize,
+      utterances: utterances,
+      punctuate: punctuate,
+      smartFormat: smartFormat,
+      detectLanguage: detectLanguage,
+      listeningDeviceId: listeningDeviceId,
+      hasAuthToken: false,
+      authTokenLength: 0,
+      timeout: _startupTimeout,
     );
+    var startupPhase = 'preconnect';
+    WebSocketChannel? startupChannel;
+    var startupCleanupTriggered = false;
+    var captureStopped = false;
 
-    final token = await _authTokenProvider();
-    if (token.trim().isEmpty) {
-      throw StateError('Missing auth token for STT websocket');
-    }
-
-    final channel = _webSocketConnector(wsUri);
-    try {
-      await channel.ready;
-      developer.log(
-        'Backend STT websocket connected uri=$wsUri',
-        name: 'BackendApiClient',
-      );
-    } catch (error, stackTrace) {
-      developer.log(
-        'Backend STT websocket connection failed uri=$wsUri error=$error',
-        name: 'BackendApiClient',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
-
-    final resultController =
-        StreamController<SpeechRecognitionResult>.broadcast();
-    final outgoingAmplitude = StreamController<double>.broadcast();
-    final subscriptions = <StreamSubscription<dynamic>>[];
-    final ready = Completer<void>();
-    var closed = false;
-
-    Future<void> closeSession() async {
-      if (closed) return;
-      closed = true;
-      await Future.wait(subscriptions.map((sub) => sub.cancel()));
+    Future<void> stopCaptureOnce() async {
+      if (captureStopped) return;
+      captureStopped = true;
       await stopCapture();
-      channel.sink.add(jsonEncode({'type': 'stop'}));
-      await channel.sink.close();
-      if (!resultController.isClosed) await resultController.close();
-      if (!outgoingAmplitude.isClosed) await outgoingAmplitude.close();
     }
 
-    subscriptions.add(
-      amplitudeStream.listen((value) {
-        if (!outgoingAmplitude.isClosed) {
-          outgoingAmplitude.add(value);
-        }
-      }),
-    );
+    Future<void> abortStartup() async {
+      if (startupCleanupTriggered) return;
+      startupCleanupTriggered = true;
+      await stopCaptureOnce();
+      final channel = startupChannel;
+      if (channel == null) {
+        return;
+      }
+      try {
+        await channel.sink.close();
+      } catch (_) {}
+    }
 
-    subscriptions.add(
-      channel.stream.listen(
-        (message) {
-          if (message is! String) return;
-          final payload = jsonDecode(message) as Map<String, dynamic>;
-          switch (payload['type']) {
-            case 'ready':
-              if (!ready.isCompleted) ready.complete();
-              developer.log(
-                'Backend STT websocket received ready message',
-                name: 'BackendApiClient',
-              );
-              return;
-            case 'recognition_result':
-              if (!resultController.isClosed) {
-                resultController.add(_mapRecognitionResult(payload));
-              }
-              return;
-            case 'error':
-              final error = StateError(
-                (payload['message'] as String?) ?? 'Speech recognition failed.',
-              );
-              developer.log(
-                'Backend STT websocket received error payload=${payload['message']}',
-                name: 'BackendApiClient',
-                error: error,
-              );
-              if (!ready.isCompleted) ready.completeError(error);
-              if (!resultController.isClosed) resultController.addError(error);
-              unawaited(closeSession());
-              return;
-            default:
-              return;
-          }
-        },
-        onError: (Object error, StackTrace stackTrace) {
+    final startupResult = Completer<SpeechRecognitionSession>();
+    Timer? startupTimer;
+
+    startupTimer = Timer(_startupTimeout, () async {
+      if (startupResult.isCompleted) {
+        return;
+      }
+      await abortStartup();
+      if (startupResult.isCompleted) {
+        return;
+      }
+      startupResult.completeError(
+        SpeechConnectionStartupException(
+          message: 'Timed out starting the STT websocket session.',
+          debugInfo: _copyDebugInfo(initialDebugInfo, phase: startupPhase),
+          cause: TimeoutException(
+            'Speech recognition startup exceeded ${_startupTimeout.inMilliseconds} ms.',
+            _startupTimeout,
+          ),
+        ),
+      );
+    });
+
+    Future<void> completeStartup(
+      Future<SpeechRecognitionSession> Function() action,
+    ) async {
+      try {
+        final session = await action();
+        if (!startupResult.isCompleted) {
+          startupResult.complete(session);
+        }
+      } catch (error, stackTrace) {
+        if (!startupResult.isCompleted) {
+          startupResult.completeError(error, stackTrace);
+        }
+      } finally {
+        startupTimer?.cancel();
+      }
+    }
+
+    unawaited(
+      completeStartup(() async {
+        developer.log(
+          'Starting backend STT websocket uri=$wsUri sourceLanguage=$sourceLanguage sampleRate=$sampleRate model=${model ?? 'default'}',
+          name: 'BackendApiClient',
+        );
+
+        startupPhase = 'auth_token';
+        final String token;
+        try {
+          token = await _authTokenProvider();
+        } catch (error) {
+          await abortStartup();
+          throw SpeechConnectionStartupException(
+            message: 'Failed to acquire auth token for speech recognition.',
+            debugInfo: initialDebugInfo,
+            cause: error,
+          );
+        }
+
+        final debugInfo = SpeechConnectionDebugInfo(
+          transport: initialDebugInfo.transport,
+          phase: initialDebugInfo.phase,
+          uri: initialDebugInfo.uri,
+          sourceLanguage: initialDebugInfo.sourceLanguage,
+          sampleRate: initialDebugInfo.sampleRate,
+          model: initialDebugInfo.model,
+          language: initialDebugInfo.language,
+          diarize: initialDebugInfo.diarize,
+          utterances: initialDebugInfo.utterances,
+          punctuate: initialDebugInfo.punctuate,
+          smartFormat: initialDebugInfo.smartFormat,
+          detectLanguage: initialDebugInfo.detectLanguage,
+          listeningDeviceId: initialDebugInfo.listeningDeviceId,
+          hasAuthToken: token.trim().isNotEmpty,
+          authTokenLength: token.length,
+          timeout: initialDebugInfo.timeout,
+        );
+        if (token.trim().isEmpty) {
+          await abortStartup();
+          throw SpeechConnectionStartupException(
+            message: 'Missing auth token for STT websocket.',
+            debugInfo: debugInfo,
+          );
+        }
+
+        startupPhase = 'connect';
+        final WebSocketChannel channel;
+        try {
+          channel = _webSocketConnector(wsUri);
+          startupChannel = channel;
+        } catch (error) {
+          await abortStartup();
+          throw SpeechConnectionStartupException(
+            message: 'Failed to create STT websocket connection.',
+            debugInfo: _copyDebugInfo(debugInfo, phase: 'connect'),
+            cause: error,
+          );
+        }
+        try {
+          await channel.ready.timeout(_startupTimeout);
           developer.log(
-            'Backend STT websocket stream error',
+            'Backend STT websocket connected uri=$wsUri',
+            name: 'BackendApiClient',
+          );
+        } on TimeoutException catch (error, stackTrace) {
+          await abortStartup();
+          developer.log(
+            'Backend STT websocket connection timed out uri=$wsUri timeout=${_startupTimeout.inMilliseconds}ms',
             name: 'BackendApiClient',
             error: error,
             stackTrace: stackTrace,
           );
-          if (!ready.isCompleted) ready.completeError(error, stackTrace);
-          if (!resultController.isClosed) {
-            resultController.addError(error, stackTrace);
-          }
-          unawaited(closeSession());
-        },
-        onDone: () {
-          developer.log(
-            'Backend STT websocket closed by server',
-            name: 'BackendApiClient',
+          Error.throwWithStackTrace(
+            SpeechConnectionStartupException(
+              message: 'Timed out connecting to the STT websocket.',
+              debugInfo: _copyDebugInfo(debugInfo, phase: 'connect'),
+              cause: error,
+            ),
+            stackTrace,
           );
-          if (!ready.isCompleted) {
-            ready.completeError(
-              StateError('Speech recognition websocket closed before ready.'),
-            );
-          }
-          unawaited(closeSession());
-        },
-        cancelOnError: true,
-      ),
-    );
+        } catch (error, stackTrace) {
+          await abortStartup();
+          developer.log(
+            'Backend STT websocket connection failed uri=$wsUri error=$error',
+            name: 'BackendApiClient',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          Error.throwWithStackTrace(
+            SpeechConnectionStartupException(
+              message: 'Failed to connect to the STT websocket.',
+              debugInfo: _copyDebugInfo(debugInfo, phase: 'connect'),
+              cause: error,
+            ),
+            stackTrace,
+          );
+        }
 
-    channel.sink.add(
-      jsonEncode({
-        'type': 'start',
-        'token': token,
-        'sourceLanguage': sourceLanguage,
-        'sampleRate': sampleRate,
-        ...?(model == null ? null : {'model': model}),
-        ...?(language == null ? null : {'language': language}),
-        'diarize': diarize,
-        'utterances': utterances,
-        'punctuate': punctuate,
-        'smartFormat': smartFormat,
-        'detectLanguage': detectLanguage,
+        final resultController =
+            StreamController<SpeechRecognitionResult>.broadcast();
+        final outgoingAmplitude = StreamController<double>.broadcast();
+        final subscriptions = <StreamSubscription<dynamic>>[];
+        final ready = Completer<void>();
+        var closed = false;
+
+        Future<void> closeSession() async {
+          if (closed) return;
+          closed = true;
+          await Future.wait(subscriptions.map((sub) => sub.cancel()));
+          await stopCaptureOnce();
+          channel.sink.add(jsonEncode({'type': 'stop'}));
+          await channel.sink.close();
+          if (!resultController.isClosed) await resultController.close();
+          if (!outgoingAmplitude.isClosed) await outgoingAmplitude.close();
+        }
+
+        subscriptions.add(
+          amplitudeStream.listen((value) {
+            if (!outgoingAmplitude.isClosed) {
+              outgoingAmplitude.add(value);
+            }
+          }),
+        );
+
+        subscriptions.add(
+          channel.stream.listen(
+            (message) {
+              if (message is! String) return;
+              final payload = jsonDecode(message) as Map<String, dynamic>;
+              switch (payload['type']) {
+                case 'ready':
+                  if (!ready.isCompleted) ready.complete();
+                  developer.log(
+                    'Backend STT websocket received ready message',
+                    name: 'BackendApiClient',
+                  );
+                  return;
+                case 'recognition_result':
+                  if (!resultController.isClosed) {
+                    resultController.add(_mapRecognitionResult(payload));
+                  }
+                  return;
+                case 'error':
+                  final error = StateError(
+                    (payload['message'] as String?) ??
+                        'Speech recognition failed.',
+                  );
+                  developer.log(
+                    'Backend STT websocket received error payload=${payload['message']}',
+                    name: 'BackendApiClient',
+                    error: error,
+                  );
+                  if (!ready.isCompleted) ready.completeError(error);
+                  if (!resultController.isClosed) {
+                    resultController.addError(error);
+                  }
+                  unawaited(closeSession());
+                  return;
+                default:
+                  return;
+              }
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              developer.log(
+                'Backend STT websocket stream error',
+                name: 'BackendApiClient',
+                error: error,
+                stackTrace: stackTrace,
+              );
+              if (!ready.isCompleted) ready.completeError(error, stackTrace);
+              if (!resultController.isClosed) {
+                resultController.addError(error, stackTrace);
+              }
+              unawaited(closeSession());
+            },
+            onDone: () {
+              developer.log(
+                'Backend STT websocket closed by server',
+                name: 'BackendApiClient',
+              );
+              if (!ready.isCompleted) {
+                ready.completeError(
+                  StateError(
+                    'Speech recognition websocket closed before ready.',
+                  ),
+                );
+              }
+              unawaited(closeSession());
+            },
+            cancelOnError: true,
+          ),
+        );
+
+        channel.sink.add(
+          jsonEncode({
+            'type': 'start',
+            'token': token,
+            'sourceLanguage': sourceLanguage,
+            'sampleRate': sampleRate,
+            ...?(model == null ? null : {'model': model}),
+            ...?(language == null ? null : {'language': language}),
+            'diarize': diarize,
+            'utterances': utterances,
+            'punctuate': punctuate,
+            'smartFormat': smartFormat,
+            'detectLanguage': detectLanguage,
+          }),
+        );
+        developer.log(
+          'Backend STT websocket sent start message tokenLength=${token.length}',
+          name: 'BackendApiClient',
+        );
+
+        startupPhase = 'awaiting_ready';
+        try {
+          await ready.future.timeout(_startupTimeout);
+        } on TimeoutException catch (error, stackTrace) {
+          await closeSession();
+          Error.throwWithStackTrace(
+            SpeechConnectionStartupException(
+              message: 'Timed out waiting for the STT stream to become ready.',
+              debugInfo: _copyDebugInfo(debugInfo, phase: 'awaiting_ready'),
+              cause: error,
+            ),
+            stackTrace,
+          );
+        } catch (error, stackTrace) {
+          await closeSession();
+          Error.throwWithStackTrace(
+            SpeechConnectionStartupException(
+              message:
+                  'STT stream startup failed before the session became ready.',
+              debugInfo: _copyDebugInfo(debugInfo, phase: 'awaiting_ready'),
+              cause: error,
+            ),
+            stackTrace,
+          );
+        }
+
+        subscriptions.add(
+          audioStream.listen(
+            channel.sink.add,
+            onError: (Object error, StackTrace stackTrace) {
+              if (!resultController.isClosed) {
+                resultController.addError(error, stackTrace);
+              }
+              unawaited(closeSession());
+            },
+            cancelOnError: true,
+          ),
+        );
+
+        return SpeechRecognitionSession(
+          resultStream: resultController.stream,
+          amplitudeStream: outgoingAmplitude.stream,
+          stop: closeSession,
+          sampleRate: sampleRate,
+          sttProvider: SpeechSttProvider.deepgram,
+          sourceLanguage: sourceLanguage,
+          resolvedLanguageCode: sourceLanguage,
+          listeningDeviceId: listeningDeviceId,
+        );
       }),
     );
-    developer.log(
-      'Backend STT websocket sent start message tokenLength=${token.length}',
-      name: 'BackendApiClient',
-    );
 
-    await ready.future;
-
-    subscriptions.add(
-      audioStream.listen(
-        channel.sink.add,
-        onError: (Object error, StackTrace stackTrace) {
-          if (!resultController.isClosed) {
-            resultController.addError(error, stackTrace);
-          }
-          unawaited(closeSession());
-        },
-        cancelOnError: true,
-      ),
-    );
-
-    return SpeechRecognitionSession(
-      resultStream: resultController.stream,
-      amplitudeStream: outgoingAmplitude.stream,
-      stop: closeSession,
-      sampleRate: sampleRate,
-      sttProvider: SpeechSttProvider.deepgram,
-      sourceLanguage: sourceLanguage,
-      resolvedLanguageCode: sourceLanguage,
-      listeningDeviceId: listeningDeviceId,
-    );
+    return startupResult.future;
   }
 
   Future<Map<String, String>> _authorizedJsonHeaders() async {
@@ -308,6 +504,30 @@ class BackendApiClient {
   }
 
   Uri _resolve(String path) => _baseUri.resolve(path);
+
+  SpeechConnectionDebugInfo _copyDebugInfo(
+    SpeechConnectionDebugInfo source, {
+    required String phase,
+  }) {
+    return SpeechConnectionDebugInfo(
+      transport: source.transport,
+      phase: phase,
+      uri: source.uri,
+      sourceLanguage: source.sourceLanguage,
+      sampleRate: source.sampleRate,
+      model: source.model,
+      language: source.language,
+      diarize: source.diarize,
+      utterances: source.utterances,
+      punctuate: source.punctuate,
+      smartFormat: source.smartFormat,
+      detectLanguage: source.detectLanguage,
+      listeningDeviceId: source.listeningDeviceId,
+      hasAuthToken: source.hasAuthToken,
+      authTokenLength: source.authTokenLength,
+      timeout: source.timeout,
+    );
+  }
 
   SpeechRecognitionResult _mapRecognitionResult(Map<String, dynamic> payload) {
     final words = (payload['words'] as List<dynamic>? ?? const [])

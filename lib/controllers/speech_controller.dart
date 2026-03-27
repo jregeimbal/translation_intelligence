@@ -148,67 +148,61 @@ class SpeechController extends ChangeNotifier {
         )
         .toList();
 
-      final mergedBySpeaker = <int?, List<SpeechRecognitionWord>>{};
+    final mergedBySpeaker = <int?, List<SpeechRecognitionWord>>{};
 
-      for (final word in words) {
-        mergedBySpeaker[word.speaker] = [...?mergedBySpeaker[word.speaker], word];
+    for (final word in words) {
+      mergedBySpeaker[word.speaker] = [...?mergedBySpeaker[word.speaker], word];
+    }
+
+    for (var index = 0; index < newMessages.length; index++) {
+      final newMsg = newMessages[index];
+      final speakerWords = mergedBySpeaker.remove(newMsg.speaker);
+      if (speakerWords == null || speakerWords.isEmpty) {
+        continue;
       }
 
-      for (var index = 0; index < newMessages.length; index++) {
-        final newMsg = newMessages[index];
-        final speakerWords = mergedBySpeaker.remove(newMsg.speaker);
-        if (speakerWords == null || speakerWords.isEmpty) {
-          continue;
-        }
-
-        final partialText = speakerWords.map((word) => word.word).join(' ').trim();
-        if (partialText.isEmpty) {
-          continue;
-        }
-
-        final separator = RegExp(r'[.!?]$').hasMatch(newMsg.original.trimRight())
-            ? ' '
-            : ', ';
-        final updatedOriginal = '${newMsg.original}$separator$partialText';
-
-        if (newMsg.groups.isNotEmpty) {
-          final liveGroupId = '${newMsg.id}_g${newMsg.groups.length}';
-          final updatedGroups = List<ChatMessageGroup>.from(newMsg.groups)
-            ..add(
-              ChatMessageGroup(
-                id: liveGroupId,
-                original: partialText,
-              ),
-            );
-          newMessages[index] = ChatMessage(
-            updatedOriginal,
-            speaker: newMsg.speaker,
-            isFinal: isFinal,
-            id: newMsg.id,
-            timestamp: newMsg.timestamp,
-            groups: updatedGroups,
-          )..translation = newMsg.translation;
-        } else {
-          newMsg.original = updatedOriginal;
-          newMsg.isFinal = isFinal;
-        }
+      final partialText = speakerWords
+          .map((word) => word.word)
+          .join(' ')
+          .trim();
+      if (partialText.isEmpty) {
+        continue;
       }
 
-      for (final entry in mergedBySpeaker.entries) {
-        final partialText = entry.value.map((word) => word.word).join(' ').trim();
-        if (partialText.isEmpty) {
-          continue;
-        }
-        newMessages.add(
-          ChatMessage(
-            partialText,
-            speaker: entry.key,
-            isFinal: isFinal,
-          ),
-        );
-      }
+      final separator = RegExp(r'[.!?]$').hasMatch(newMsg.original.trimRight())
+          ? ' '
+          : ', ';
+      final updatedOriginal = '${newMsg.original}$separator$partialText';
 
-      logger.info('wordsToMessages newMessages: ${newMessages.toString()}');
+      if (newMsg.groups.isNotEmpty) {
+        final liveGroupId = '${newMsg.id}_g${newMsg.groups.length}';
+        final updatedGroups = List<ChatMessageGroup>.from(newMsg.groups)
+          ..add(ChatMessageGroup(id: liveGroupId, original: partialText));
+        newMessages[index] = ChatMessage(
+          updatedOriginal,
+          speaker: newMsg.speaker,
+          isFinal: isFinal,
+          id: newMsg.id,
+          timestamp: newMsg.timestamp,
+          groups: updatedGroups,
+        )..translation = newMsg.translation;
+      } else {
+        newMsg.original = updatedOriginal;
+        newMsg.isFinal = isFinal;
+      }
+    }
+
+    for (final entry in mergedBySpeaker.entries) {
+      final partialText = entry.value.map((word) => word.word).join(' ').trim();
+      if (partialText.isEmpty) {
+        continue;
+      }
+      newMessages.add(
+        ChatMessage(partialText, speaker: entry.key, isFinal: isFinal),
+      );
+    }
+
+    logger.info('wordsToMessages newMessages: ${newMessages.toString()}');
     return newMessages;
   }
 
@@ -616,14 +610,23 @@ class SpeechController extends ChangeNotifier {
       await WakelockPlus.enable();
     } catch (_) {}
 
-    final session = await _speechPipeline.startRecognitionSession(
-      _recorder,
-      sourceLanguage: _speechPipeline.sttProvider == SpeechSttProvider.deepgram
-          ? _speechPipeline.deepgramRecognitionLanguage
-          : 'multi',
-      diarize: true,
-      utterances: true,
-    );
+    final SpeechRecognitionSession session;
+    try {
+      session = await _speechPipeline.startRecognitionSession(
+        _recorder,
+        sourceLanguage:
+            _speechPipeline.sttProvider == SpeechSttProvider.deepgram
+            ? _speechPipeline.deepgramRecognitionLanguage
+            : 'multi',
+        diarize: true,
+        utterances: true,
+      );
+    } catch (_) {
+      try {
+        await WakelockPlus.disable();
+      } catch (_) {}
+      rethrow;
+    }
     _recognitionSession = session;
     _activeSessionSampleRate = session.sampleRate;
     _activeSessionSttProvider = session.sttProvider;

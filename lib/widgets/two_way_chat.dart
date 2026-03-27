@@ -8,6 +8,7 @@ import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 import '../controllers/two_way_chat_controller.dart';
 import '../models/two_way_message.dart';
 import '../theme/app_theme_resolver.dart';
+import 'speech_connection_debug_dialog.dart';
 import 'searchable_selection_field.dart';
 
 class TwoWayChatView extends StatefulWidget {
@@ -358,9 +359,25 @@ class _SpeakerPanelState extends State<_SpeakerPanel> {
             child: FilledButton.icon(
               onPressed: (!controller.speechEnabled || isListeningOtherPanel)
                   ? null
-                  : () => context.read<TwoWayChatController>().toggleListening(
-                      widget.role,
-                    ),
+                  : () async {
+                      try {
+                        await context
+                            .read<TwoWayChatController>()
+                            .toggleListening(widget.role);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        final handled =
+                            await SpeechConnectionDebugDialog.showIfAvailable(
+                              context,
+                              error,
+                            );
+                        if (!handled) {
+                          rethrow;
+                        }
+                      }
+                    },
               icon: Icon(
                 isListeningThisPanel ? Icons.stop_rounded : Icons.mic_rounded,
               ),
