@@ -615,9 +615,7 @@ class _MyHomePageState extends State<MyHomePage> {
       authTokenProvider: authSession.getIdToken,
     );
 
-    final controller = SpeechController(
-      backendApiClient: backendApiClient,
-    );
+    final controller = SpeechController(backendApiClient: backendApiClient);
     controller.setSttProvider(_sttProvider);
     controller.setTranslationProvider(_translationProvider);
     controller.setDeepgramRecognitionModel(_deepgramRecognitionModel);
@@ -646,7 +644,8 @@ class _MyHomePageState extends State<MyHomePage> {
       _speechToTextRecognitionLocale,
     );
 
-    await Future.wait([controller.init(), twoWayController.init()]);
+    await controller.init();
+    await twoWayController.init();
 
     return HomePageInitializationBundle(
       backendApiClient: backendApiClient,
@@ -844,30 +843,33 @@ class _MyHomePageState extends State<MyHomePage> {
           _controller.speechToTextRecognitionLocale;
     });
 
-    final selection = await Navigator.of(context).push<ProviderSettingsSelection>(
-      MaterialPageRoute<ProviderSettingsSelection>(
-        fullscreenDialog: true,
-        builder: (context) {
-          return ProviderSettingsDialog(
-            initialSttProvider: _sttProvider,
-            initialTranslationProvider: _translationProvider,
-            initialOutputProvider: _outputProvider,
-            initialTargetLanguage: _targetLanguage,
-            targetLanguages: SpeechController.supportedLanguages,
-            initialDeepgramRecognitionModel: _deepgramRecognitionModel,
-            initialDeepgramRecognitionLanguage: _deepgramRecognitionLanguage,
-            initialSpeechToTextRecognitionLocale: _speechToTextRecognitionLocale,
-            initialSpeechToTextRecognitionLocales:
-                _speechToTextRecognitionLocales,
-            initialListeningDevices: _listeningDevices,
-            initialListeningDeviceId: _listeningDeviceId,
-            initialPlaybackDevices: _playbackDevices,
-            initialPlaybackDeviceId: _playbackDeviceId,
-            initialThemeMode: widget.themeMode,
-          );
-        },
-      ),
-    );
+    final selection = await Navigator.of(context)
+        .push<ProviderSettingsSelection>(
+          MaterialPageRoute<ProviderSettingsSelection>(
+            fullscreenDialog: true,
+            builder: (context) {
+              return ProviderSettingsDialog(
+                initialSttProvider: _sttProvider,
+                initialTranslationProvider: _translationProvider,
+                initialOutputProvider: _outputProvider,
+                initialTargetLanguage: _targetLanguage,
+                targetLanguages: SpeechController.supportedLanguages,
+                initialDeepgramRecognitionModel: _deepgramRecognitionModel,
+                initialDeepgramRecognitionLanguage:
+                    _deepgramRecognitionLanguage,
+                initialSpeechToTextRecognitionLocale:
+                    _speechToTextRecognitionLocale,
+                initialSpeechToTextRecognitionLocales:
+                    _speechToTextRecognitionLocales,
+                initialListeningDevices: _listeningDevices,
+                initialListeningDeviceId: _listeningDeviceId,
+                initialPlaybackDevices: _playbackDevices,
+                initialPlaybackDeviceId: _playbackDeviceId,
+                initialThemeMode: widget.themeMode,
+              );
+            },
+          ),
+        );
 
     if (selection == null) {
       return;
