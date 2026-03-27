@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:translation_intelligence/models/speech_connection_debug_info.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -240,21 +241,30 @@ void main() {
     });
 
     test('surfaces websocket connection failures', () async {
+      var stopCaptureCalls = 0;
+      final sentMessages = <dynamic>[];
+      final sink = StreamController<dynamic>();
+      sink.stream.listen(sentMessages.add);
+
       final client = BackendApiClient(
         baseUrl: 'https://api.example.com',
         authTokenProvider: () async => 'token-123',
         webSocketConnector: (_) => _TestWebSocketChannel(
           const Stream<dynamic>.empty(),
-          _TestWebSocketSink(StreamController<dynamic>()),
-          readyFuture: Future<void>.error(StateError('connect failed')),
+          _TestWebSocketSink(sink),
+          readyFuture: Future<void>.microtask(
+            () => throw StateError('connect failed'),
+          ),
         ),
       );
 
-      expect(
-        () => client.startRecognitionSession(
+      await expectLater(
+        client.startRecognitionSession(
           audioStream: const Stream<Uint8List>.empty(),
           amplitudeStream: const Stream<double>.empty(),
-          stopCapture: () async {},
+          stopCapture: () async {
+            stopCaptureCalls += 1;
+          },
           sampleRate: 16000,
           sourceLanguage: 'en-US',
           model: 'nova-3',
@@ -265,8 +275,76 @@ void main() {
           smartFormat: false,
           detectLanguage: false,
         ),
-        throwsA(isA<StateError>()),
+        throwsA(
+          isA<SpeechConnectionStartupException>()
+              .having(
+                (error) => error.debugInfo.uri.toString(),
+                'uri',
+                'wss://api.example.com/v1/stt/live',
+              )
+              .having((error) => error.debugInfo.phase, 'phase', 'connect')
+              .having(
+                (error) => error.debugInfo.authTokenLength,
+                'auth token length',
+                9,
+              ),
+        ),
       );
+      expect(stopCaptureCalls, 1);
+      await sink.close();
+    });
+
+    test('times out while connecting websocket', () async {
+      var stopCaptureCalls = 0;
+      final sink = StreamController<dynamic>();
+      sink.stream.listen((_) {});
+
+      final client = BackendApiClient(
+        baseUrl: 'https://api.example.com',
+        authTokenProvider: () async => 'token-123',
+        startupTimeout: const Duration(milliseconds: 10),
+        webSocketConnector: (_) => _TestWebSocketChannel(
+          const Stream<dynamic>.empty(),
+          _TestWebSocketSink(sink),
+          readyFuture: Completer<void>().future,
+        ),
+      );
+
+      await expectLater(
+        client.startRecognitionSession(
+          audioStream: const Stream<Uint8List>.empty(),
+          amplitudeStream: const Stream<double>.empty(),
+          stopCapture: () async {
+            stopCaptureCalls += 1;
+          },
+          sampleRate: 16000,
+          sourceLanguage: 'en-US',
+          model: 'nova-3',
+          language: 'en-US',
+          diarize: false,
+          utterances: false,
+          punctuate: true,
+          smartFormat: false,
+          detectLanguage: false,
+        ),
+        throwsA(
+          isA<SpeechConnectionStartupException>()
+              .having((error) => error.debugInfo.phase, 'phase', 'connect')
+              .having(
+                (error) => error.message,
+                'message',
+                'Timed out connecting to the STT websocket.',
+              )
+              .having(
+                (error) => error.debugInfo.timeout,
+                'timeout',
+                const Duration(milliseconds: 10),
+              ),
+        ),
+      );
+
+      expect(stopCaptureCalls, 1);
+      await sink.close();
     });
 
     test('surfaces backend error payload before ready', () async {
@@ -304,11 +382,91 @@ void main() {
         jsonEncode({'type': 'error', 'message': 'auth failed'}),
       );
 
-      await expectLater(sessionFuture, throwsA(isA<StateError>()));
+      await expectLater(
+        sessionFuture,
+        throwsA(
+          isA<SpeechConnectionStartupException>()
+              .having(
+                (error) => error.debugInfo.phase,
+                'phase',
+                'awaiting_ready',
+              )
+              .having(
+                (error) => error.cause.toString(),
+                'cause',
+                contains('auth failed'),
+              ),
+        ),
+      );
       expect(sentMessages, isNotEmpty);
 
       await serverController.close();
       await sink.close();
     });
+
+    test(
+      'times out while waiting for ready and includes debug details',
+      () async {
+        final serverController = StreamController<dynamic>.broadcast();
+        final sink = StreamController<dynamic>();
+        final sentMessages = <dynamic>[];
+        sink.stream.listen(sentMessages.add);
+        var stopCaptureCalls = 0;
+
+        final client = BackendApiClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token-123',
+          startupTimeout: const Duration(milliseconds: 10),
+          webSocketConnector: (_) => _TestWebSocketChannel(
+            serverController.stream,
+            _TestWebSocketSink(sink),
+          ),
+        );
+
+        await expectLater(
+          client.startRecognitionSession(
+            audioStream: const Stream<Uint8List>.empty(),
+            amplitudeStream: const Stream<double>.empty(),
+            stopCapture: () async {
+              stopCaptureCalls += 1;
+            },
+            sampleRate: 16000,
+            sourceLanguage: 'en-US',
+            model: 'nova-3',
+            language: 'en-US',
+            diarize: true,
+            utterances: true,
+            punctuate: true,
+            smartFormat: false,
+            detectLanguage: false,
+            listeningDeviceId: 'mic-9',
+          ),
+          throwsA(
+            isA<SpeechConnectionStartupException>()
+                .having(
+                  (error) => error.debugInfo.phase,
+                  'phase',
+                  'awaiting_ready',
+                )
+                .having(
+                  (error) => error.debugInfo.listeningDeviceId,
+                  'listening device',
+                  'mic-9',
+                )
+                .having(
+                  (error) => error.debugInfo.timeout,
+                  'timeout',
+                  const Duration(milliseconds: 10),
+                ),
+          ),
+        );
+
+        expect(stopCaptureCalls, 1);
+        expect(sentMessages, isNotEmpty);
+
+        await serverController.close();
+        await sink.close();
+      },
+    );
   });
 }

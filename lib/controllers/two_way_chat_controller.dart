@@ -216,10 +216,18 @@ class TwoWayChatController extends ChangeNotifier {
       await WakelockPlus.enable();
     } catch (_) {}
 
-    final session = await _speechPipeline.startRecognitionSession(
-      _recorder,
-      sourceLanguage: sourceLang,
-    );
+    final SpeechRecognitionSession session;
+    try {
+      session = await _speechPipeline.startRecognitionSession(
+        _recorder,
+        sourceLanguage: sourceLang,
+      );
+    } catch (_) {
+      try {
+        await WakelockPlus.disable();
+      } catch (_) {}
+      rethrow;
+    }
     _recognitionSession = session;
     _activeSessionSampleRate = session.sampleRate;
     _activeSessionSttProvider = session.sttProvider;

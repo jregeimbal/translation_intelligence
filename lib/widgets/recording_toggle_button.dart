@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 
+import 'speech_connection_debug_dialog.dart';
+
 /// Floating action button that toggles speech listening.  Holds its own listen
 /// state via the controller rather than being re-built by the parent.
 class SpeechFab extends StatefulWidget {
@@ -81,8 +83,22 @@ class _SpeechFabState extends State<SpeechFab> {
                     setState(() => _processing = true);
                     try {
                       await context.read<SpeechController>().startListening();
+                    } catch (error) {
+                      if (!context.mounted) {
+                        return;
+                      }
+                      final handled =
+                          await SpeechConnectionDebugDialog.showIfAvailable(
+                            context,
+                            error,
+                          );
+                      if (!handled) {
+                        rethrow;
+                      }
                     } finally {
-                      setState(() => _processing = false);
+                      if (mounted) {
+                        setState(() => _processing = false);
+                      }
                     }
                   }
                 : context.read<SpeechController>().stopListening)
