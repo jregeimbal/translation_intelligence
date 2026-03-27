@@ -8,7 +8,6 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text_platform_interface/speech_to_text_platform_interface.dart';
 import 'package:translation_intelligence/services/deepgram_recognition_catalog.dart';
 import 'package:translation_intelligence/services/live_recognition_service.dart';
-import 'package:translation_intelligence/services/mlkit_translation_service.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
@@ -156,26 +155,6 @@ class _FakeSpeechToTextService extends SpeechToTextService {
         isFinal: false,
       ),
     );
-  }
-}
-
-class _FakeMlKitTranslationService extends MlKitTranslationService {
-  String? lastText;
-  String? lastTargetLanguage;
-  String? lastSourceLanguage;
-
-  @override
-  Future<String?> translateText({
-    required String text,
-    required String targetLanguage,
-    String? sourceLanguage,
-    bool returnOriginalOnFailure = true,
-    bool nullWhenUnchanged = false,
-  }) async {
-    lastText = text;
-    lastTargetLanguage = targetLanguage;
-    lastSourceLanguage = sourceLanguage;
-    return 'mlkit-$text-$targetLanguage';
   }
 }
 
@@ -513,12 +492,6 @@ void main() {
       );
       expect(pipeline.deepgramRecognitionModels, contains('nova-3-medical'));
 
-      pipeline.setTranslationProvider(SpeechTranslationProvider.googleMlKit);
-      expect(
-        pipeline.translationProvider,
-        equals(SpeechTranslationProvider.googleMlKit),
-      );
-
       pipeline.setDeepgramRecognitionModel('nova-3-medical');
       expect(pipeline.deepgramRecognitionModel, equals('nova-3-medical'));
       expect(pipeline.deepgramRecognitionLanguage, equals('en'));
@@ -540,28 +513,6 @@ void main() {
         );
 
         expect(translated, equals('hello'));
-      },
-    );
-
-    test(
-      'translateText delegates to ML Kit when translation provider is googleMlKit',
-      () async {
-        final mlKit = _FakeMlKitTranslationService();
-        final routedPipeline = SpeechPipeline(
-          deepgramApiKey: 'd',
-          mlKitTranslationService: mlKit,
-        )..setTranslationProvider(SpeechTranslationProvider.googleMlKit);
-
-        final translated = await routedPipeline.translateText(
-          text: 'hello',
-          sourceLanguage: 'en',
-          targetLanguage: 'ja',
-        );
-
-        expect(translated, equals('mlkit-hello-ja'));
-        expect(mlKit.lastText, equals('hello'));
-        expect(mlKit.lastSourceLanguage, equals('en'));
-        expect(mlKit.lastTargetLanguage, equals('ja'));
       },
     );
 

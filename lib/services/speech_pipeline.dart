@@ -12,7 +12,6 @@ import '../models/speech_recognition_session.dart';
 import 'backend_api_client.dart';
 import 'deepgram_recognition_catalog.dart';
 import 'live_recognition_service.dart';
-import 'mlkit_translation_service.dart';
 import 'speech_to_text_service.dart';
 import 'speech_output_provider.dart';
 import 'speech_stt_provider.dart';
@@ -41,7 +40,6 @@ class SpeechPipeline {
   final BackendApiClient? _backendApiClient;
   final LiveRecognitionService? _recognitionService;
   final SpeechToTextService _speechToTextService;
-  final MlKitTranslationService _mlKitTranslationService;
   SpeechOutputProvider _outputProvider;
   SpeechSttProvider _sttProvider;
   SpeechTranslationProvider _translationProvider;
@@ -61,12 +59,9 @@ class SpeechPipeline {
     SpeechTranslationProvider initialTranslationProvider =
         SpeechTranslationProvider.google,
     SpeechToTextService? speechToTextService,
-    MlKitTranslationService? mlKitTranslationService,
   }) : _backendApiClient = backendApiClient,
        _recognitionService = recognitionService,
        _speechToTextService = speechToTextService ?? SpeechToTextService(),
-       _mlKitTranslationService =
-           mlKitTranslationService ?? MlKitTranslationService(),
        _outputProvider = initialOutputProvider,
        _sttProvider = initialSttProvider,
        _translationProvider = initialTranslationProvider,
@@ -538,16 +533,6 @@ class SpeechPipeline {
     bool throwOnMissingApiKey = false,
     bool nullWhenUnchanged = false,
   }) async {
-    if (_translationProvider == SpeechTranslationProvider.googleMlKit) {
-      return _mlKitTranslationService.translateText(
-        text: text,
-        targetLanguage: targetLanguage,
-        sourceLanguage: sourceLanguage,
-        returnOriginalOnFailure: returnOriginalOnFailure,
-        nullWhenUnchanged: nullWhenUnchanged,
-      );
-    }
-
     final backendApiClient = _backendApiClient;
     if (backendApiClient == null) {
       return returnOriginalOnFailure ? text : null;

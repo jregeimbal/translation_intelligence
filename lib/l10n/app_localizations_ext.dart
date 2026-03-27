@@ -122,8 +122,6 @@ String localizedTranslationProviderLabel(
   switch (provider) {
     case SpeechTranslationProvider.google:
       return context.l10n.translationProviderGoogle;
-    case SpeechTranslationProvider.googleMlKit:
-      return context.l10n.translationProviderGoogleMlKit;
   }
 }
 

@@ -1,1 +1,1 @@
-enum SpeechTranslationProvider { google, googleMlKit }
+enum SpeechTranslationProvider { google }
