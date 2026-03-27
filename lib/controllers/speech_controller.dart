@@ -10,6 +10,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/chat_message.dart';
 import '../models/playback_device.dart';
 import '../models/queued_chat_message.dart';
+import '../models/suggested_response.dart';
 import '../services/app_language_catalog.dart';
 import '../services/audio_playback_queue.dart';
 import '../services/backend_api_client.dart';
@@ -30,6 +31,7 @@ final logger = Logger('SpeechController'); // Create a logger with a name
 /// can rebuild independently.
 class SpeechController extends ChangeNotifier {
   final SpeechPipeline _speechPipeline;
+  final BackendApiClient? _backendApiClient;
   final MicActivationSoundPlayer _micActivationSoundPlayer;
   Duration _finalResultGroupingWindow;
   final Duration _audioPlaybackCompletionTimeout;
@@ -62,6 +64,9 @@ class SpeechController extends ChangeNotifier {
   List<PlaybackDevice> _playbackDevices = const [];
   final StreamController<String> _listeningDeviceUpdateController =
       StreamController<String>.broadcast();
+  final StreamController<SuggestedResponseEvent> _suggestedResponseController =
+      StreamController<SuggestedResponseEvent>.broadcast();
+  final Set<String> _requestedSuggestionMessageIds = <String>{};
 
   /// ID of speaker whose messages should be right-aligned in the UI.
   /// Null means no preference (all left).
@@ -80,6 +85,7 @@ class SpeechController extends ChangeNotifier {
              deepgramApiKey: deepgramApiKey,
              backendApiClient: backendApiClient,
            ),
+       _backendApiClient = backendApiClient,
        _micActivationSoundPlayer =
            micActivationSoundPlayer ?? DefaultMicActivationSoundPlayer(),
        _finalResultGroupingWindow = finalResultGroupingWindow,
@@ -122,6 +128,8 @@ class SpeechController extends ChangeNotifier {
   String? get playbackDeviceId => _speechPipeline.playbackDeviceId;
   Stream<String> get listeningDeviceUpdates =>
       _listeningDeviceUpdateController.stream;
+  Stream<SuggestedResponseEvent> get suggestedResponses =>
+      _suggestedResponseController.stream;
   int? get activeSessionSampleRate => _activeSessionSampleRate;
   SpeechSttProvider? get activeSessionSttProvider => _activeSessionSttProvider;
   String? get activeSessionSourceLanguage => _activeSessionSourceLanguage;
@@ -144,6 +152,8 @@ class SpeechController extends ChangeNotifier {
             id: msg.id,
             timestamp: msg.timestamp,
             groups: msg.groups,
+            sourceLanguageCode: msg.sourceLanguageCode,
+            targetLanguageCode: msg.targetLanguageCode,
           )..translation = msg.translation,
         )
         .toList();
@@ -185,6 +195,8 @@ class SpeechController extends ChangeNotifier {
           id: newMsg.id,
           timestamp: newMsg.timestamp,
           groups: updatedGroups,
+          sourceLanguageCode: newMsg.sourceLanguageCode,
+          targetLanguageCode: newMsg.targetLanguageCode,
         )..translation = newMsg.translation;
       } else {
         newMsg.original = updatedOriginal;
@@ -427,6 +439,7 @@ class SpeechController extends ChangeNotifier {
       if (translated == null) return;
       msg.translation = translated;
       notifyListeners();
+      unawaited(_maybeRequestSuggestedResponse(msg));
       if (msg.speaker != null && msg.speaker == preferredSpeaker) {
         return; // skip TTS for the highlighted speaker
       }
@@ -450,6 +463,7 @@ class SpeechController extends ChangeNotifier {
       if (translated == null) return;
       _applyQueuedTranslationToCommittedMessage(msg, translated);
       notifyListeners();
+      unawaited(_maybeRequestSuggestedResponseForQueued(msg));
       if (msg.speaker != null && msg.speaker == preferredSpeaker) {
         return;
       }
@@ -533,11 +547,137 @@ class SpeechController extends ChangeNotifier {
             id: committed.id,
             timestamp: committed.timestamp,
             groups: committedGroups,
+            sourceLanguageCode: committed.sourceLanguageCode,
+            targetLanguageCode: committed.targetLanguageCode,
           )..translation = translationText.isEmpty ? null : translationText;
+          unawaited(_maybeRequestSuggestedResponse(_chatMessages[i]));
         }
         break;
       }
     }
+  }
+
+  Future<void> _maybeRequestSuggestedResponse(ChatMessage message) async {
+    if (!message.isFinal) {
+      return;
+    }
+
+    final response = await _requestSuggestedResponse(
+      messageId: message.id,
+      speaker: message.speaker,
+      messageText: message.original,
+      messageTranslation: _resolvedTranslationText(message),
+      sourceLanguageCode: message.sourceLanguageCode,
+      targetLanguageCode: message.targetLanguageCode,
+    );
+    if (response == null || _suggestedResponseController.isClosed) {
+      return;
+    }
+
+    _suggestedResponseController.add(
+      SuggestedResponseEvent(messageId: message.id, response: response),
+    );
+  }
+
+  Future<void> _maybeRequestSuggestedResponseForQueued(
+    QueuedChatMessage message,
+  ) async {
+    final response = await _requestSuggestedResponse(
+      messageId: message.id,
+      speaker: message.speaker,
+      messageText: message.original,
+      messageTranslation: message.translation?.trim(),
+      sourceLanguageCode: message.sourceLanguageCode,
+      targetLanguageCode: message.targetLanguageCode,
+    );
+    if (response == null || _suggestedResponseController.isClosed) {
+      return;
+    }
+
+    _suggestedResponseController.add(
+      SuggestedResponseEvent(messageId: message.id, response: response),
+    );
+  }
+
+  Future<SuggestedResponse?> _requestSuggestedResponse({
+    required String messageId,
+    required int? speaker,
+    required String messageText,
+    required String? messageTranslation,
+    required String? sourceLanguageCode,
+    required String? targetLanguageCode,
+  }) async {
+    if (!_canRequestSuggestedResponseForFields(
+      messageId: messageId,
+      speaker: speaker,
+      translation: messageTranslation,
+      sourceLanguageCode: sourceLanguageCode,
+      targetLanguageCode: targetLanguageCode,
+      messageText: messageText,
+    )) {
+      return null;
+    }
+
+    if (!_requestedSuggestionMessageIds.add(messageId)) {
+      return null;
+    }
+
+    final backendApiClient = _backendApiClient;
+    if (backendApiClient == null) {
+      return null;
+    }
+
+    return backendApiClient.suggestResponse(
+      messageText: messageText,
+      messageTranslation: messageTranslation!.trim(),
+      sourceLanguageCode: sourceLanguageCode!,
+      targetLanguageCode: targetLanguageCode!,
+    );
+  }
+
+  bool _canRequestSuggestedResponseForFields({
+    required String messageId,
+    required int? speaker,
+    required String? translation,
+    required String? sourceLanguageCode,
+    required String? targetLanguageCode,
+    required String messageText,
+  }) {
+    if (messageId.isEmpty || messageText.trim().isEmpty) {
+      return false;
+    }
+    if (preferredSpeaker == null || speaker == null) {
+      return false;
+    }
+    if (speaker == preferredSpeaker) {
+      return false;
+    }
+    if (translation == null || translation.trim().isEmpty) {
+      return false;
+    }
+    if (sourceLanguageCode == null || sourceLanguageCode.isEmpty) {
+      return false;
+    }
+    if (targetLanguageCode == null || targetLanguageCode.isEmpty) {
+      return false;
+    }
+    return true;
+  }
+
+  String? _currentSuggestionSourceLanguageCode() {
+    final resolvedLanguageCode = _activeSessionResolvedLanguageCode?.trim();
+    if (resolvedLanguageCode != null && resolvedLanguageCode.isNotEmpty) {
+      return resolvedLanguageCode;
+    }
+
+    final sourceLanguage = _activeSessionSourceLanguage?.trim();
+    if (sourceLanguage == null || sourceLanguage.isEmpty) {
+      return null;
+    }
+    if (sourceLanguage == 'multi') {
+      return null;
+    }
+    return sourceLanguage;
   }
 
   Future<String?> _translateText(String text) async {
@@ -865,6 +1005,10 @@ class SpeechController extends ChangeNotifier {
           speaker: speaker,
           translation: _joinQueuedGroupTranslations(nextGroups),
           processingStarted: processingStarted,
+          sourceLanguageCode:
+              previous?.sourceLanguageCode ??
+              _currentSuggestionSourceLanguageCode(),
+          targetLanguageCode: previous?.targetLanguageCode ?? _targetLanguage,
           groups: nextGroups,
         );
       }
@@ -982,10 +1126,16 @@ class SpeechController extends ChangeNotifier {
         isFinal: true,
         id: queued.id,
         groups: groups,
+        sourceLanguageCode: queued.sourceLanguageCode,
+        targetLanguageCode: queued.targetLanguageCode,
       )..translation = finalTranslation.isEmpty ? null : finalTranslation;
 
       _chatMessages.add(finalizedMessage);
       _maybeDefaultPreferred(finalizedMessage.speaker);
+
+      if (finalizedMessage.translation != null) {
+        unawaited(_maybeRequestSuggestedResponse(finalizedMessage));
+      }
 
       if (finalizedMessage.translation == null && !queued.processingStarted) {
         unawaited(_translateAndSpeak(finalizedMessage));
@@ -1029,6 +1179,7 @@ class SpeechController extends ChangeNotifier {
     unawaited(_ampSub?.cancel() ?? Future.value());
     unawaited(_listeningDeviceChangeSub?.cancel() ?? Future.value());
     unawaited(_listeningDeviceUpdateController.close());
+    unawaited(_suggestedResponseController.close());
     unawaited(_micActivationSoundPlayer.dispose());
     _recorder.dispose();
     _audioPlayer?.dispose();

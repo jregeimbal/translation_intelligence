@@ -128,6 +128,19 @@
   "showOriginal": "मूल दिखाएँ",
   "replayTranslation": "अनुवाद फिर चलाएँ",
   "jumpToLatest": "नवीनतम पर जाएँ",
+  "suggestedResponseTitle": "सुझाया गया जवाब",
+  "suggestedResponseOriginalLabel": "{language} में",
+  "@suggestedResponseOriginalLabel": {
+    "placeholders": {
+      "language": {}
+    }
+  },
+  "suggestedResponseTranslatedLabel": "आपके लिए अनुवादित ({language})",
+  "@suggestedResponseTranslatedLabel": {
+    "placeholders": {
+      "language": {}
+    }
+  },
   "guestLabel": "अतिथि",
   "primaryLabel": "प्राथमिक",
   "clearChat": "चैट साफ़ करें",

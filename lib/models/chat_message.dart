@@ -31,6 +31,8 @@ class ChatMessage {
   String? translation;
   final DateTime timestamp;
   final List<ChatMessageGroup> groups;
+  final String? sourceLanguageCode;
+  final String? targetLanguageCode;
 
   final int? speaker;
 
@@ -41,6 +43,8 @@ class ChatMessage {
     String? id,
     DateTime? timestamp,
     List<ChatMessageGroup>? groups,
+    this.sourceLanguageCode,
+    this.targetLanguageCode,
   }) : id = id ?? 'msg_${_nextMessageId++}',
        timestamp = timestamp ?? DateTime.now(),
        groups = List<ChatMessageGroup>.unmodifiable(groups ?? const []);
@@ -62,6 +66,8 @@ class ChatMessage {
       timestamp: json['timestamp'] is String
           ? DateTime.tryParse(json['timestamp'] as String)
           : null,
+      sourceLanguageCode: json['sourceLanguageCode'] as String?,
+      targetLanguageCode: json['targetLanguageCode'] as String?,
       groups: ((json['groups'] as List?) ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .map(ChatMessageGroup.fromJson)
@@ -77,6 +83,8 @@ class ChatMessage {
       'translation': translation,
       'id': id,
       'timestamp': timestamp.toIso8601String(),
+      if (sourceLanguageCode != null) 'sourceLanguageCode': sourceLanguageCode,
+      if (targetLanguageCode != null) 'targetLanguageCode': targetLanguageCode,
       'groups': groups.map((group) => group.toJson()).toList(growable: false),
     };
   }

@@ -112,7 +112,7 @@
   "walkthroughMicrophoneBody": "Tap the microphone button to start or stop listening. The first time you use it, allow microphone access when your device asks. If access was denied earlier, re-enable the microphone for OmniaLingo in your device settings.",
   "walkthroughPrimarySpeakerTitle": "What Primary Speaker means",
   "walkthroughPrimarySpeakerBody": "In Group mode, Primary Speaker highlights one speaker's messages and aligns them so that person's side is easier to follow. Choose it when you want one participant's translated text to stand out.",
-  "translationAssistant": "Real-Time Voice Translator",
+  "translationAssistant": "AI-Powered Translator",
   "groupLabel": "Group",
   "twoWayLabel": "2-way",
   "listeningStatus": "Listening...",
@@ -128,6 +128,19 @@
   "showOriginal": "Show original",
   "replayTranslation": "Replay translation",
   "jumpToLatest": "Jump to latest",
+  "suggestedResponseTitle": "Suggested response",
+  "suggestedResponseOriginalLabel": "In {language}",
+  "@suggestedResponseOriginalLabel": {
+    "placeholders": {
+      "language": {}
+    }
+  },
+  "suggestedResponseTranslatedLabel": "Translated for you ({language})",
+  "@suggestedResponseTranslatedLabel": {
+    "placeholders": {
+      "language": {}
+    }
+  },
   "guestLabel": "Guest",
   "primaryLabel": "Primary",
   "clearChat": "Clear chat",

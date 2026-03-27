@@ -624,7 +624,7 @@ abstract class AppLocalizations {
   /// No description provided for @translationAssistant.
   ///
   /// In en, this message translates to:
-  /// **'Real-Time Voice Translator'**
+  /// **'AI-Powered Translator'**
   String get translationAssistant;
 
   /// No description provided for @groupLabel.
@@ -686,6 +686,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Jump to latest'**
   String get jumpToLatest;
+
+  /// No description provided for @suggestedResponseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested response'**
+  String get suggestedResponseTitle;
+
+  /// No description provided for @suggestedResponseOriginalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'In {language}'**
+  String suggestedResponseOriginalLabel(Object language);
+
+  /// No description provided for @suggestedResponseTranslatedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Translated for you ({language})'**
+  String suggestedResponseTranslatedLabel(Object language);
 
   /// No description provided for @guestLabel.
   ///

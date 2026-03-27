@@ -315,6 +315,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get jumpToLatest => 'Ir al último';
 
   @override
+  String get suggestedResponseTitle => 'Respuesta sugerida';
+
+  @override
+  String suggestedResponseOriginalLabel(Object language) {
+    return 'En $language';
+  }
+
+  @override
+  String suggestedResponseTranslatedLabel(Object language) {
+    return 'Traducido para ti ($language)';
+  }
+
+  @override
   String get guestLabel => 'Invitado';
 
   @override

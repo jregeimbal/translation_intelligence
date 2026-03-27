@@ -12,6 +12,7 @@ class AppConfig {
     required this.firebaseWebApiKey,
     required this.googleServiceAccountJson,
     required this.deepgramApiKey,
+    required this.geminiModel,
   });
 
   final String host;
@@ -23,6 +24,7 @@ class AppConfig {
   final String firebaseWebApiKey;
   final String googleServiceAccountJson;
   final String deepgramApiKey;
+  final String geminiModel;
 
   static AppConfig fromEnvironment() {
     final host = Platform.environment['SERVER_HOST'] ?? '0.0.0.0';
@@ -42,6 +44,7 @@ class AppConfig {
     final firebaseProjectId = _requireEnv('FIREBASE_PROJECT_ID');
     final firebaseWebApiKey = _requireEnv('FIREBASE_WEB_API_KEY');
     final deepgramApiKey = _requireEnv('DEEPGRAM_API_KEY');
+    final geminiModel = _optionalEnv('GEMINI_MODEL') ?? 'gemini-2.5-flash';
     final googleServiceAccountJson = _readGoogleServiceAccountJson();
 
     final allowedOrigins = allowedOriginsRaw
@@ -60,11 +63,22 @@ class AppConfig {
       firebaseWebApiKey: firebaseWebApiKey,
       googleServiceAccountJson: googleServiceAccountJson,
       deepgramApiKey: deepgramApiKey,
+      geminiModel: geminiModel,
     );
   }
 
   Map<String, dynamic> get googleServiceAccount =>
       jsonDecode(googleServiceAccountJson) as Map<String, dynamic>;
+
+  String get googleCloudProjectId {
+    final serviceAccountProjectId =
+        googleServiceAccount['project_id'] as String?;
+    if (serviceAccountProjectId != null &&
+        serviceAccountProjectId.trim().isNotEmpty) {
+      return serviceAccountProjectId.trim();
+    }
+    return firebaseProjectId;
+  }
 
   static String _readGoogleServiceAccountJson() {
     final inlineJson = Platform.environment['GOOGLE_SERVICE_ACCOUNT_JSON'];
@@ -86,6 +100,14 @@ class AppConfig {
     final value = Platform.environment[key];
     if (value == null || value.trim().isEmpty) {
       throw StateError('Missing required environment variable $key');
+    }
+    return value.trim();
+  }
+
+  static String? _optionalEnv(String key) {
+    final value = Platform.environment[key];
+    if (value == null || value.trim().isEmpty) {
+      return null;
     }
     return value.trim();
   }

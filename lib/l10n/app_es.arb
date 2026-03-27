@@ -128,6 +128,19 @@
   "showOriginal": "Mostrar original",
   "replayTranslation": "Repetir traduccion",
   "jumpToLatest": "Ir al último",
+  "suggestedResponseTitle": "Respuesta sugerida",
+  "suggestedResponseOriginalLabel": "En {language}",
+  "@suggestedResponseOriginalLabel": {
+    "placeholders": {
+      "language": {}
+    }
+  },
+  "suggestedResponseTranslatedLabel": "Traducido para ti ({language})",
+  "@suggestedResponseTranslatedLabel": {
+    "placeholders": {
+      "language": {}
+    }
+  },
   "guestLabel": "Invitado",
   "primaryLabel": "Principal",
   "clearChat": "Borrar chat",

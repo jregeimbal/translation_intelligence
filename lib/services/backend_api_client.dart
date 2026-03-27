@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../models/suggested_response.dart';
 import '../models/speech_connection_debug_info.dart';
 import '../models/speech_recognition_models.dart';
 import '../models/speech_recognition_session.dart';
@@ -122,6 +123,40 @@ class BackendApiClient {
     }
 
     return response.bodyBytes;
+  }
+
+  Future<SuggestedResponse?> suggestResponse({
+    required String messageText,
+    required String messageTranslation,
+    required String sourceLanguageCode,
+    required String targetLanguageCode,
+  }) async {
+    try {
+      final response = await _httpClient.post(
+        _resolve('/v1/suggest'),
+        headers: await _authorizedJsonHeaders(),
+        body: jsonEncode({
+          'messageText': messageText,
+          'messageTranslation': messageTranslation,
+          'sourceLanguageCode': sourceLanguageCode,
+          'targetLanguageCode': targetLanguageCode,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        return null;
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final suggestedResponse = SuggestedResponse.fromJson(json);
+      if (suggestedResponse.originalText.trim().isEmpty ||
+          suggestedResponse.translatedText.trim().isEmpty) {
+        return null;
+      }
+      return suggestedResponse;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<SpeechRecognitionSession> startRecognitionSession({

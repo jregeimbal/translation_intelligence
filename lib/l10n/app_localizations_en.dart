@@ -280,7 +280,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get walkthroughPrimarySpeakerBody => 'In Group mode, Primary Speaker highlights one speaker\'s messages and aligns them so that person\'s side is easier to follow. Choose it when you want one participant\'s translated text to stand out.';
 
   @override
-  String get translationAssistant => 'Real-Time Voice Translator';
+  String get translationAssistant => 'AI-Powered Translator';
 
   @override
   String get groupLabel => 'Group';
@@ -313,6 +313,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get jumpToLatest => 'Jump to latest';
+
+  @override
+  String get suggestedResponseTitle => 'Suggested response';
+
+  @override
+  String suggestedResponseOriginalLabel(Object language) {
+    return 'In $language';
+  }
+
+  @override
+  String suggestedResponseTranslatedLabel(Object language) {
+    return 'Translated for you ($language)';
+  }
 
   @override
   String get guestLabel => 'Guest';

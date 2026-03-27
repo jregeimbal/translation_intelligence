@@ -387,6 +387,7 @@ void main() {
         'token_uri': 'https://oauth2.googleapis.com/token',
       }),
       deepgramApiKey: 'deepgram-key',
+      geminiModel: 'gemini-2.0-flash',
     );
 
     apiServer = ApiServer(
