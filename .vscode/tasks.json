@@ -24,6 +24,12 @@
         "reveal": "always"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "server release",
+      "type": "shell",
+      "command": "GCP_PROJECT_ID=tutti-lingo CLOUD_RUN_REGION=us-central1 ARTIFACT_REPOSITORY=translation-intelligence ALLOWED_ORIGINS=https://omnialingo.jax3.com,http://localhost:3000 FIREBASE_PROJECT_ID=tutti-lingo tool/deploy_server_cloud_run.sh",
+      "group": "build",
     }
   ]
 }
