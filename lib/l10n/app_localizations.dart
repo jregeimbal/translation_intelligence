@@ -675,6 +675,12 @@ abstract class AppLocalizations {
   /// **'Show original'**
   String get showOriginal;
 
+  /// No description provided for @replayTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Replay translation'**
+  String get replayTranslation;
+
   /// No description provided for @jumpToLatest.
   ///
   /// In en, this message translates to:

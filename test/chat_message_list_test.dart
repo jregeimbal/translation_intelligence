@@ -140,8 +140,34 @@ void main() {
       expect(find.text('Hola'), findsNothing);
       expect(find.text('Hello'), findsOneWidget);
       expect(find.text('Speaker 1'), findsOneWidget);
+      expect(find.byTooltip('Replay translation'), findsOneWidget);
       expect(find.text('Show original'), findsNothing);
       expect(find.text('Hide original'), findsNothing);
+    });
+
+    testWidgets('replays a translated message when replay button is tapped', (
+      tester,
+    ) async {
+      final controller = TestSpeechController();
+      final message = ChatMessage('Hola', speaker: 0, isFinal: true)
+        ..translation = 'Hello';
+      controller.addMessage(message);
+
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(ValueKey<String>('${message.id}_replay_translation')),
+      );
+      await tester.pump();
+
+      expect(controller.replayTranslationCallCount, equals(1));
+      expect(controller.lastReplayedTranslation, equals('Hello'));
     });
 
     testWidgets('final message without translation keeps original visible', (
@@ -249,7 +275,9 @@ void main() {
       addTearDown(gesture.removePointer);
       await gesture.addPointer();
 
-      final bubbleFinder = find.byKey(ValueKey<String>('chat_bubble_${message.id}'));
+      final bubbleFinder = find.byKey(
+        ValueKey<String>('chat_bubble_${message.id}'),
+      );
       await gesture.moveTo(tester.getCenter(bubbleFinder));
       await tester.pumpAndSettle();
 
@@ -463,51 +491,52 @@ void main() {
       expect(thirdFrame[2], greaterThan(thirdFrame[1]));
     });
 
-    testWidgets('stabilized partial opacity increases when message becomes final', (
-      tester,
-    ) async {
-      final controller = TestSpeechController();
-      final message = ChatMessage('Stabilized preview', isFinal: false);
-      controller.addMessage(message);
+    testWidgets(
+      'stabilized partial opacity increases when message becomes final',
+      (tester) async {
+        final controller = TestSpeechController();
+        final message = ChatMessage('Stabilized preview', isFinal: false);
+        controller.addMessage(message);
 
-      await pumpTestApp(
-        tester,
-        ChangeNotifierProvider<SpeechController>.value(
-          value: controller,
-          child: const ChatMessageList(),
-        ),
-      );
-
-      double currentOpacityFor(String plainText) {
-        final textFinder = find.byWidgetPredicate(
-          (widget) =>
-              widget is Text &&
-              ((widget.data == plainText) ||
-                  (widget.data == null &&
-                      widget.textSpan?.toPlainText() == plainText)),
+        await pumpTestApp(
+          tester,
+          ChangeNotifierProvider<SpeechController>.value(
+            value: controller,
+            child: const ChatMessageList(),
+          ),
         );
-        expect(textFinder, findsOneWidget);
 
-        final opacityAncestors = find
-            .ancestor(of: textFinder, matching: find.byType(Opacity))
-            .evaluate()
-            .map((element) => element.widget)
-            .whereType<Opacity>()
-            .toList(growable: false);
-        expect(opacityAncestors, isNotEmpty);
-        return opacityAncestors.first.opacity;
-      }
+        double currentOpacityFor(String plainText) {
+          final textFinder = find.byWidgetPredicate(
+            (widget) =>
+                widget is Text &&
+                ((widget.data == plainText) ||
+                    (widget.data == null &&
+                        widget.textSpan?.toPlainText() == plainText)),
+          );
+          expect(textFinder, findsOneWidget);
 
-      expect(currentOpacityFor('Stabilized preview...'), closeTo(0.2, 0.001));
+          final opacityAncestors = find
+              .ancestor(of: textFinder, matching: find.byType(Opacity))
+              .evaluate()
+              .map((element) => element.widget)
+              .whereType<Opacity>()
+              .toList(growable: false);
+          expect(opacityAncestors, isNotEmpty);
+          return opacityAncestors.first.opacity;
+        }
 
-      message.isFinal = true;
-      controller.notifyListeners();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 150));
+        expect(currentOpacityFor('Stabilized preview...'), closeTo(0.2, 0.001));
 
-      expect(find.text('Stabilized preview'), findsOneWidget);
-      expect(currentOpacityFor('Stabilized preview'), greaterThan(0.2));
-    });
+        message.isFinal = true;
+        controller.notifyListeners();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 150));
+
+        expect(find.text('Stabilized preview'), findsOneWidget);
+        expect(currentOpacityFor('Stabilized preview'), greaterThan(0.2));
+      },
+    );
 
     testWidgets('renders grouped translation partials with ellipsis', (
       tester,
@@ -520,7 +549,11 @@ void main() {
           isFinal: false,
           groups: const [
             ChatMessageGroup(id: 'g1', original: 'hello', translation: 'hola'),
-            ChatMessageGroup(id: 'g2', original: 'there now', translation: 'alli ahora'),
+            ChatMessageGroup(
+              id: 'g2',
+              original: 'there now',
+              translation: 'alli ahora',
+            ),
             ChatMessageGroup(id: 'g3', original: 'ignored', translation: ''),
           ],
         )..translation = 'hola alli ahora',

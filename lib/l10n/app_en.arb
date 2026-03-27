@@ -126,6 +126,7 @@
   },
   "hideOriginal": "Hide original",
   "showOriginal": "Show original",
+  "replayTranslation": "Replay translation",
   "jumpToLatest": "Jump to latest",
   "guestLabel": "Guest",
   "primaryLabel": "Primary",

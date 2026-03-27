@@ -309,6 +309,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get showOriginal => 'Afficher l\'original';
 
   @override
+  String get replayTranslation => 'Relire la traduction';
+
+  @override
   String get jumpToLatest => 'Aller au dernier';
 
   @override

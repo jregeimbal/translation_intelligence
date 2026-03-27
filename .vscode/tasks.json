@@ -5,10 +5,23 @@
       "label": "flutter test (coverage)",
       "type": "shell",
       "command": "dart",
-      "args": ["run", "tool/test_with_coverage.dart"],
+      "args": [
+        "run",
+        "tool/test_with_coverage.dart"
+      ],
       "group": {
         "kind": "test",
         "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "flutter build appbundle (release)",
+      "type": "shell",
+      "command": "flutter build appbundle --release --dart-define=\"NO_DOTENV_OVERRIDE=true\" --dart-define=\"API_BASE_URL=https://translation-intelligence-server-807627897911.us-central1.run.app\"",
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
       },
       "problemMatcher": []
     }

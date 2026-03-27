@@ -56,6 +56,8 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   String? _playbackDeviceId;
   int startListeningCallCount = 0;
   int stopListeningCallCount = 0;
+  int replayTranslationCallCount = 0;
+  String? lastReplayedTranslation;
   final StreamController<String> _listeningDeviceUpdatesController =
       StreamController<String>.broadcast();
 
@@ -219,6 +221,19 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
     _isListening = false;
     _lastWords = '';
     notifyListeners();
+  }
+
+  @override
+  Future<void> replayTranslation(ChatMessage message) async {
+    replayTranslationCallCount += 1;
+    lastReplayedTranslation = message.translation?.trim().isNotEmpty == true
+        ? message.translation!.trim()
+        : message.groups
+              .map((group) => group.translation?.trim())
+              .whereType<String>()
+              .where((translation) => translation.isNotEmpty)
+              .join(' ')
+              .trim();
   }
 
   @override

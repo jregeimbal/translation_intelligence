@@ -416,12 +416,13 @@ class _ChatMessageContent extends StatelessWidget {
     final translationStyle = textRoles.bubbleTranslation.copyWith(
       color: textColor.withValues(alpha: 0.9),
     );
+    final controller = context.read<SpeechController>();
+    final l10n = context.l10n;
     final contentAlignment = isPrimaryStyled
         ? Alignment.centerRight
         : Alignment.centerLeft;
-    final hasTranslation =
-        message.translation != null ||
-        message.groups.any((group) => group.translation != null);
+    final translationText = _resolvedTranslationText(message);
+    final hasTranslation = translationText != null;
     final shouldCollapseOriginal = message.isFinal && hasTranslation;
     Widget expandToBubbleWidth(Widget child) {
       return SizedBox(width: double.infinity, child: child);
@@ -489,33 +490,65 @@ class _ChatMessageContent extends StatelessWidget {
                   key: ValueKey<String>('${message.id}_original_hidden'),
                 ),
         ),
-        if (message.translation != null) ...[
+        if (translationText != null) ...[
           const SizedBox(height: 10),
-          if (message.groups.any((group) => group.translation != null))
-            expandToBubbleWidth(
-              _InlineGroupedRecognitionText(
-                messageId: message.id,
-                groups: message.groups,
-                isFinal: message.isFinal,
-                textForGroup: (group) => group.translation,
-                keySuffix: 'translation',
-                alignRight: isPrimaryStyled,
-                style: translationStyle,
-              ),
-            )
-          else
-            expandToBubbleWidth(
-              _AnimatedRecognitionMessageText(
-                key: ValueKey<String>('${message.id}_translation'),
-                text: message.translation!,
-                isFinal: message.isFinal,
-                textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
-                style: translationStyle,
-              ),
+          expandToBubbleWidth(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child:
+                      message.groups.any((group) => group.translation != null)
+                      ? _InlineGroupedRecognitionText(
+                          messageId: message.id,
+                          groups: message.groups,
+                          isFinal: message.isFinal,
+                          textForGroup: (group) => group.translation,
+                          keySuffix: 'translation',
+                          alignRight: isPrimaryStyled,
+                          style: translationStyle,
+                        )
+                      : _AnimatedRecognitionMessageText(
+                          key: ValueKey<String>('${message.id}_translation'),
+                          text: translationText,
+                          isFinal: message.isFinal,
+                          textAlign: isPrimaryStyled
+                              ? TextAlign.right
+                              : TextAlign.left,
+                          style: translationStyle,
+                        ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  key: ValueKey<String>('${message.id}_replay_translation'),
+                  tooltip: l10n.replayTranslation,
+                  icon: const Icon(Icons.replay_rounded),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () {
+                    controller.replayTranslation(message);
+                  },
+                ),
+              ],
             ),
+          ),
         ],
       ],
     );
+  }
+
+  String? _resolvedTranslationText(ChatMessage message) {
+    final directTranslation = message.translation?.trim();
+    if (directTranslation != null && directTranslation.isNotEmpty) {
+      return directTranslation;
+    }
+
+    final groupedTranslation = message.groups
+        .map((group) => group.translation?.trim())
+        .whereType<String>()
+        .where((translation) => translation.isNotEmpty)
+        .join(' ')
+        .trim();
+    return groupedTranslation.isEmpty ? null : groupedTranslation;
   }
 }
 
