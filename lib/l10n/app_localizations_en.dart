@@ -427,9 +427,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get translationProviderGoogle => 'Google Cloud (Backend)';
 
   @override
-  String get translationProviderGoogleMlKit => 'Google ML Kit (Legacy)';
-
-  @override
   String get outputProviderGoogle => 'Google';
 
   @override

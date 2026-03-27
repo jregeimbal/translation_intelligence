@@ -175,7 +175,6 @@
   "sttProviderDeepgram": "Deepgram",
   "sttProviderGoogle": "Speech to Text",
   "translationProviderGoogle": "Google Cloud (Backend)",
-  "translationProviderGoogleMlKit": "Google ML Kit (Legacy)",
   "outputProviderGoogle": "Google",
   "outputProviderDeepgram": "Deepgram"
 }

@@ -1,6 +1,6 @@
 import Flutter
 import UIKit
-import AVFAudio
+import AVFoundation
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -238,7 +238,7 @@ extension AppDelegate: FlutterStreamHandler {
       return "Line Out"
     case .usbAudio:
       return "USB Audio"
-    @unknown default:
+    default:
       return String(describing: portType)
     }
   }

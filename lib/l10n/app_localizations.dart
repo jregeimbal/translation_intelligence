@@ -903,12 +903,6 @@ abstract class AppLocalizations {
   /// **'Google Cloud (Backend)'**
   String get translationProviderGoogle;
 
-  /// No description provided for @translationProviderGoogleMlKit.
-  ///
-  /// In en, this message translates to:
-  /// **'Google ML Kit (Legacy)'**
-  String get translationProviderGoogleMlKit;
-
   /// No description provided for @outputProviderGoogle.
   ///
   /// In en, this message translates to:
