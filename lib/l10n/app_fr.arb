@@ -126,6 +126,7 @@
   },
   "hideOriginal": "Masquer l'original",
   "showOriginal": "Afficher l'original",
+  "replayTranslation": "Relire la traduction",
   "jumpToLatest": "Aller au dernier",
   "guestLabel": "Invité",
   "primaryLabel": "Principal",

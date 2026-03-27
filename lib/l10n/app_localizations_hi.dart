@@ -309,6 +309,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get showOriginal => 'मूल दिखाएँ';
 
   @override
+  String get replayTranslation => 'अनुवाद फिर चलाएँ';
+
+  @override
   String get jumpToLatest => 'नवीनतम पर जाएँ';
 
   @override

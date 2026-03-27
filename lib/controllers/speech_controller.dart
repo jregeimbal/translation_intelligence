@@ -463,6 +463,33 @@ class SpeechController extends ChangeNotifier {
     }
   }
 
+  Future<void> replayTranslation(ChatMessage message) async {
+    final translation = _resolvedTranslationText(message);
+    if (translation == null) return;
+
+    try {
+      final audio = await _synthesizeSpeech(translation, _targetLanguage);
+      await _playAudio(audio);
+    } catch (e) {
+      logger.severe('translation replay error: ${e.toString()}', e);
+    }
+  }
+
+  String? _resolvedTranslationText(ChatMessage message) {
+    final directTranslation = message.translation?.trim();
+    if (directTranslation != null && directTranslation.isNotEmpty) {
+      return directTranslation;
+    }
+
+    final groupedTranslation = message.groups
+        .map((group) => group.translation?.trim())
+        .whereType<String>()
+        .where((translation) => translation.isNotEmpty)
+        .join(' ')
+        .trim();
+    return groupedTranslation.isEmpty ? null : groupedTranslation;
+  }
+
   void _applyQueuedTranslationToCommittedMessage(
     QueuedChatMessage queued,
     String translation,

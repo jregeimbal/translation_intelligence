@@ -309,6 +309,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showOriginal => 'Show original';
 
   @override
+  String get replayTranslation => 'Replay translation';
+
+  @override
   String get jumpToLatest => 'Jump to latest';
 
   @override
