@@ -18,7 +18,7 @@
     {
       "label": "flutter build appbundle (release)",
       "type": "shell",
-      "command": "flutter build appbundle --release --dart-define=\"NO_DOTENV_OVERRIDE=true\" --dart-define=\"API_BASE_URL=https://translation-intelligence-server-807627897911.us-central1.run.app\"",
+      "command": "flutter build appbundle --release --dart-define=\"NO_DOTENV_OVERRIDE=true\" --dart-define=\"API_BASE_URL=https://omnialingo-server-633223066396.us-central1.run.app/\"",
       "group": "build",
       "presentation": {
         "reveal": "always"
@@ -28,8 +28,18 @@
     {
       "label": "server release",
       "type": "shell",
-      "command": "GCP_PROJECT_ID=tutti-lingo CLOUD_RUN_REGION=us-central1 ARTIFACT_REPOSITORY=translation-intelligence ALLOWED_ORIGINS=https://omnialingo.jax3.com,http://localhost:3000 FIREBASE_PROJECT_ID=tutti-lingo tool/deploy_server_cloud_run.sh",
+      "command": "GCP_PROJECT_ID=project-d3d4e8f9-a909-4391-a0e CLOUD_RUN_REGION=us-central1 ARTIFACT_REPOSITORY=omnialingo ALLOWED_ORIGINS=https://omnialingo.jax3.com,http://localhost:3000 FIREBASE_PROJECT_ID=tutti-lingo tool/deploy_server_cloud_run.sh",
+      "group": "build"
+    },
+    {
+      "label": "flutter deploy web (gcs)",
+      "type": "shell",
+      "command": "WEB_BUCKET=omnialingo.jax3.com WEB_URL=https://omnialingo.jax3.com API_BASE_URL=https://omnialingo-server-633223066396.us-central1.run.app/ tool/deploy_web_gcs.sh",
       "group": "build",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": []
     }
   ]
 }

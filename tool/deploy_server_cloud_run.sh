@@ -6,7 +6,7 @@ usage() {
   cat <<'EOF'
 Usage:
   GCP_PROJECT_ID=my-project \
-  ARTIFACT_REPOSITORY=translation-intelligence \
+  ARTIFACT_REPOSITORY=omnialingo \
   ALLOWED_ORIGINS=https://app.example.com,https://staging.example.com \
   FIREBASE_PROJECT_ID=my-firebase-project \
   tool/deploy_server_cloud_run.sh
@@ -17,10 +17,10 @@ Required environment variables:
 
 Optional environment variables:
   GCP_PROJECT_ID                 Defaults to current gcloud project
-  CLOUD_RUN_SERVICE              Defaults to translation-intelligence-server
+  CLOUD_RUN_SERVICE              Defaults to omnialingo-server
   CLOUD_RUN_REGION               Defaults to us-central1
-  ARTIFACT_REPOSITORY            Defaults to translation-intelligence
-  IMAGE_NAME                     Defaults to translation-intelligence-server
+  ARTIFACT_REPOSITORY            Defaults to omnialingo
+  IMAGE_NAME                     Defaults to omnialingo-server
   IMAGE_TAG                      Defaults to latest
   HTTP_RATE_LIMIT_PER_MINUTE     Defaults to 120
   WEBSOCKET_SESSION_RATE_LIMIT_PER_MINUTE Defaults to 30
@@ -58,10 +58,10 @@ require_env() {
 require_command gcloud
 
 GCP_PROJECT_ID="${GCP_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
-CLOUD_RUN_SERVICE="${CLOUD_RUN_SERVICE:-translation-intelligence-server}"
+CLOUD_RUN_SERVICE="${CLOUD_RUN_SERVICE:-omnialingo-server}"
 CLOUD_RUN_REGION="${CLOUD_RUN_REGION:-us-central1}"
-ARTIFACT_REPOSITORY="${ARTIFACT_REPOSITORY:-translation-intelligence}"
-IMAGE_NAME="${IMAGE_NAME:-translation-intelligence-server}"
+ARTIFACT_REPOSITORY="${ARTIFACT_REPOSITORY:-omnialingo}"
+IMAGE_NAME="${IMAGE_NAME:-omnialingo-server}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 HTTP_RATE_LIMIT_PER_MINUTE="${HTTP_RATE_LIMIT_PER_MINUTE:-120}"
 WEBSOCKET_SESSION_RATE_LIMIT_PER_MINUTE="${WEBSOCKET_SESSION_RATE_LIMIT_PER_MINUTE:-30}"
