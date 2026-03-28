@@ -21,6 +21,7 @@ Deployment helpers:
 
 - Cloud Build config: `server/cloudbuild.yaml`
 - Cloud Run deploy helper: `tool/deploy_server_cloud_run.sh`
+- Google Play upload helper: `dart run tool/upload_play_release.dart`
 
 ## Requirements
 
@@ -121,6 +122,31 @@ SKIP_PUBSPEC_BUILD_BUMP=1 git commit ...
 
 See `docs/server-deployment.md` for a fuller local setup and Cloud Run
 deployment guide.
+
+### 6. Upload an Android release to Google Play
+
+Set a Play Console service-account credential that has access to the app in the
+Google Play Console:
+
+```bash
+export GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH=/absolute/path/to/google-play-service-account.json
+```
+
+Then run:
+
+```bash
+dart run tool/upload_play_release.dart
+```
+
+By default this builds the release app bundle, uploads it to the `internal`
+track, and commits the edit with release status `completed`.
+
+Useful overrides:
+
+```bash
+PLAY_TRACK=production PLAY_RELEASE_STATUS=draft dart run tool/upload_play_release.dart
+dart run tool/upload_play_release.dart --skip-build --aab-path=path/to/app-release.aab
+```
 
 ## Testing with coverage
 

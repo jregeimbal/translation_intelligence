@@ -18,7 +18,11 @@
     {
       "label": "flutter build appbundle (release)",
       "type": "shell",
-      "command": "flutter build appbundle --release --dart-define=\"NO_DOTENV_OVERRIDE=true\" --dart-define=\"API_BASE_URL=https://omnialingo-server-633223066396.us-central1.run.app/\"",
+      "command": "dart",
+      "args": [
+        "run",
+        "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH=google-play-service-account.json tool/upload_play_release.dart"
+      ],
       "group": "build",
       "presentation": {
         "reveal": "always"
