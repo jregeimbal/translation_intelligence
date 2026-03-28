@@ -580,6 +580,10 @@ void main() {
 
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
+      final firstOptimistic = groupedController.getOptimisticMessages();
+      expect(firstOptimistic, hasLength(1));
+      final firstOptimisticId = firstOptimistic.single.id;
+
       groupedPipeline.resultController.add(
         SpeechRecognitionResult.fromTranscript(
           transcript: 'there',
@@ -594,6 +598,7 @@ void main() {
       expect(optimistic.length, equals(1));
       expect(optimistic[0].original, equals('hello, there'));
       expect(optimistic[0].speaker, equals(null));
+      expect(optimistic[0].id, equals(firstOptimisticId));
 
       await groupedController.stopListening();
       groupedController.dispose();

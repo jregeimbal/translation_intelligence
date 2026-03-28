@@ -48,15 +48,18 @@ void main() {
         ),
       );
 
-      expect(find.text('buffered preview text...'), findsOneWidget);
+      expect(find.text('buffered preview text'), findsOneWidget);
+      expect(find.text('buffered preview text...'), findsNothing);
       expect(find.textContaining('Listening...'), findsNothing);
 
       double bufferedPreviewOpacity() {
         final textFinder = find.byWidgetPredicate(
           (widget) =>
               widget is Text &&
-              widget.data == null &&
-              widget.textSpan?.toPlainText() == 'buffered preview text...',
+              ((widget.data == 'buffered preview text') ||
+                  (widget.data == null &&
+                      widget.textSpan?.toPlainText() ==
+                          'buffered preview text')),
         );
         expect(textFinder, findsOneWidget);
 
@@ -72,11 +75,15 @@ void main() {
       }
 
       expect(bufferedPreviewOpacity(), closeTo(0.2, 0.001));
+      expect(
+        find.ancestor(of: find.text('buffered preview text'), matching: find.byType(ShaderMask)),
+        findsOneWidget,
+      );
 
       await tester.pump(const Duration(milliseconds: 500));
 
-      expect(find.text('buffered preview text...'), findsOneWidget);
-      expect(bufferedPreviewOpacity(), closeTo(0.2, 0.001));
+      expect(find.text('buffered preview text'), findsOneWidget);
+      expect(bufferedPreviewOpacity(), greaterThan(0.2));
     });
 
     testWidgets('shows idle prompt when empty and idle', (tester) async {
@@ -311,18 +318,19 @@ void main() {
         ),
       );
 
-      expect(find.text('Hola...'), findsOneWidget);
+      expect(find.text('Hola'), findsOneWidget);
+      expect(find.text('Hola...'), findsNothing);
 
       message.isFinal = true;
       message.translation = 'Hello';
       controller.notifyListeners();
       await tester.pump();
 
-      expect(find.text('Hola...'), findsOneWidget);
+      expect(find.text('Hola'), findsOneWidget);
       expect(find.text('Hello'), findsOneWidget);
 
       await tester.pump(const Duration(milliseconds: 120));
-      expect(find.text('Hola...'), findsOneWidget);
+      expect(find.text('Hola'), findsOneWidget);
 
       await tester.pumpAndSettle();
       expect(find.text('Hola'), findsNothing);
@@ -360,12 +368,14 @@ void main() {
       final bodyText = tester.widget<Text>(
         find.byWidgetPredicate(
           (widget) =>
-              widget is Text &&
-              widget.data == null &&
-              widget.textSpan?.toPlainText() == 'Primary line...',
+              widget is Text && widget.data == 'Primary line',
         ),
       );
       expect(bodyText.textAlign, TextAlign.right);
+      expect(
+        find.ancestor(of: find.text('Primary line'), matching: find.byType(ShaderMask)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('left-aligns non-primary speaker header and body text', (
@@ -398,12 +408,14 @@ void main() {
       final bodyText = tester.widget<Text>(
         find.byWidgetPredicate(
           (widget) =>
-              widget is Text &&
-              widget.data == null &&
-              widget.textSpan?.toPlainText() == 'Guest line...',
+              widget is Text && widget.data == 'Guest line',
         ),
       );
       expect(bodyText.textAlign, TextAlign.left);
+      expect(
+        find.ancestor(of: find.text('Guest line'), matching: find.byType(ShaderMask)),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -439,31 +451,9 @@ void main() {
       },
     );
 
-    testWidgets('animates ellipsis for partial messages', (tester) async {
+    testWidgets('renders gradient animation for partial messages', (tester) async {
       final controller = TestSpeechController();
       controller.addMessage(ChatMessage('Streaming update', isFinal: false));
-
-      List<double> ellipsisDotOpacities() {
-        final textFinder = find.byWidgetPredicate(
-          (widget) =>
-              widget is Text &&
-              widget.data == null &&
-              widget.textSpan?.toPlainText() == 'Streaming update...',
-        );
-        expect(textFinder, findsOneWidget);
-
-        final richTextSource = tester.widget<Text>(textFinder);
-        final root = richTextSource.textSpan as TextSpan;
-        final dotSpans = (root.children ?? const <InlineSpan>[])
-            .whereType<TextSpan>()
-            .where((span) => span.text == '.')
-            .toList();
-
-        expect(dotSpans, hasLength(3));
-        return dotSpans
-            .map((span) => span.style?.color?.a ?? 1.0)
-            .toList(growable: false);
-      }
 
       await pumpTestApp(
         tester,
@@ -473,26 +463,23 @@ void main() {
         ),
       );
 
-      expect(find.text('Streaming update...'), findsOneWidget);
-      final firstFrame = ellipsisDotOpacities();
-      expect(firstFrame[0], greaterThan(firstFrame[1]));
-      expect(firstFrame[0], greaterThan(firstFrame[2]));
+      final textFinder = find.text('Streaming update');
+      expect(textFinder, findsOneWidget);
+      expect(find.text('Streaming update...'), findsNothing);
+      expect(
+        find.ancestor(of: textFinder, matching: find.byType(ShaderMask)),
+        findsOneWidget,
+      );
 
       await tester.pump(const Duration(milliseconds: 450));
-      expect(find.text('Streaming update...'), findsOneWidget);
-      final secondFrame = ellipsisDotOpacities();
-      expect(secondFrame[1], greaterThan(secondFrame[0]));
-      expect(secondFrame[1], greaterThan(secondFrame[2]));
+      expect(textFinder, findsOneWidget);
 
       await tester.pump(const Duration(milliseconds: 450));
-      expect(find.text('Streaming update...'), findsOneWidget);
-      final thirdFrame = ellipsisDotOpacities();
-      expect(thirdFrame[2], greaterThan(thirdFrame[0]));
-      expect(thirdFrame[2], greaterThan(thirdFrame[1]));
+      expect(textFinder, findsOneWidget);
     });
 
     testWidgets(
-      'stabilized partial opacity increases when message becomes final',
+      'partial opacity animates in and then increases when message becomes final',
       (tester) async {
         final controller = TestSpeechController();
         final message = ChatMessage('Stabilized preview', isFinal: false);
@@ -526,7 +513,12 @@ void main() {
           return opacityAncestors.first.opacity;
         }
 
-        expect(currentOpacityFor('Stabilized preview...'), closeTo(0.2, 0.001));
+        expect(currentOpacityFor('Stabilized preview'), closeTo(0.2, 0.001));
+        expect(find.text('Stabilized preview...'), findsNothing);
+
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(currentOpacityFor('Stabilized preview'), greaterThan(0.2));
 
         message.isFinal = true;
         controller.notifyListeners();
@@ -538,7 +530,7 @@ void main() {
       },
     );
 
-    testWidgets('renders grouped translation partials with ellipsis', (
+    testWidgets('renders grouped translation partials with gradient text', (
       tester,
     ) async {
       final controller = TestSpeechController();
@@ -568,17 +560,16 @@ void main() {
       );
 
       expect(find.text('hola'), findsOneWidget);
-      expect(find.text('alli'), findsOneWidget);
-      expect(find.text('ahora'), findsOneWidget);
+      expect(find.text('alli ahora'), findsOneWidget);
       expect(find.text(', '), findsWidgets);
-
-      final ellipsisFinder = find.byWidgetPredicate(
-        (widget) =>
-            widget is Text &&
-            widget.data == null &&
-            widget.textSpan?.toPlainText() == '...',
+      expect(find.text('...'), findsNothing);
+      expect(
+        find.ancestor(
+          of: find.text('alli ahora'),
+          matching: find.byType(ShaderMask),
+        ),
+        findsOneWidget,
       );
-      expect(ellipsisFinder, findsWidgets);
     });
 
     testWidgets('shows jump button when scrolled away and jumps to latest', (
