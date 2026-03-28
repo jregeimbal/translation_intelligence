@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:translation_intelligence/controllers/speech_controller.dart';
@@ -434,7 +432,6 @@ class _ChatMessageContent extends StatelessWidget {
               key: ValueKey<String>(message.id),
               text: message.original,
               isFinal: message.isFinal,
-              stabilizePartialOpacity: !message.isFinal,
               textAlign: isPrimaryStyled ? TextAlign.right : TextAlign.left,
               style: bodyStyle,
             )
@@ -555,7 +552,6 @@ class _ChatMessageContent extends StatelessWidget {
 class _AnimatedRecognitionMessageText extends StatefulWidget {
   final String text;
   final bool isFinal;
-  final bool stabilizePartialOpacity;
   final TextStyle? style;
   final TextAlign? textAlign;
 
@@ -563,7 +559,6 @@ class _AnimatedRecognitionMessageText extends StatefulWidget {
     super.key,
     required this.text,
     required this.isFinal,
-    this.stabilizePartialOpacity = false,
     required this.style,
     this.textAlign,
   });
@@ -592,31 +587,19 @@ class _AnimatedPartialMessageText extends StatefulWidget {
 class _AnimatedRecognitionMessageTextState
     extends State<_AnimatedRecognitionMessageText> {
   static const Duration _fadeDuration = Duration(seconds: 1);
-  static const double _partialOpacity = 0.6;
-  static const double _startingOpacity = 0.2;
+  static const double _partialOpacity = 0.7;
+  static const double _startingOpacity = 0.7;
   double _currentOpacity = _startingOpacity;
   double _targetOpacity = _startingOpacity;
 
   double _resolveTargetOpacity() {
-    if (widget.isFinal) {
-      return 1.0;
-    }
-    return widget.stabilizePartialOpacity ? _startingOpacity : _partialOpacity;
+    return widget.isFinal ? 1.0 : _partialOpacity;
   }
 
   @override
   void initState() {
     super.initState();
-    final nextOpacity = _resolveTargetOpacity();
-    if (nextOpacity == _startingOpacity) {
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() {
-        _targetOpacity = nextOpacity;
-      });
-    });
+    _targetOpacity = _resolveTargetOpacity();
   }
 
   @override
@@ -652,25 +635,21 @@ class _AnimatedRecognitionMessageTextState
 }
 
 class _AnimatedPartialMessageTextState
-    extends State<_AnimatedPartialMessageText> {
-  static const Duration _tick = Duration(milliseconds: 320);
-  late final Timer _timer;
-  int _activeDotIndex = 0;
+    extends State<_AnimatedPartialMessageText>
+    with SingleTickerProviderStateMixin {
+  static const Duration _gradientDuration = Duration(milliseconds: 1400);
+  late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(_tick, (_) {
-      if (!mounted) return;
-      setState(() {
-        _activeDotIndex = (_activeDotIndex + 1) % 3;
-      });
-    });
+    _controller = AnimationController(vsync: this, duration: _gradientDuration)
+      ..repeat();
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -679,25 +658,49 @@ class _AnimatedPartialMessageTextState
     final resolvedStyle = widget.style ?? DefaultTextStyle.of(context).style;
     final baseColor =
         resolvedStyle.color ?? Theme.of(context).colorScheme.onSurface;
-
-    return Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(text: widget.text),
-          for (var index = 0; index < 3; index++)
-            TextSpan(
-              text: '.',
-              style: resolvedStyle.copyWith(
-                color: baseColor.withValues(
-                  alpha: index == _activeDotIndex ? 1.0 : 0.35,
-                ),
-              ),
-            ),
-        ],
-      ),
-      style: resolvedStyle,
-      textAlign: widget.textAlign,
+    final highlightColor = Color.lerp(
+      baseColor,
+      baseColor.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+      0.28,
+    )!;
+    final trailingColor = baseColor.withValues(
+      alpha: (baseColor.a * 0.55).clamp(0.0, 1.0),
     );
+
+    return AnimatedBuilder(
+      animation: _controller,
+      child: Text(widget.text, style: resolvedStyle, textAlign: widget.textAlign),
+      builder: (context, child) {
+        return ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) {
+            final width = bounds.width <= 0 ? 1.0 : bounds.width;
+            final height = bounds.height <= 0 ? 1.0 : bounds.height;
+            return LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [trailingColor, highlightColor, trailingColor],
+              stops: const [0.2, 0.5, 0.8],
+              transform: _SlidingTextGradientTransform(
+                progress: _controller.value,
+              ),
+            ).createShader(Rect.fromLTWH(-width, 0, width * 3, height));
+          },
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+class _SlidingTextGradientTransform extends GradientTransform {
+  final double progress;
+
+  const _SlidingTextGradientTransform({required this.progress});
+
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
+    return Matrix4.identity()..translate(bounds.width * (progress * 2 - 1));
   }
 }
 
@@ -744,6 +747,27 @@ class _InlineGroupedRecognitionText extends StatelessWidget {
     for (var i = 0; i < entries.length; i++) {
       final entry = entries[i];
       final segmentIsFinal = isFinal || entry.index < latestIndex;
+      if (i > 0) {
+        final previousText = entries[i - 1].text;
+        final separator = _hasTerminalPunctuation(previousText) ? ' ' : ', ';
+        children.add(Text(separator, style: style));
+      }
+
+      if (!segmentIsFinal) {
+        children.add(
+          _AnimatedRecognitionMessageText(
+            key: ValueKey<String>(
+              '${messageId}_group_${entry.group.id}_${keySuffix}_partial',
+            ),
+            text: entry.text,
+            isFinal: false,
+            textAlign: alignRight ? TextAlign.right : TextAlign.left,
+            style: style,
+          ),
+        );
+        continue;
+      }
+
       final words = entry.text
           .split(RegExp(r'\s+'))
           .where((word) => word.isNotEmpty)
@@ -763,28 +787,6 @@ class _InlineGroupedRecognitionText extends StatelessWidget {
         if (wordIndex < words.length - 1) {
           children.add(Text(' ', style: style));
         }
-      }
-
-      if (!segmentIsFinal) {
-        if (words.isNotEmpty) {
-          children.add(Text(' ', style: style));
-        }
-        children.add(
-          _AnimatedRecognitionMessageText(
-            key: ValueKey<String>(
-              '${messageId}_group_${entry.group.id}_${keySuffix}_ellipsis',
-            ),
-            text: '',
-            isFinal: false,
-            textAlign: alignRight ? TextAlign.right : TextAlign.left,
-            style: style,
-          ),
-        );
-      }
-
-      if (i < entries.length - 1) {
-        final separator = _hasTerminalPunctuation(entry.text) ? ' ' : ', ';
-        children.add(Text(separator, style: style));
       }
     }
 

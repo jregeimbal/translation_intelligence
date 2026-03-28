@@ -56,6 +56,7 @@ class SpeechController extends ChangeNotifier {
   String? _activeSessionListeningDeviceId;
   DateTime? _activeSessionStartedAt;
   final Map<int, Timer> _finalResultTimersBySpeaker = <int, Timer>{};
+  final Map<int, String> _optimisticMessageIdsBySpeaker = <int, String>{};
   // final List<SpeechRecognitionWord> _pendingFinalWords = [];
   List<QueuedChatMessage> _queuedMessages = [];
   final List<SpeechRecognitionWord> _partialWords = [];
@@ -210,7 +211,12 @@ class SpeechController extends ChangeNotifier {
         continue;
       }
       newMessages.add(
-        ChatMessage(partialText, speaker: entry.key, isFinal: isFinal),
+        ChatMessage(
+          partialText,
+          speaker: entry.key,
+          isFinal: isFinal,
+          id: _optimisticMessageIdForSpeaker(entry.key),
+        ),
       );
     }
 
@@ -226,6 +232,22 @@ class SpeechController extends ChangeNotifier {
     return _queuedMessages
         .map((queued) => queued.toChatMessage(isFinal: false))
         .toList(growable: false);
+  }
+
+  String _optimisticMessageIdForSpeaker(int? speaker) {
+    final speakerKey = _speakerFlushKey(speaker);
+    return _optimisticMessageIdsBySpeaker.putIfAbsent(
+      speakerKey,
+      () => 'msg_${DateTime.now().microsecondsSinceEpoch}_${speaker ?? 'u'}',
+    );
+  }
+
+  void _clearOptimisticMessageIdForSpeaker(int? speaker) {
+    _optimisticMessageIdsBySpeaker.remove(_speakerFlushKey(speaker));
+  }
+
+  void _clearAllOptimisticMessageIds() {
+    _optimisticMessageIdsBySpeaker.clear();
   }
 
   void _maybeDefaultPreferred(int? speaker) {
@@ -247,6 +269,7 @@ class SpeechController extends ChangeNotifier {
   /// Remove all accumulated messages from the chat history.
   void clearMessages() {
     _chatMessages.clear();
+    _clearAllOptimisticMessageIds();
     notifyListeners();
   }
 
@@ -842,6 +865,7 @@ class SpeechController extends ChangeNotifier {
         SpeechRecognitionResult(words: List.from(_partialWords), isFinal: true),
       );
       _partialWords.clear();
+      _clearAllOptimisticMessageIds();
     }
 
     _flushPendingFinalResults();
@@ -884,7 +908,6 @@ class SpeechController extends ChangeNotifier {
         .trim();
     return translation.isEmpty ? null : translation;
   }
-
   bool _shouldReplaceLatestQueuedGroup(
     ChatMessageGroup previousGroup,
     String nextOriginal,
@@ -914,6 +937,9 @@ class SpeechController extends ChangeNotifier {
       if (shouldAdvanceToQueue) {
         _queueFinalResult(result);
         _partialWords.clear();
+        for (final word in result.words) {
+          _clearOptimisticMessageIdForSpeaker(word.speaker);
+        }
         _schedulePendingFinalFlush(result.words.map((word) => word.speaker));
       } else {
         _partialWords.clear();
@@ -931,6 +957,9 @@ class SpeechController extends ChangeNotifier {
           words: List<SpeechRecognitionWord>.from(_partialWords),
         );
         _queueFinalResult(bufferedResult);
+        for (final word in bufferedResult.words) {
+          _clearOptimisticMessageIdForSpeaker(word.speaker);
+        }
         _partialWords.clear();
         _schedulePendingFinalFlush(
           bufferedResult.words.map((word) => word.speaker),
@@ -969,7 +998,8 @@ class SpeechController extends ChangeNotifier {
             : false;
         final queuedId =
             previous?.id ??
-            'msg_${DateTime.now().microsecondsSinceEpoch}_${speaker ?? 'u'}';
+            _optimisticMessageIdForSpeaker(speaker);
+          _clearOptimisticMessageIdForSpeaker(speaker);
 
         final nextGroups = previous == null
             ? <ChatMessageGroup>[]
