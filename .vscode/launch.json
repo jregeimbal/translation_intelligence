@@ -66,7 +66,7 @@
                 "--web-hostname=localhost",
                 "--web-port=3000",
                 "--dart-define", "NO_DOTENV_OVERRIDE=true",
-                "--dart-define", "API_BASE_URL=https://translation-intelligence-server-807627897911.us-central1.run.app"
+                "--dart-define", "API_BASE_URL=https://omnialingo-server-633223066396.us-central1.run.app/"
             ],
         }
     ],
