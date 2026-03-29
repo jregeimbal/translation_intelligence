@@ -366,6 +366,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get enableAudioPlayback => 'Activar reproducción de audio';
 
   @override
+  String get audioPlaybackBluetoothNotice => 'Para la mejor experiencia, usa la reproducción de audio con un dispositivo bluetooth.';
+
+  @override
   String get primarySpeakerInline => 'Altavoz principal';
 
   @override

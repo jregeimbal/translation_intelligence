@@ -366,6 +366,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get enableAudioPlayback => 'ऑडियो प्लेबैक चालू करें';
 
   @override
+  String get audioPlaybackBluetoothNotice => 'सबसे अच्छे अनुभव के लिए, ऑडियो प्लेबैक को ब्लूटूथ डिवाइस के साथ उपयोग करें।';
+
+  @override
   String get primarySpeakerInline => 'Primary speaker';
 
   @override

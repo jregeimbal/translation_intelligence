@@ -14,7 +14,14 @@ import 'recording_toggle_button.dart';
 /// This widget listens to the controller and rebuilds when relevant
 /// properties change.
 class SpeechFooter extends StatefulWidget {
-  const SpeechFooter({super.key});
+  const SpeechFooter({
+    super.key,
+    this.hasSeenAudioPlaybackBluetoothNotice = false,
+    this.onAudioPlaybackBluetoothNoticeSeen,
+  });
+
+  final bool hasSeenAudioPlaybackBluetoothNotice;
+  final Future<void> Function()? onAudioPlaybackBluetoothNoticeSeen;
 
   @override
   // ignore: library_private_types_in_public_api
@@ -22,6 +29,40 @@ class SpeechFooter extends StatefulWidget {
 }
 
 class _SpeechFooterState extends State<SpeechFooter> {
+  Future<void> _toggleAudioPlayback(bool audioPlaybackEnabled) async {
+    final controller = context.read<SpeechController>();
+    if (audioPlaybackEnabled) {
+      controller.setAudioPlaybackEnabled(false);
+      return;
+    }
+
+    if (!widget.hasSeenAudioPlaybackBluetoothNotice) {
+      final shouldEnable = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: Text(dialogContext.l10n.enableAudioPlayback),
+            content: Text(dialogContext.l10n.audioPlaybackBluetoothNotice),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(
+                  MaterialLocalizations.of(dialogContext).okButtonLabel,
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldEnable != true) return;
+      await widget.onAudioPlaybackBluetoothNoticeSeen?.call();
+      if (!mounted) return;
+    }
+
+    controller.setAudioPlaybackEnabled(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final speechEnabled = context.select<SpeechController, bool>(
@@ -171,11 +212,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
                   tooltip: audioPlaybackEnabled
                       ? l10n.disableAudioPlayback
                       : l10n.enableAudioPlayback,
-                  onPressed: () {
-                    context.read<SpeechController>().setAudioPlaybackEnabled(
-                      !audioPlaybackEnabled,
-                    );
-                  },
+                  onPressed: () => _toggleAudioPlayback(audioPlaybackEnabled),
                 ),
               ],
             ),

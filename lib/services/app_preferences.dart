@@ -9,6 +9,7 @@ class AppPreferencesSnapshot {
   final String targetLanguage;
   final bool hideTranslatedOriginalText;
   final bool audioPlaybackEnabled;
+  final bool hasSeenAudioPlaybackBluetoothNotice;
   final bool hasCompletedFirstLaunchWalkthrough;
 
   const AppPreferencesSnapshot({
@@ -18,6 +19,7 @@ class AppPreferencesSnapshot {
     required this.targetLanguage,
     required this.hideTranslatedOriginalText,
     required this.audioPlaybackEnabled,
+    required this.hasSeenAudioPlaybackBluetoothNotice,
     required this.hasCompletedFirstLaunchWalkthrough,
   });
 }
@@ -32,6 +34,8 @@ class AppPreferences {
   static const _hideTranslatedOriginalTextKey =
       'pref.hideTranslatedOriginalText';
   static const _audioPlaybackEnabledKey = 'pref.audioPlaybackEnabled';
+  static const _hasSeenAudioPlaybackBluetoothNoticeKey =
+      'pref.hasSeenAudioPlaybackBluetoothNotice';
   static const _hasCompletedFirstLaunchWalkthroughKey =
       'pref.hasCompletedFirstLaunchWalkthrough';
 
@@ -57,7 +61,9 @@ class AppPreferences {
     final hideTranslatedOriginalText =
         preferences.getBool(_hideTranslatedOriginalTextKey) ?? true;
     final audioPlaybackEnabled =
-        preferences.getBool(_audioPlaybackEnabledKey) ?? true;
+        preferences.getBool(_audioPlaybackEnabledKey) ?? false;
+    final hasSeenAudioPlaybackBluetoothNotice =
+        preferences.getBool(_hasSeenAudioPlaybackBluetoothNoticeKey) ?? false;
     final hasCompletedFirstLaunchWalkthrough =
         preferences.getBool(_hasCompletedFirstLaunchWalkthroughKey) ?? false;
 
@@ -68,6 +74,7 @@ class AppPreferences {
       targetLanguage: targetLanguage,
       hideTranslatedOriginalText: hideTranslatedOriginalText,
       audioPlaybackEnabled: audioPlaybackEnabled,
+      hasSeenAudioPlaybackBluetoothNotice: hasSeenAudioPlaybackBluetoothNotice,
       hasCompletedFirstLaunchWalkthrough: hasCompletedFirstLaunchWalkthrough,
     );
   }
@@ -100,6 +107,11 @@ class AppPreferences {
   Future<void> setAudioPlaybackEnabled(bool value) async {
     final preferences = await _getPreferences();
     await preferences.setBool(_audioPlaybackEnabledKey, value);
+  }
+
+  Future<void> setHasSeenAudioPlaybackBluetoothNotice(bool value) async {
+    final preferences = await _getPreferences();
+    await preferences.setBool(_hasSeenAudioPlaybackBluetoothNoticeKey, value);
   }
 
   Future<void> setHasCompletedFirstLaunchWalkthrough(bool value) async {

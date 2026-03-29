@@ -158,6 +158,7 @@
   "hideTranslationOriginalText": "Masquer le texte original de la traduction",
   "disableAudioPlayback": "Désactiver la lecture audio",
   "enableAudioPlayback": "Activer la lecture audio",
+  "audioPlaybackBluetoothNotice": "Pour une meilleure expérience, utilisez la lecture audio avec un appareil bluetooth.",
   "primarySpeakerInline": "Haut-parleur principal",
   "noAlignment": "Aucun alignement",
   "speechUnavailable": "Reconnaissance vocale non disponible",

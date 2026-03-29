@@ -158,6 +158,7 @@
   "hideTranslationOriginalText": "अनुवाद का मूल पाठ छिपाएँ",
   "disableAudioPlayback": "ऑडियो प्लेबैक बंद करें",
   "enableAudioPlayback": "ऑडियो प्लेबैक चालू करें",
+  "audioPlaybackBluetoothNotice": "सबसे अच्छे अनुभव के लिए, ऑडियो प्लेबैक को ब्लूटूथ डिवाइस के साथ उपयोग करें।",
   "primarySpeakerInline": "Primary speaker",
   "noAlignment": "कोई संरेखण नहीं",
   "speechUnavailable": "स्पीच उपलब्ध नहीं है",
