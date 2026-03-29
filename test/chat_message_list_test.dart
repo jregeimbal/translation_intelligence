@@ -667,5 +667,70 @@ void main() {
       expect(find.text(lastMessage.translation!), findsOneWidget);
       expect(updatedBottomGap, lessThanOrEqualTo(initialBottomGap + 1.0));
     });
+
+    testWidgets(
+      'keeps following latest on layout changes until user scrolls away', (
+        tester,
+      ) async {
+        final controller = TestSpeechController();
+        final messages = List.generate(
+          30,
+          (index) => ChatMessage('Message $index', isFinal: true),
+        );
+        for (final message in messages) {
+          controller.addMessage(message);
+        }
+
+        await pumpTestApp(
+          tester,
+          SizedBox(
+            height: 220,
+            child: ChangeNotifierProvider<SpeechController>.value(
+              value: controller,
+              child: const ChatMessageList(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final lastMessage = messages.last;
+        lastMessage.translation =
+            'Expanded translation content that increases the final row height '
+            'enough to require the list to stay pinned to the bottom.';
+        controller.notifyListeners();
+        await tester.pumpAndSettle();
+
+        expect(find.text('Jump to latest'), findsNothing);
+
+        controller.addMessage(ChatMessage('Newest message', isFinal: true));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Jump to latest'), findsNothing);
+        final autoFollowScrollable = tester.state<ScrollableState>(
+          find.byType(Scrollable),
+        );
+        final autoFollowBottomGap =
+            autoFollowScrollable.position.maxScrollExtent -
+            autoFollowScrollable.position.pixels;
+        expect(autoFollowBottomGap, lessThan(25.0));
+
+        await tester.drag(find.byType(ListView), const Offset(0, 300));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Jump to latest'), findsOneWidget);
+
+        controller.addMessage(ChatMessage('Message after manual scroll', isFinal: true));
+        await tester.pumpAndSettle();
+
+        final pausedScrollable = tester.state<ScrollableState>(
+          find.byType(Scrollable),
+        );
+        final pausedBottomGap =
+            pausedScrollable.position.maxScrollExtent -
+            pausedScrollable.position.pixels;
+        expect(pausedBottomGap, greaterThan(25.0));
+        expect(find.text('Jump to latest'), findsOneWidget);
+      },
+    );
   });
 }
