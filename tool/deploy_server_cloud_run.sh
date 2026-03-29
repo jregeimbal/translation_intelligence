@@ -93,6 +93,7 @@ deploy_args=(
   --port 8080
   --set-env-vars "$ENV_VARS"
   --set-secrets "$SECRET_VARS"
+  --timeout=60m
 )
 
 if [[ "$CLOUD_RUN_ALLOW_UNAUTHENTICATED" == "true" ]]; then
