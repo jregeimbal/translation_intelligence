@@ -148,4 +148,43 @@ void main() {
     expect(find.text('claro que si'), findsNothing);
     expect(find.text('of course'), findsNothing);
   });
+
+  testWidgets('group chat shows timeout progress on dismiss icon', (
+    tester,
+  ) async {
+    final controller = TestSpeechController();
+    final backendApiClient = BackendApiClient(
+      baseUrl: 'https://example.com',
+      authTokenProvider: () async => 'token',
+    );
+
+    await pumpSuggestedResponseApp(tester, controller, backendApiClient);
+
+    emitSuggestedResponse(controller);
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(
+      find.byKey(const Key('suggested-response-timeout-progress')),
+      findsOneWidget,
+    );
+
+    final initialIndicator = tester.widget<CircularProgressIndicator>(
+      find.byKey(const Key('suggested-response-timeout-progress')),
+    );
+    expect(initialIndicator.value!, greaterThan(0.95));
+
+    await tester.pump(const Duration(seconds: 5));
+
+    final midIndicator = tester.widget<CircularProgressIndicator>(
+      find.byKey(const Key('suggested-response-timeout-progress')),
+    );
+    expect(midIndicator.value, closeTo(0.5, 0.05));
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Suggested response'), findsNothing);
+  });
 }
