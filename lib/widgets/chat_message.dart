@@ -173,7 +173,12 @@ class _ChatMessageListState extends State<ChatMessageList> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(msgText, style: textRoles.statusMessage),
+                    isListening
+                        ? _AnimatedPartialMessageText(
+                            text: msgText,
+                            style: textRoles.statusMessage,
+                          )
+                        : Text(msgText, style: textRoles.statusMessage),
                   ],
                 ),
               ),
@@ -615,6 +620,8 @@ class _AnimatedRecognitionMessageTextState
 
   @override
   Widget build(BuildContext context) {
+    final disableAnimations =
+        MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     final child = widget.isFinal
         ? Text(widget.text, style: widget.style, textAlign: widget.textAlign)
         : _AnimatedPartialMessageText(
@@ -622,6 +629,10 @@ class _AnimatedRecognitionMessageTextState
             style: widget.style,
             textAlign: widget.textAlign,
           );
+
+    if (disableAnimations) {
+      return Opacity(opacity: _resolveTargetOpacity(), child: child);
+    }
 
     return TweenAnimationBuilder<double>(
       duration: _fadeDuration,
@@ -639,12 +650,44 @@ class _AnimatedPartialMessageTextState
     with SingleTickerProviderStateMixin {
   static const Duration _gradientDuration = Duration(milliseconds: 1400);
   late final AnimationController _controller;
+  bool _isAnimating = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: _gradientDuration)
-      ..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: _gradientDuration,
+      value: 0.5,
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncAnimationState();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedPartialMessageText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncAnimationState();
+  }
+
+  void _syncAnimationState() {
+    final shouldAnimate =
+        !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    if (_isAnimating == shouldAnimate) {
+      return;
+    }
+    _isAnimating = shouldAnimate;
+    if (shouldAnimate) {
+      _controller.repeat();
+      return;
+    }
+    _controller
+      ..stop()
+      ..value = 0.5;
   }
 
   @override
@@ -667,28 +710,37 @@ class _AnimatedPartialMessageTextState
       alpha: (baseColor.a * 0.55).clamp(0.0, 1.0),
     );
 
+    Widget buildShadedText(double progress) {
+      final child = Text(
+        widget.text,
+        style: resolvedStyle,
+        textAlign: widget.textAlign,
+      );
+
+      return ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (bounds) {
+          final width = bounds.width <= 0 ? 1.0 : bounds.width;
+          final height = bounds.height <= 0 ? 1.0 : bounds.height;
+          return LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [trailingColor, highlightColor, trailingColor],
+            stops: const [0.2, 0.5, 0.8],
+            transform: _SlidingTextGradientTransform(progress: progress),
+          ).createShader(Rect.fromLTWH(-width, 0, width * 3, height));
+        },
+        child: child,
+      );
+    }
+
+    if (!_isAnimating) {
+      return buildShadedText(0.5);
+    }
+
     return AnimatedBuilder(
       animation: _controller,
-      child: Text(widget.text, style: resolvedStyle, textAlign: widget.textAlign),
-      builder: (context, child) {
-        return ShaderMask(
-          blendMode: BlendMode.srcIn,
-          shaderCallback: (bounds) {
-            final width = bounds.width <= 0 ? 1.0 : bounds.width;
-            final height = bounds.height <= 0 ? 1.0 : bounds.height;
-            return LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [trailingColor, highlightColor, trailingColor],
-              stops: const [0.2, 0.5, 0.8],
-              transform: _SlidingTextGradientTransform(
-                progress: _controller.value,
-              ),
-            ).createShader(Rect.fromLTWH(-width, 0, width * 3, height));
-          },
-          child: child,
-        );
-      },
+      builder: (context, _) => buildShadedText(_controller.value),
     );
   }
 }

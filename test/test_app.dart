@@ -6,6 +6,13 @@ import 'package:translation_intelligence/l10n/app_localizations.dart';
 Widget buildTestApp(Widget child) {
   return MaterialApp(
     onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
+    builder: (context, appChild) {
+      final mediaQuery = MediaQuery.of(context);
+      return MediaQuery(
+        data: mediaQuery.copyWith(disableAnimations: true),
+        child: appChild!,
+      );
+    },
     localizationsDelegates: const [
       LocaleNamesLocalizationsDelegate(),
       ...AppLocalizations.localizationsDelegates,

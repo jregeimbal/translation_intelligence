@@ -26,6 +26,13 @@ void main() {
       );
 
       expect(find.textContaining('Listening'), findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.textContaining('Listening'),
+          matching: find.byType(ShaderMask),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('optimistically renders buffered text before first commit', (
@@ -74,7 +81,7 @@ void main() {
         return opacityAncestors.first.opacity;
       }
 
-      expect(bufferedPreviewOpacity(), closeTo(0.2, 0.001));
+      expect(bufferedPreviewOpacity(), closeTo(0.7, 0.001));
       expect(
         find.ancestor(of: find.text('buffered preview text'), matching: find.byType(ShaderMask)),
         findsOneWidget,
@@ -83,7 +90,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('buffered preview text'), findsOneWidget);
-      expect(bufferedPreviewOpacity(), greaterThan(0.2));
+      expect(bufferedPreviewOpacity(), closeTo(0.7, 0.001));
     });
 
     testWidgets('shows idle prompt when empty and idle', (tester) async {
@@ -479,7 +486,7 @@ void main() {
     });
 
     testWidgets(
-      'partial opacity animates in and then increases when message becomes final',
+      'partial opacity remains reduced until message becomes final',
       (tester) async {
         final controller = TestSpeechController();
         final message = ChatMessage('Stabilized preview', isFinal: false);
@@ -513,12 +520,12 @@ void main() {
           return opacityAncestors.first.opacity;
         }
 
-        expect(currentOpacityFor('Stabilized preview'), closeTo(0.2, 0.001));
+        expect(currentOpacityFor('Stabilized preview'), closeTo(0.7, 0.001));
         expect(find.text('Stabilized preview...'), findsNothing);
 
         await tester.pump(const Duration(milliseconds: 500));
 
-        expect(currentOpacityFor('Stabilized preview'), greaterThan(0.2));
+        expect(currentOpacityFor('Stabilized preview'), closeTo(0.7, 0.001));
 
         message.isFinal = true;
         controller.notifyListeners();
@@ -526,7 +533,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 150));
 
         expect(find.text('Stabilized preview'), findsOneWidget);
-        expect(currentOpacityFor('Stabilized preview'), greaterThan(0.2));
+        expect(currentOpacityFor('Stabilized preview'), greaterThan(0.7));
       },
     );
 
