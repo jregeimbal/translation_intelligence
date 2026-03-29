@@ -19,17 +19,19 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   TestSpeechController({
     bool isListening = false,
     bool speechEnabled = true,
+    bool audioPlaybackEnabled = false,
     double amplitude = 0.0,
     String targetLanguage = 'en',
   }) : _isListening = isListening,
        _speechEnabled = speechEnabled,
+       _audioPlaybackEnabled = audioPlaybackEnabled,
        _amplitude = amplitude,
        _targetLanguage = targetLanguage;
 
   final List<ChatMessage> _chatMessages = [];
   bool _isListening;
   final bool _speechEnabled;
-  bool _audioPlaybackEnabled = true;
+  bool _audioPlaybackEnabled;
   bool _hideTranslatedOriginalText = true;
   final String _speechError = '';
   String _lastWords = '';

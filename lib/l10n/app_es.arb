@@ -158,6 +158,7 @@
   "hideTranslationOriginalText": "Ocultar texto original de la traducción",
   "disableAudioPlayback": "Desactivar reproducción de audio",
   "enableAudioPlayback": "Activar reproducción de audio",
+  "audioPlaybackBluetoothNotice": "Para la mejor experiencia, usa la reproducción de audio con un dispositivo bluetooth.",
   "primarySpeakerInline": "Altavoz principal",
   "noAlignment": "Sin alineación",
   "speechUnavailable": "Voz no disponible",

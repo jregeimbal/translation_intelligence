@@ -245,6 +245,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String? _listeningDeviceId;
   String? _playbackDeviceId;
   AppPreferencesSnapshot? _lastPersistedPreferences;
+  bool _hasSeenAudioPlaybackBluetoothNotice = false;
   bool _hasCompletedFirstLaunchWalkthrough = false;
   bool _walkthroughShownThisSession = false;
 
@@ -300,9 +301,13 @@ class _MyHomePageState extends State<MyHomePage> {
       targetLanguage: targetLanguage,
       hideTranslatedOriginalText: snapshot.hideTranslatedOriginalText,
       audioPlaybackEnabled: snapshot.audioPlaybackEnabled,
+      hasSeenAudioPlaybackBluetoothNotice:
+          snapshot.hasSeenAudioPlaybackBluetoothNotice,
       hasCompletedFirstLaunchWalkthrough:
           snapshot.hasCompletedFirstLaunchWalkthrough,
     );
+    _hasSeenAudioPlaybackBluetoothNotice =
+        snapshot.hasSeenAudioPlaybackBluetoothNotice;
     _hasCompletedFirstLaunchWalkthrough =
         snapshot.hasCompletedFirstLaunchWalkthrough;
   }
@@ -317,6 +322,7 @@ class _MyHomePageState extends State<MyHomePage> {
       targetLanguage: _controller.targetLanguage,
       hideTranslatedOriginalText: _controller.hideTranslatedOriginalText,
       audioPlaybackEnabled: _controller.audioPlaybackEnabled,
+      hasSeenAudioPlaybackBluetoothNotice: _hasSeenAudioPlaybackBluetoothNotice,
       hasCompletedFirstLaunchWalkthrough: _hasCompletedFirstLaunchWalkthrough,
     );
 
@@ -376,11 +382,38 @@ class _MyHomePageState extends State<MyHomePage> {
         targetLanguage: previous.targetLanguage,
         hideTranslatedOriginalText: previous.hideTranslatedOriginalText,
         audioPlaybackEnabled: previous.audioPlaybackEnabled,
+        hasSeenAudioPlaybackBluetoothNotice:
+            previous.hasSeenAudioPlaybackBluetoothNotice,
         hasCompletedFirstLaunchWalkthrough: true,
       );
     }
 
     await _appPreferences.setHasCompletedFirstLaunchWalkthrough(true);
+  }
+
+  Future<void> _markAudioPlaybackBluetoothNoticeSeen() async {
+    if (_hasSeenAudioPlaybackBluetoothNotice) return;
+
+    setState(() {
+      _hasSeenAudioPlaybackBluetoothNotice = true;
+    });
+
+    final previous = _lastPersistedPreferences;
+    if (previous != null) {
+      _lastPersistedPreferences = AppPreferencesSnapshot(
+        deepgramRecognitionModel: previous.deepgramRecognitionModel,
+        deepgramRecognitionLanguage: previous.deepgramRecognitionLanguage,
+        speechToTextRecognitionLocale: previous.speechToTextRecognitionLocale,
+        targetLanguage: previous.targetLanguage,
+        hideTranslatedOriginalText: previous.hideTranslatedOriginalText,
+        audioPlaybackEnabled: previous.audioPlaybackEnabled,
+        hasSeenAudioPlaybackBluetoothNotice: true,
+        hasCompletedFirstLaunchWalkthrough:
+            previous.hasCompletedFirstLaunchWalkthrough,
+      );
+    }
+
+    await _appPreferences.setHasSeenAudioPlaybackBluetoothNotice(true);
   }
 
   Future<void> _showWalkthrough({required bool markCompleted}) async {
@@ -1180,7 +1213,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     filterQuality: FilterQuality.high,
                     width: 40,
                     height: 40,
-                    fit: BoxFit.contain
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
@@ -1300,7 +1333,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 if (!_initializing && _isGroupSection) ...[
                   ChangeNotifierProvider<SpeechController>.value(
                     value: _controller,
-                    child: const SpeechFooter(),
+                    child: SpeechFooter(
+                      hasSeenAudioPlaybackBluetoothNotice:
+                          _hasSeenAudioPlaybackBluetoothNotice,
+                      onAudioPlaybackBluetoothNoticeSeen:
+                          _markAudioPlaybackBluetoothNoticeSeen,
+                    ),
                   ),
                   const SizedBox(height: 8),
                 ],

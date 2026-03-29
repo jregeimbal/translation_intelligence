@@ -777,6 +777,12 @@ abstract class AppLocalizations {
   /// **'Enable audio playback'**
   String get enableAudioPlayback;
 
+  /// No description provided for @audioPlaybackBluetoothNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'For the best experience, use audio playback with a bluetooth device.'**
+  String get audioPlaybackBluetoothNotice;
+
   /// No description provided for @primarySpeakerInline.
   ///
   /// In en, this message translates to:

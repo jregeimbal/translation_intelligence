@@ -19,7 +19,8 @@ void main() {
     expect(snapshot.speechToTextRecognitionLocale, 'multi');
     expect(snapshot.targetLanguage, 'en');
     expect(snapshot.hideTranslatedOriginalText, isTrue);
-    expect(snapshot.audioPlaybackEnabled, isTrue);
+    expect(snapshot.audioPlaybackEnabled, isFalse);
+    expect(snapshot.hasSeenAudioPlaybackBluetoothNotice, isFalse);
     expect(snapshot.hasCompletedFirstLaunchWalkthrough, isFalse);
   });
 
@@ -31,7 +32,8 @@ void main() {
     await preferences.setSpeechToTextRecognitionLocale('es-ES');
     await preferences.setTargetLanguage('fr');
     await preferences.setHideTranslatedOriginalText(false);
-    await preferences.setAudioPlaybackEnabled(false);
+    await preferences.setAudioPlaybackEnabled(true);
+    await preferences.setHasSeenAudioPlaybackBluetoothNotice(true);
     await preferences.setHasCompletedFirstLaunchWalkthrough(true);
 
     final snapshot = await preferences.load();
@@ -41,7 +43,8 @@ void main() {
     expect(snapshot.speechToTextRecognitionLocale, 'es-ES');
     expect(snapshot.targetLanguage, 'fr');
     expect(snapshot.hideTranslatedOriginalText, isFalse);
-    expect(snapshot.audioPlaybackEnabled, isFalse);
+    expect(snapshot.audioPlaybackEnabled, isTrue);
+    expect(snapshot.hasSeenAudioPlaybackBluetoothNotice, isTrue);
     expect(snapshot.hasCompletedFirstLaunchWalkthrough, isTrue);
   });
 }

@@ -64,4 +64,46 @@ void main() {
 
     expect(find.text('Primary speaker'), findsNothing);
   });
+
+  testWidgets('SpeechFooter shows bluetooth notice on first audio enable', (
+    tester,
+  ) async {
+    final controller = TestSpeechController(audioPlaybackEnabled: false);
+    var noticeSeenCallCount = 0;
+
+    await pumpTestApp(
+      tester,
+      SizedBox(
+        width: 1000,
+        child: ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: SpeechFooter(
+            hasSeenAudioPlaybackBluetoothNotice: false,
+            onAudioPlaybackBluetoothNoticeSeen: () async {
+              noticeSeenCallCount += 1;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byTooltip('Enable audio playback'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Enable audio playback'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'For the best experience, use audio playback with a bluetooth device.',
+      ),
+      findsOneWidget,
+    );
+    expect(controller.audioPlaybackEnabled, isFalse);
+
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(noticeSeenCallCount, 1);
+    expect(controller.audioPlaybackEnabled, isTrue);
+  });
 }

@@ -4,6 +4,7 @@ import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/theme/app_theme_resolver.dart';
+import 'package:vector_math/vector_math_64.dart' as vector_math;
 
 /// A scrollable list of chat messages (speech results).  Only rebuilds when the
 /// underlying message list changes.
@@ -704,7 +705,7 @@ class _AnimatedPartialMessageTextState
     final highlightColor = Color.lerp(
       baseColor,
       baseColor.computeLuminance() > 0.5 ? Colors.black : Colors.white,
-      0.28,
+      0.0,
     )!;
     final trailingColor = baseColor.withValues(
       alpha: (baseColor.a * 0.55).clamp(0.0, 1.0),
@@ -752,7 +753,7 @@ class _SlidingTextGradientTransform extends GradientTransform {
 
   @override
   Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
-    return Matrix4.identity()..translate(bounds.width * (progress * 2 - 1));
+    return Matrix4.identity()..translateByVector3(vector_math.Vector3(bounds.width * (progress * 2 - 1), 0, 0));
   }
 }
 
