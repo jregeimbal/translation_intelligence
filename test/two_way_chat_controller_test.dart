@@ -152,14 +152,17 @@ void main() {
       await pipeline.disposeFake();
     });
 
-    test('init sets speechError when microphone permission is denied', () async {
-      hasPermission = false;
+    test(
+      'init sets speechError when microphone permission is denied',
+      () async {
+        hasPermission = false;
 
-      await controller.init();
+        await controller.init();
 
-      expect(controller.speechEnabled, isFalse);
-      expect(controller.speechError, equals('microphonePermissionDenied'));
-    });
+        expect(controller.speechEnabled, isFalse);
+        expect(controller.speechError, equals('microphonePermissionDenied'));
+      },
+    );
 
     test('init sets speechError when API key validation fails', () async {
       pipeline.apiKeyValid = false;
@@ -170,131 +173,162 @@ void main() {
       expect(controller.speechError, equals('invalidSpeechApiKey'));
     });
 
-    test('language changes are disabled while listening or after messages exist', () async {
+    test(
+      'language changes are disabled while listening or after messages exist',
+      () async {
+        await controller.init();
+
+        controller.setPrimaryLanguage('fr');
+        controller.setGuestLanguage('de');
+        expect(controller.primaryLanguage, equals('fr'));
+        expect(controller.guestLanguage, equals('de'));
+
+        await controller.startListening(TwoWaySpeaker.primary);
+        controller.setPrimaryLanguage('ja');
+        controller.setGuestLanguage('ko');
+        expect(controller.primaryLanguage, equals('fr'));
+        expect(controller.guestLanguage, equals('de'));
+
+        pipeline.translatedText = 'guten tag';
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'bonjour',
+            isFinal: true,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(controller.messages, hasLength(1));
+        controller.setPrimaryLanguage('en');
+        controller.setGuestLanguage('es');
+        expect(controller.primaryLanguage, equals('fr'));
+        expect(controller.guestLanguage, equals('de'));
+      },
+    );
+
+    test(
+      'toggleListening starts and stops the active speaker session',
+      () async {
+        await controller.init();
+
+        await controller.toggleListening(TwoWaySpeaker.primary);
+
+        expect(controller.isListening, isTrue);
+        expect(controller.activeSpeaker, equals(TwoWaySpeaker.primary));
+        expect(pipeline.startRecognitionCalls, equals(1));
+        expect(pipeline.lastSourceLanguage, equals('en'));
+        expect(soundPlayer.playCallCount, equals(1));
+
+        await controller.toggleListening(TwoWaySpeaker.guest);
+        expect(controller.isListening, isTrue);
+        expect(controller.activeSpeaker, equals(TwoWaySpeaker.primary));
+        expect(pipeline.startRecognitionCalls, equals(1));
+
+        await controller.toggleListening(TwoWaySpeaker.primary);
+        expect(controller.isListening, isFalse);
+        expect(controller.activeSpeaker, isNull);
+        expect(pipeline.stopCalls, equals(1));
+      },
+    );
+
+    test('session errors stop listening and expose a retry message', () async {
       await controller.init();
-
-      controller.setPrimaryLanguage('fr');
-      controller.setGuestLanguage('de');
-      expect(controller.primaryLanguage, equals('fr'));
-      expect(controller.guestLanguage, equals('de'));
-
       await controller.startListening(TwoWaySpeaker.primary);
-      controller.setPrimaryLanguage('ja');
-      controller.setGuestLanguage('ko');
-      expect(controller.primaryLanguage, equals('fr'));
-      expect(controller.guestLanguage, equals('de'));
 
-      pipeline.translatedText = 'guten tag';
-      pipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'bonjour',
-          isFinal: true,
-        ),
-      );
+      pipeline.resultController.addError(StateError('listeningConnectionLost'));
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      expect(controller.messages, hasLength(1));
-      controller.setPrimaryLanguage('en');
-      controller.setGuestLanguage('es');
-      expect(controller.primaryLanguage, equals('fr'));
-      expect(controller.guestLanguage, equals('de'));
-    });
-
-    test('toggleListening starts and stops the active speaker session', () async {
-      await controller.init();
-
-      await controller.toggleListening(TwoWaySpeaker.primary);
-
-      expect(controller.isListening, isTrue);
-      expect(controller.activeSpeaker, equals(TwoWaySpeaker.primary));
-      expect(pipeline.startRecognitionCalls, equals(1));
-      expect(pipeline.lastSourceLanguage, equals('en'));
-      expect(soundPlayer.playCallCount, equals(1));
-
-      await controller.toggleListening(TwoWaySpeaker.guest);
-      expect(controller.isListening, isTrue);
-      expect(controller.activeSpeaker, equals(TwoWaySpeaker.primary));
-      expect(pipeline.startRecognitionCalls, equals(1));
-
-      await controller.toggleListening(TwoWaySpeaker.primary);
       expect(controller.isListening, isFalse);
       expect(controller.activeSpeaker, isNull);
-      expect(pipeline.stopCalls, equals(1));
-    });
-
-    test('partial result updates lastWords and amplitude without creating messages', () async {
-      await controller.init();
-      await controller.startListening(TwoWaySpeaker.primary);
-
-      pipeline.amplitudeController.add(0.42);
-      pipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'hello there',
-          isFinal: false,
-        ),
+      expect(
+        controller.speechError,
+        contains('connection could not be resumed'),
       );
-      await Future<void>.delayed(Duration.zero);
-
-      expect(controller.amplitude, closeTo(0.42, 0.0001));
-      expect(controller.lastWords, equals('hello there'));
-      expect(controller.messages, isEmpty);
-      expect(controller.isListening, isTrue);
     });
 
-    test('final primary result translates, stores message, and stops listening', () async {
-      await controller.init();
-      await controller.startListening(TwoWaySpeaker.primary);
-      pipeline.translatedText = 'hola mundo';
+    test(
+      'partial result updates lastWords and amplitude without creating messages',
+      () async {
+        await controller.init();
+        await controller.startListening(TwoWaySpeaker.primary);
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'hello world',
-          isFinal: true,
-        ),
-      );
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        pipeline.amplitudeController.add(0.42);
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hello there',
+            isFinal: false,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
 
-      expect(pipeline.lastTranslateText, equals('hello world'));
-      expect(pipeline.lastTranslateSourceLanguage, equals('en'));
-      expect(pipeline.lastTranslateTargetLanguage, equals('es'));
+        expect(controller.amplitude, closeTo(0.42, 0.0001));
+        expect(controller.lastWords, equals('hello there'));
+        expect(controller.messages, isEmpty);
+        expect(controller.isListening, isTrue);
+      },
+    );
 
-      expect(controller.messages, hasLength(1));
-      final message = controller.messages.single;
-      expect(message.speaker, equals(TwoWaySpeaker.primary));
-      expect(message.primaryText, equals('hello world'));
-      expect(message.guestText, equals('hola mundo'));
+    test(
+      'final primary result translates, stores message, and stops listening',
+      () async {
+        await controller.init();
+        await controller.startListening(TwoWaySpeaker.primary);
+        pipeline.translatedText = 'hola mundo';
 
-      expect(controller.lastWords, isEmpty);
-      expect(controller.isListening, isFalse);
-      expect(controller.activeSpeaker, isNull);
-      expect(pipeline.stopCalls, equals(1));
-      expect(pipeline.lastSynthText, equals('hola mundo'));
-      expect(pipeline.lastSynthLanguageCode, equals('es-ES'));
-    });
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'hello world',
+            isFinal: true,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-    test('final guest result swaps source and translated message fields', () async {
-      await controller.init();
-      await controller.startListening(TwoWaySpeaker.guest);
-      pipeline.translatedText = 'good morning';
+        expect(pipeline.lastTranslateText, equals('hello world'));
+        expect(pipeline.lastTranslateSourceLanguage, equals('en'));
+        expect(pipeline.lastTranslateTargetLanguage, equals('es'));
 
-      pipeline.resultController.add(
-        SpeechRecognitionResult.fromTranscript(
-          transcript: 'buenos dias',
-          isFinal: true,
-        ),
-      );
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        expect(controller.messages, hasLength(1));
+        final message = controller.messages.single;
+        expect(message.speaker, equals(TwoWaySpeaker.primary));
+        expect(message.primaryText, equals('hello world'));
+        expect(message.guestText, equals('hola mundo'));
 
-      expect(pipeline.lastTranslateSourceLanguage, equals('es'));
-      expect(pipeline.lastTranslateTargetLanguage, equals('en'));
-      expect(controller.messages, hasLength(1));
-      final message = controller.messages.single;
-      expect(message.speaker, equals(TwoWaySpeaker.guest));
-      expect(message.primaryText, equals('good morning'));
-      expect(message.guestText, equals('buenos dias'));
-    });
+        expect(controller.lastWords, isEmpty);
+        expect(controller.isListening, isFalse);
+        expect(controller.activeSpeaker, isNull);
+        expect(pipeline.stopCalls, equals(1));
+        expect(pipeline.lastSynthText, equals('hola mundo'));
+        expect(pipeline.lastSynthLanguageCode, equals('es-ES'));
+      },
+    );
+
+    test(
+      'final guest result swaps source and translated message fields',
+      () async {
+        await controller.init();
+        await controller.startListening(TwoWaySpeaker.guest);
+        pipeline.translatedText = 'good morning';
+
+        pipeline.resultController.add(
+          SpeechRecognitionResult.fromTranscript(
+            transcript: 'buenos dias',
+            isFinal: true,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(pipeline.lastTranslateSourceLanguage, equals('es'));
+        expect(pipeline.lastTranslateTargetLanguage, equals('en'));
+        expect(controller.messages, hasLength(1));
+        final message = controller.messages.single;
+        expect(message.speaker, equals(TwoWaySpeaker.guest));
+        expect(message.primaryText, equals('good morning'));
+        expect(message.guestText, equals('buenos dias'));
+      },
+    );
   });
 }

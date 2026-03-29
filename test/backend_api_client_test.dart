@@ -434,6 +434,186 @@ void main() {
       await sink.close();
     });
 
+    test(
+      'reconnects an interrupted websocket session and resumes audio',
+      () async {
+        final firstSentMessages = <dynamic>[];
+        final firstServerController = StreamController<dynamic>.broadcast();
+        final firstSink = StreamController<dynamic>();
+        firstSink.stream.listen(firstSentMessages.add);
+
+        final secondSentMessages = <dynamic>[];
+        final secondServerController = StreamController<dynamic>.broadcast();
+        final secondSink = StreamController<dynamic>();
+        secondSink.stream.listen(secondSentMessages.add);
+
+        final audioController = StreamController<Uint8List>.broadcast();
+        final amplitudeController = StreamController<double>.broadcast();
+        var stopCaptureCalls = 0;
+        var connectionCount = 0;
+
+        final client = BackendApiClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token-123',
+          sessionResumeTimeout: const Duration(milliseconds: 80),
+          reconnectRetryDelay: const Duration(milliseconds: 1),
+          webSocketConnector: (_) {
+            connectionCount += 1;
+            if (connectionCount == 1) {
+              return _TestWebSocketChannel(
+                firstServerController.stream,
+                _TestWebSocketSink(firstSink),
+              );
+            }
+            return _TestWebSocketChannel(
+              secondServerController.stream,
+              _TestWebSocketSink(secondSink),
+            );
+          },
+        );
+
+        final sessionFuture = client.startRecognitionSession(
+          audioStream: audioController.stream,
+          amplitudeStream: amplitudeController.stream,
+          stopCapture: () async {
+            stopCaptureCalls += 1;
+          },
+          sampleRate: 16000,
+          sourceLanguage: 'en-US',
+          model: 'nova-3',
+          language: 'en-US',
+          diarize: false,
+          utterances: false,
+          punctuate: true,
+          smartFormat: false,
+          detectLanguage: false,
+        );
+
+        await Future<void>.delayed(Duration.zero);
+        firstServerController.add(jsonEncode({'type': 'ready'}));
+        final session = await sessionFuture;
+
+        final resultFuture = session.resultStream.first;
+
+        audioController.add(Uint8List.fromList(const [1, 2, 3]));
+        await Future<void>.delayed(Duration.zero);
+        expect(firstSentMessages[1], Uint8List.fromList(const [1, 2, 3]));
+
+        await firstServerController.close();
+        audioController.add(Uint8List.fromList(const [9, 8, 7]));
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+
+        secondServerController.add(jsonEncode({'type': 'ready'}));
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        secondServerController.add(
+          jsonEncode({
+            'type': 'recognition_result',
+            'isFinal': true,
+            'speechFinal': true,
+            'words': [
+              {'word': 'resumed', 'speaker': 1},
+            ],
+          }),
+        );
+
+        final result = await resultFuture;
+        expect(result.wordsToText(), 'resumed');
+        expect(secondSentMessages[1], Uint8List.fromList(const [9, 8, 7]));
+        expect(stopCaptureCalls, 0);
+
+        await session.stop();
+
+        expect(stopCaptureCalls, 1);
+        expect(jsonDecode(secondSentMessages.last as String)['type'], 'stop');
+
+        await audioController.close();
+        await amplitudeController.close();
+        await secondServerController.close();
+        await firstSink.close();
+        await secondSink.close();
+      },
+    );
+
+    test(
+      'emits an error when websocket session cannot resume in time',
+      () async {
+        final firstServerController = StreamController<dynamic>.broadcast();
+        final firstSink = StreamController<dynamic>();
+        firstSink.stream.listen((_) {});
+
+        final reconnectSink = StreamController<dynamic>();
+        reconnectSink.stream.listen((_) {});
+
+        var stopCaptureCalls = 0;
+        var connectionCount = 0;
+
+        final client = BackendApiClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token-123',
+          startupTimeout: const Duration(milliseconds: 5),
+          sessionResumeTimeout: const Duration(milliseconds: 20),
+          reconnectRetryDelay: const Duration(milliseconds: 1),
+          webSocketConnector: (_) {
+            connectionCount += 1;
+            if (connectionCount == 1) {
+              return _TestWebSocketChannel(
+                firstServerController.stream,
+                _TestWebSocketSink(firstSink),
+              );
+            }
+            return _TestWebSocketChannel(
+              const Stream<dynamic>.empty(),
+              _TestWebSocketSink(reconnectSink),
+              readyFuture: Completer<void>().future,
+            );
+          },
+        );
+
+        final sessionFuture = client.startRecognitionSession(
+          audioStream: const Stream<Uint8List>.empty(),
+          amplitudeStream: const Stream<double>.empty(),
+          stopCapture: () async {
+            stopCaptureCalls += 1;
+          },
+          sampleRate: 16000,
+          sourceLanguage: 'en-US',
+          model: 'nova-3',
+          language: 'en-US',
+          diarize: false,
+          utterances: false,
+          punctuate: true,
+          smartFormat: false,
+          detectLanguage: false,
+        );
+
+        await Future<void>.delayed(Duration.zero);
+        firstServerController.add(jsonEncode({'type': 'ready'}));
+        final session = await sessionFuture;
+
+        final streamError = Completer<Object>();
+        final sub = session.resultStream.listen(
+          (_) {},
+          onError: (Object error, StackTrace _) {
+            if (!streamError.isCompleted) {
+              streamError.complete(error);
+            }
+          },
+        );
+
+        await firstServerController.close();
+
+        final error = await streamError.future;
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        expect(error, isA<StateError>());
+        expect(error.toString(), contains('listeningConnectionLost'));
+        expect(stopCaptureCalls, 1);
+
+        await sub.cancel();
+        await firstSink.close();
+        await reconnectSink.close();
+      },
+    );
+
     test('surfaces backend error payload before ready', () async {
       final sentMessages = <dynamic>[];
       final serverController = StreamController<dynamic>.broadcast();

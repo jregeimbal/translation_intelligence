@@ -14,6 +14,9 @@ import '../services/speech_output_provider.dart';
 import '../services/speech_stt_provider.dart';
 import '../services/speech_translation_provider.dart';
 
+const String _twoWaySessionResumeFailureMessage =
+    'Listening stopped because the connection could not be resumed. Tap Listen to try again.';
+
 class TwoWayChatController extends ChangeNotifier {
   final SpeechPipeline _speechPipeline;
   final MicActivationSoundPlayer _micActivationSoundPlayer;
@@ -244,19 +247,25 @@ class TwoWayChatController extends ChangeNotifier {
     _isListening = true;
     _activeSpeaker = speaker;
     _lastWords = '';
+    _speechError = '';
     notifyListeners();
     unawaited(_micActivationSoundPlayer.play());
 
-    _listenSub = session.resultStream.listen((result) {
-      unawaited(
-        _onRecognitionResult(
-          result: result,
-          sourceSpeaker: speaker,
-          targetLang: targetLang,
-          sessionId: currentSession,
-        ),
-      );
-    });
+    _listenSub = session.resultStream.listen(
+      (result) {
+        unawaited(
+          _onRecognitionResult(
+            result: result,
+            sourceSpeaker: speaker,
+            targetLang: targetLang,
+            sessionId: currentSession,
+          ),
+        );
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        unawaited(_handleRecognitionSessionFailure(error, stackTrace));
+      },
+    );
   }
 
   Future<void> _onRecognitionResult({
@@ -337,6 +346,10 @@ class TwoWayChatController extends ChangeNotifier {
   }
 
   Future<void> stopListening() async {
+    await _stopListeningInternal(clearSpeechError: true);
+  }
+
+  Future<void> _stopListeningInternal({required bool clearSpeechError}) async {
     if (!_isListening) return;
 
     await _recognitionSession?.stop();
@@ -347,11 +360,11 @@ class TwoWayChatController extends ChangeNotifier {
     _activeSessionResolvedLanguageCode = null;
     _activeSessionListeningDeviceId = null;
     _activeSessionStartedAt = null;
+    final listenSub = _listenSub;
+    _listenSub = null;
     await _ampSub?.cancel();
     _ampSub = null;
-
-    await _listenSub?.cancel();
-    _listenSub = null;
+    unawaited(listenSub?.cancel());
 
     try {
       await WakelockPlus.disable();
@@ -361,7 +374,21 @@ class TwoWayChatController extends ChangeNotifier {
     _activeSpeaker = null;
     _amplitude = 0.0;
     _lastWords = '';
+    if (clearSpeechError) {
+      _speechError = '';
+    }
     notifyListeners();
+  }
+
+  Future<void> _handleRecognitionSessionFailure(
+    Object error,
+    StackTrace stackTrace,
+  ) async {
+    if (!_isListening) {
+      return;
+    }
+    _speechError = _twoWaySessionResumeFailureMessage;
+    await _stopListeningInternal(clearSpeechError: false);
   }
 
   void clearMessages() {

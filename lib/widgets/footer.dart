@@ -156,7 +156,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
                   ),
                   const SizedBox(width: 8),
                 ],
-                if (!speechEnabled)
+                if (!speechEnabled || speechError.isNotEmpty)
                   Flexible(
                     child: Padding(
                       padding: const EdgeInsets.only(right: 8.0),

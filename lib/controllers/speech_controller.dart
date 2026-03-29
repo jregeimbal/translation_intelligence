@@ -21,6 +21,8 @@ import '../services/speech_stt_provider.dart';
 import '../services/speech_translation_provider.dart';
 
 final logger = Logger('SpeechController'); // Create a logger with a name
+const String _sessionResumeFailureMessage =
+    'Listening stopped because the connection could not be resumed. Tap the mic to try again.';
 
 /// Manages a live recognition session and exposes application-wide
 /// state.  Receives raw audio from the microphone via `record` and sends it to
@@ -780,6 +782,7 @@ class SpeechController extends ChangeNotifier {
       return;
     }
     _speechEnabled = hasPerm && isValid;
+    _speechError = '';
     await refreshListeningDevices();
     await refreshPlaybackDevices();
     _listeningDeviceChangeSub ??= _speechPipeline
@@ -825,7 +828,12 @@ class SpeechController extends ChangeNotifier {
     _activeSessionListeningDeviceId = session.listeningDeviceId;
     _activeSessionStartedAt = session.startedAt;
     _recognitionSub?.cancel();
-    _recognitionSub = session.resultStream.listen(_onRecognitionResult);
+    _recognitionSub = session.resultStream.listen(
+      _onRecognitionResult,
+      onError: (Object error, StackTrace stackTrace) {
+        unawaited(_handleRecognitionSessionFailure(error, stackTrace));
+      },
+    );
     _ampSub?.cancel();
     _ampSub = session.amplitudeStream.listen((value) {
       _amplitude = value;
@@ -833,12 +841,17 @@ class SpeechController extends ChangeNotifier {
     });
 
     _isListening = true;
+    _speechError = '';
     notifyListeners();
     unawaited(_micActivationSoundPlayer.play());
   }
 
   /// Stop the microphone stream and send any pending words as a message.
   Future<void> stopListening() async {
+    await _stopListeningInternal(clearSpeechError: true);
+  }
+
+  Future<void> _stopListeningInternal({required bool clearSpeechError}) async {
     if (!_isListening) return;
 
     await _recognitionSession?.stop();
@@ -849,8 +862,9 @@ class SpeechController extends ChangeNotifier {
     _activeSessionResolvedLanguageCode = null;
     _activeSessionListeningDeviceId = null;
     _activeSessionStartedAt = null;
-    await _recognitionSub?.cancel();
+    final recognitionSub = _recognitionSub;
     _recognitionSub = null;
+    unawaited(recognitionSub?.cancel());
     await _ampSub?.cancel();
     _ampSub = null;
 
@@ -872,7 +886,22 @@ class SpeechController extends ChangeNotifier {
 
     _isListening = false;
     _amplitude = 0.0;
+    if (clearSpeechError) {
+      _speechError = '';
+    }
     notifyListeners();
+  }
+
+  Future<void> _handleRecognitionSessionFailure(
+    Object error,
+    StackTrace stackTrace,
+  ) async {
+    logger.warning('speech recognition session failed', error, stackTrace);
+    if (!_isListening) {
+      return;
+    }
+    _speechError = _sessionResumeFailureMessage;
+    await _stopListeningInternal(clearSpeechError: false);
   }
 
   bool get _hasPendingFinalResults => _queuedMessages.isNotEmpty;
@@ -908,6 +937,7 @@ class SpeechController extends ChangeNotifier {
         .trim();
     return translation.isEmpty ? null : translation;
   }
+
   bool _shouldReplaceLatestQueuedGroup(
     ChatMessageGroup previousGroup,
     String nextOriginal,
@@ -997,9 +1027,8 @@ class SpeechController extends ChangeNotifier {
             ? previous.processingStarted
             : false;
         final queuedId =
-            previous?.id ??
-            _optimisticMessageIdForSpeaker(speaker);
-          _clearOptimisticMessageIdForSpeaker(speaker);
+            previous?.id ?? _optimisticMessageIdForSpeaker(speaker);
+        _clearOptimisticMessageIdForSpeaker(speaker);
 
         final nextGroups = previous == null
             ? <ChatMessageGroup>[]
