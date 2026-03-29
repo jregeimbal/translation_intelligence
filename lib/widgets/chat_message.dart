@@ -17,6 +17,8 @@ class ChatMessageList extends StatefulWidget {
 }
 
 class _ChatMessageListState extends State<ChatMessageList> {
+  static const double _bottomScrollThreshold = 50;
+
   int _lastMessageSnapshotHash = 0;
   final Set<String> _expandedOriginalMessageIds = <String>{};
   String? _hoverHintMessageId;
@@ -24,6 +26,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
   final ScrollController _scrollController = ScrollController();
   bool _shouldAutoScroll = true;
   bool _showScrollButton = false;
+  bool _userScrolledAwayFromBottom = false;
 
   Color _speakerChipBackground(
     int? speaker,
@@ -64,18 +67,60 @@ class _ChatMessageListState extends State<ChatMessageList> {
   void initState() {
     super.initState();
     _scrollController.addListener(() {
-      // if user scrolls away from bottom, don't auto-scroll on new messages
-      if (!_scrollController.hasClients) return;
-      final maxScroll = _scrollController.position.maxScrollExtent;
-      final curr = _scrollController.offset;
-      final atBottom = (maxScroll - curr) < 50;
-      if (atBottom != _shouldAutoScroll) {
-        setState(() {
-          _shouldAutoScroll = atBottom;
-          _showScrollButton = !atBottom;
-        });
-      }
+      _syncScrollState();
     });
+  }
+
+  bool _isAtBottom() {
+    if (!_scrollController.hasClients) return true;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final curr = _scrollController.offset;
+    return (maxScroll - curr) < _bottomScrollThreshold;
+  }
+
+  void _syncScrollState({bool userInteracted = false}) {
+    if (!_scrollController.hasClients) return;
+
+    final atBottom = _isAtBottom();
+
+    if (userInteracted && !atBottom) {
+      _userScrolledAwayFromBottom = true;
+    } else if (atBottom) {
+      _userScrolledAwayFromBottom = false;
+    }
+
+    final nextShouldAutoScroll = atBottom || !_userScrolledAwayFromBottom;
+    final nextShowScrollButton = _userScrolledAwayFromBottom && !atBottom;
+    if (_shouldAutoScroll == nextShouldAutoScroll &&
+        _showScrollButton == nextShowScrollButton) {
+      return;
+    }
+
+    setState(() {
+      _shouldAutoScroll = nextShouldAutoScroll;
+      _showScrollButton = nextShowScrollButton;
+    });
+  }
+
+  bool _handleScrollNotification(ScrollNotification notification) {
+    final userInteracted =
+        (notification is ScrollStartNotification &&
+            notification.dragDetails != null) ||
+        (notification is ScrollUpdateNotification &&
+            notification.dragDetails != null) ||
+      (notification is OverscrollNotification &&
+        notification.dragDetails != null);
+    _syncScrollState(userInteracted: userInteracted);
+    return false;
+  }
+
+  void _scrollToLatest({required Duration duration}) {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: duration,
+      curve: Curves.easeOut,
+    );
   }
 
   int _computeMessageSnapshotHash(List<ChatMessage> messages) {
@@ -98,13 +143,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
     if (!_shouldAutoScroll) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
+      _scrollToLatest(duration: const Duration(milliseconds: 250));
     });
   }
 
@@ -191,181 +230,184 @@ class _ChatMessageListState extends State<ChatMessageList> {
 
     return Stack(
       children: [
-        ListView.separated(
-          controller: _scrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-          itemCount: messages.length,
-          separatorBuilder: (context, _) => const SizedBox(height: 10),
-          itemBuilder: (context, index) {
-            final msg = messages[index];
-            final isPreferred =
-                msg.speaker != null &&
-                msg.speaker == controller.preferredSpeaker;
-            final isPrimaryStyled =
-                controller.preferredSpeaker != null && isPreferred;
-            final hasTranslation =
-                msg.translation != null ||
-                msg.groups.any((group) => group.translation != null);
-            final canToggleOriginal =
-                hideTranslatedOriginalText && msg.isFinal && hasTranslation;
-            final showOriginal =
-                !hideTranslatedOriginalText ||
-                !msg.isFinal ||
-                _expandedOriginalMessageIds.contains(msg.id);
-            final textColor = theme.colorScheme.onSurface;
-            final speakerChipColor = _speakerChipBackground(
-              msg.speaker,
-              isPreferred,
-              tokens,
-              theme,
-            );
+        NotificationListener<ScrollNotification>(
+          onNotification: _handleScrollNotification,
+          child: ListView.separated(
+            controller: _scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+            itemCount: messages.length,
+            separatorBuilder: (context, _) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final msg = messages[index];
+              final isPreferred =
+                  msg.speaker != null &&
+                  msg.speaker == controller.preferredSpeaker;
+              final isPrimaryStyled =
+                  controller.preferredSpeaker != null && isPreferred;
+              final hasTranslation =
+                  msg.translation != null ||
+                  msg.groups.any((group) => group.translation != null);
+              final canToggleOriginal =
+                  hideTranslatedOriginalText && msg.isFinal && hasTranslation;
+              final showOriginal =
+                  !hideTranslatedOriginalText ||
+                  !msg.isFinal ||
+                  _expandedOriginalMessageIds.contains(msg.id);
+              final textColor = theme.colorScheme.onSurface;
+              final speakerChipColor = _speakerChipBackground(
+                msg.speaker,
+                isPreferred,
+                tokens,
+                theme,
+              );
 
-            return Align(
-              key: ValueKey<String>('chat_row_${msg.id}'),
-              alignment: isPreferred
-                  ? Alignment.centerRight
-                  : Alignment.centerLeft,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: isPreferred ? 56 : 0,
-                  right: isPreferred ? 0 : 56,
-                ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.88,
+              return Align(
+                key: ValueKey<String>('chat_row_${msg.id}'),
+                alignment: isPreferred
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: isPreferred ? 56 : 0,
+                    right: isPreferred ? 0 : 56,
                   ),
-                  child: Column(
-                    crossAxisAlignment: isPrimaryStyled
-                        ? CrossAxisAlignment.end
-                        : CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Align(
-                        alignment:
-                            controller.preferredSpeaker != null && isPreferred
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (msg.speaker != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: speakerChipColor,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  l10n.speakerLabel(msg.speaker! + 1),
-                                  style: textRoles.speakerChip.copyWith(
-                                    color: _speakerChipTextColor(
-                                      speakerChipColor,
-                                      theme,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.88,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: isPrimaryStyled
+                          ? CrossAxisAlignment.end
+                          : CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Align(
+                          alignment:
+                              controller.preferredSpeaker != null && isPreferred
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (msg.speaker != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: speakerChipColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    l10n.speakerLabel(msg.speaker! + 1),
+                                    style: textRoles.speakerChip.copyWith(
+                                      color: _speakerChipTextColor(
+                                        speakerChipColor,
+                                        theme,
+                                      ),
                                     ),
                                   ),
                                 ),
+                              if (msg.speaker != null) const SizedBox(width: 8),
+                              Text(
+                                _formatTime(context, msg.timestamp),
+                                style: textRoles.timestamp.copyWith(
+                                  color: textColor.withValues(alpha: 0.8),
+                                ),
                               ),
-                            if (msg.speaker != null) const SizedBox(width: 8),
-                            Text(
-                              _formatTime(context, msg.timestamp),
-                              style: textRoles.timestamp.copyWith(
-                                color: textColor.withValues(alpha: 0.8),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      MouseRegion(
-                        cursor: canToggleOriginal
-                            ? SystemMouseCursors.click
-                            : MouseCursor.defer,
-                        onEnter: canToggleOriginal
-                            ? (_) {
-                                setState(() {
-                                  _hoverHintMessageId = msg.id;
-                                });
-                              }
-                            : null,
-                        onExit: (_) {
-                          if (_hoverHintMessageId != msg.id) return;
-                          setState(() {
-                            _hoverHintMessageId = null;
-                          });
-                        },
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            GestureDetector(
-                              key: ValueKey<String>('chat_bubble_${msg.id}'),
-                              behavior: HitTestBehavior.translucent,
-                              onTap: canToggleOriginal
-                                  ? () {
-                                      setState(() {
-                                        if (_expandedOriginalMessageIds
-                                            .contains(msg.id)) {
-                                          _expandedOriginalMessageIds.remove(
-                                            msg.id,
-                                          );
-                                        } else {
-                                          _expandedOriginalMessageIds.add(
-                                            msg.id,
-                                          );
-                                        }
-                                      });
-                                    }
-                                  : null,
-                              child: _ChatMessageContent(
-                                message: msg,
-                                isPrimaryStyled: isPrimaryStyled,
-                                textColor: textColor,
-                                textRoles: textRoles,
-                                showOriginal: showOriginal,
+                        const SizedBox(height: 8),
+                        MouseRegion(
+                          cursor: canToggleOriginal
+                              ? SystemMouseCursors.click
+                              : MouseCursor.defer,
+                          onEnter: canToggleOriginal
+                              ? (_) {
+                                  setState(() {
+                                    _hoverHintMessageId = msg.id;
+                                  });
+                                }
+                              : null,
+                          onExit: (_) {
+                            if (_hoverHintMessageId != msg.id) return;
+                            setState(() {
+                              _hoverHintMessageId = null;
+                            });
+                          },
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              GestureDetector(
+                                key: ValueKey<String>('chat_bubble_${msg.id}'),
+                                behavior: HitTestBehavior.translucent,
+                                onTap: canToggleOriginal
+                                    ? () {
+                                        setState(() {
+                                          if (_expandedOriginalMessageIds
+                                              .contains(msg.id)) {
+                                            _expandedOriginalMessageIds.remove(
+                                              msg.id,
+                                            );
+                                          } else {
+                                            _expandedOriginalMessageIds.add(
+                                              msg.id,
+                                            );
+                                          }
+                                        });
+                                      }
+                                    : null,
+                                child: _ChatMessageContent(
+                                  message: msg,
+                                  isPrimaryStyled: isPrimaryStyled,
+                                  textColor: textColor,
+                                  textRoles: textRoles,
+                                  showOriginal: showOriginal,
+                                ),
                               ),
-                            ),
-                            if (canToggleOriginal &&
-                                _hoverHintMessageId == msg.id)
-                              Positioned(
-                                top: -34,
-                                left: isPrimaryStyled ? null : 0,
-                                right: isPrimaryStyled ? 0 : null,
-                                child: IgnorePointer(
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      color: theme.colorScheme.inverseSurface,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
+                              if (canToggleOriginal &&
+                                  _hoverHintMessageId == msg.id)
+                                Positioned(
+                                  top: -34,
+                                  left: isPrimaryStyled ? null : 0,
+                                  right: isPrimaryStyled ? 0 : null,
+                                  child: IgnorePointer(
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.inverseSurface,
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: Text(
-                                        showOriginal
-                                            ? l10n.hideOriginal
-                                            : l10n.showOriginal,
-                                        style: textRoles.helperText.copyWith(
-                                          color: theme
-                                              .colorScheme
-                                              .onInverseSurface,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        child: Text(
+                                          showOriginal
+                                              ? l10n.hideOriginal
+                                              : l10n.showOriginal,
+                                          style: textRoles.helperText.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onInverseSurface,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
         if (_showScrollButton)
           Positioned(
@@ -378,12 +420,9 @@ class _ChatMessageListState extends State<ChatMessageList> {
                 label: Text(l10n.jumpToLatest),
                 onPressed: () {
                   if (_scrollController.hasClients) {
-                    _scrollController.animateTo(
-                      _scrollController.position.maxScrollExtent,
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOut,
-                    );
+                    _scrollToLatest(duration: const Duration(milliseconds: 220));
                     setState(() {
+                      _userScrolledAwayFromBottom = false;
                       _shouldAutoScroll = true;
                       _showScrollButton = false;
                     });
