@@ -18,11 +18,7 @@
     {
       "label": "flutter build appbundle (release)",
       "type": "shell",
-      "command": "dart",
-      "args": [
-        "run",
-        "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH=google-play-service-account.json dart tool/upload_play_release.dart"
-      ],
+      "command": "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH=google-play-service-account.json dart tool/upload_play_release.dart",
       "group": "build",
       "presentation": {
         "reveal": "always"

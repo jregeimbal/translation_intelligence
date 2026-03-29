@@ -220,6 +220,35 @@ class BackendApiClient {
     final startupResult = Completer<SpeechRecognitionSession>();
     Timer? startupTimer;
 
+    SpeechConnectionStartupException startupTimeoutException() {
+      final debugInfo = _copyDebugInfo(initialDebugInfo, phase: startupPhase);
+      final cause = TimeoutException(
+        'Speech recognition startup exceeded ${_startupTimeout.inMilliseconds} ms.',
+        _startupTimeout,
+      );
+
+      switch (startupPhase) {
+        case 'connect':
+          return SpeechConnectionStartupException(
+            message: 'Timed out connecting to the STT websocket.',
+            debugInfo: debugInfo,
+            cause: cause,
+          );
+        case 'awaiting_ready':
+          return SpeechConnectionStartupException(
+            message: 'Timed out waiting for the STT stream to become ready.',
+            debugInfo: debugInfo,
+            cause: cause,
+          );
+        default:
+          return SpeechConnectionStartupException(
+            message: 'Timed out starting the STT websocket session.',
+            debugInfo: debugInfo,
+            cause: cause,
+          );
+      }
+    }
+
     startupTimer = Timer(_startupTimeout, () async {
       if (startupResult.isCompleted) {
         return;
@@ -228,16 +257,7 @@ class BackendApiClient {
       if (startupResult.isCompleted) {
         return;
       }
-      startupResult.completeError(
-        SpeechConnectionStartupException(
-          message: 'Timed out starting the STT websocket session.',
-          debugInfo: _copyDebugInfo(initialDebugInfo, phase: startupPhase),
-          cause: TimeoutException(
-            'Speech recognition startup exceeded ${_startupTimeout.inMilliseconds} ms.',
-            _startupTimeout,
-          ),
-        ),
-      );
+      startupResult.completeError(startupTimeoutException());
     });
 
     Future<void> completeStartup(
