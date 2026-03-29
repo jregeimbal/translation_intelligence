@@ -90,7 +90,17 @@ class LiveSttConnectionHandler {
       }
       try {
         await channel.sink.close(code, reason);
-      } catch (_) {}
+      } catch (_) {
+        logStructured(_logger, Level.WARNING, {
+          'event': 'ws_session_close_failed',
+          'requestId': requestId,
+          'traceId': traceId,
+          'clientIp': clientIp,
+          'uid': userId,
+          'code': code,
+          'reason': reason,
+        });
+      }
     }
 
     Future<void> sendError(String message, {bool closeSocket = true}) async {
