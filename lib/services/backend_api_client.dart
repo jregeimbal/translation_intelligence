@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:typed_data';
@@ -22,17 +23,23 @@ class BackendApiClient {
     http.Client? httpClient,
     WebSocketConnector? webSocketConnector,
     Duration startupTimeout = const Duration(seconds: 10),
+    Duration sessionResumeTimeout = const Duration(seconds: 10),
+    Duration reconnectRetryDelay = const Duration(milliseconds: 500),
   }) : _baseUri = Uri.parse(baseUrl),
        _authTokenProvider = authTokenProvider,
        _httpClient = httpClient ?? http.Client(),
        _webSocketConnector = webSocketConnector ?? WebSocketChannel.connect,
-       _startupTimeout = startupTimeout;
+       _startupTimeout = startupTimeout,
+       _sessionResumeTimeout = sessionResumeTimeout,
+       _reconnectRetryDelay = reconnectRetryDelay;
 
   final Uri _baseUri;
   final Future<String> Function() _authTokenProvider;
   final http.Client _httpClient;
   final WebSocketConnector _webSocketConnector;
   final Duration _startupTimeout;
+  final Duration _sessionResumeTimeout;
+  final Duration _reconnectRetryDelay;
 
   Future<bool> isAvailable() async {
     final response = await _httpClient.get(_resolve('/v1/health'));
@@ -323,93 +330,115 @@ class BackendApiClient {
           );
         }
 
-        startupPhase = 'connect';
-        final WebSocketChannel channel;
-        try {
-          channel = _webSocketConnector(wsUri);
-          startupChannel = channel;
-        } catch (error) {
-          await abortStartup();
-          throw SpeechConnectionStartupException(
-            message: 'Failed to create STT websocket connection.',
-            debugInfo: _copyDebugInfo(debugInfo, phase: 'connect'),
-            cause: error,
-          );
-        }
-        try {
-          await channel.ready.timeout(_startupTimeout);
-          developer.log(
-            'Backend STT websocket connected uri=$wsUri',
-            name: 'BackendApiClient',
-          );
-        } on TimeoutException catch (error, stackTrace) {
-          await abortStartup();
-          developer.log(
-            'Backend STT websocket connection timed out uri=$wsUri timeout=${_startupTimeout.inMilliseconds}ms',
-            name: 'BackendApiClient',
-            error: error,
-            stackTrace: stackTrace,
-          );
-          Error.throwWithStackTrace(
-            SpeechConnectionStartupException(
-              message: 'Timed out connecting to the STT websocket.',
-              debugInfo: _copyDebugInfo(debugInfo, phase: 'connect'),
-              cause: error,
-            ),
-            stackTrace,
-          );
-        } catch (error, stackTrace) {
-          await abortStartup();
-          developer.log(
-            'Backend STT websocket connection failed uri=$wsUri error=$error',
-            name: 'BackendApiClient',
-            error: error,
-            stackTrace: stackTrace,
-          );
-          Error.throwWithStackTrace(
-            SpeechConnectionStartupException(
-              message: 'Failed to connect to the STT websocket.',
-              debugInfo: _copyDebugInfo(debugInfo, phase: 'connect'),
-              cause: error,
-            ),
-            stackTrace,
-          );
-        }
-
         final resultController =
             StreamController<SpeechRecognitionResult>.broadcast();
         final outgoingAmplitude = StreamController<double>.broadcast();
-        final subscriptions = <StreamSubscription<dynamic>>[];
-        final ready = Completer<void>();
+        final pendingAudioChunks = Queue<Uint8List>();
+        StreamSubscription<double>? amplitudeSubscription;
+        StreamSubscription<Uint8List>? audioSubscription;
+        StreamSubscription<dynamic>? channelSubscription;
+        WebSocketChannel? activeChannel;
         var closed = false;
+        var reconnecting = false;
 
-        Future<void> closeSession() async {
-          if (closed) return;
-          closed = true;
-          await Future.wait(subscriptions.map((sub) => sub.cancel()));
-          await stopCaptureOnce();
-          channel.sink.add(jsonEncode({'type': 'stop'}));
-          await channel.sink.close();
-          if (!resultController.isClosed) await resultController.close();
-          if (!outgoingAmplitude.isClosed) await outgoingAmplitude.close();
-        }
+        late Future<void> Function(
+          WebSocketChannel? currentChannel, {
+          bool sendStop,
+        })
+        closeChannel;
+        late Future<void> Function({bool sendStop}) closeSession;
+        late Future<void> Function(Object error, [StackTrace? stackTrace])
+        failSession;
+        late Future<void> Function(
+          Object error,
+          StackTrace stackTrace,
+          WebSocketChannel failedChannel,
+        )
+        handleConnectedSocketInterrupted;
+        late void Function() flushPendingAudio;
 
-        subscriptions.add(
-          amplitudeStream.listen((value) {
-            if (!outgoingAmplitude.isClosed) {
-              outgoingAmplitude.add(value);
+        Future<_ConnectedSttSocket> connectChannel({
+          required Future<String> Function() tokenProvider,
+          required Duration timeout,
+          bool isStartup = false,
+        }) async {
+          final connectionToken = await tokenProvider();
+          if (connectionToken.trim().isEmpty) {
+            throw StateError('Missing auth token for STT websocket.');
+          }
+
+          final WebSocketChannel currentChannel;
+          try {
+            currentChannel = _webSocketConnector(wsUri);
+            if (isStartup) {
+              startupChannel = currentChannel;
             }
-          }),
-        );
+          } catch (error, stackTrace) {
+            if (!isStartup) {
+              Error.throwWithStackTrace(error, stackTrace);
+            }
+            Error.throwWithStackTrace(
+              SpeechConnectionStartupException(
+                message: 'Failed to create STT websocket connection.',
+                debugInfo: _copyDebugInfo(debugInfo, phase: 'connect'),
+                cause: error,
+              ),
+              stackTrace,
+            );
+          }
 
-        subscriptions.add(
-          channel.stream.listen(
+          try {
+            if (isStartup) {
+              startupPhase = 'connect';
+            }
+            await currentChannel.ready.timeout(timeout);
+            developer.log(
+              'Backend STT websocket connected uri=$wsUri',
+              name: 'BackendApiClient',
+            );
+          } on TimeoutException catch (error, stackTrace) {
+            await closeChannel(currentChannel, sendStop: false);
+            if (!isStartup) {
+              Error.throwWithStackTrace(error, stackTrace);
+            }
+            Error.throwWithStackTrace(
+              SpeechConnectionStartupException(
+                message: 'Timed out connecting to the STT websocket.',
+                debugInfo: _copyDebugInfo(debugInfo, phase: 'connect'),
+                cause: error,
+              ),
+              stackTrace,
+            );
+          } catch (error, stackTrace) {
+            await closeChannel(currentChannel, sendStop: false);
+            if (!isStartup) {
+              Error.throwWithStackTrace(error, stackTrace);
+            }
+            Error.throwWithStackTrace(
+              SpeechConnectionStartupException(
+                message: 'Failed to connect to the STT websocket.',
+                debugInfo: _copyDebugInfo(debugInfo, phase: 'connect'),
+                cause: error,
+              ),
+              stackTrace,
+            );
+          }
+
+          activeChannel = currentChannel;
+          final ready = Completer<void>();
+          var sessionReady = false;
+
+          late final StreamSubscription<dynamic> currentSubscription;
+          currentSubscription = currentChannel.stream.listen(
             (message) {
               if (message is! String) return;
               final payload = jsonDecode(message) as Map<String, dynamic>;
               switch (payload['type']) {
                 case 'ready':
-                  if (!ready.isCompleted) ready.complete();
+                  sessionReady = true;
+                  if (!ready.isCompleted) {
+                    ready.complete();
+                  }
                   developer.log(
                     'Backend STT websocket received ready message',
                     name: 'BackendApiClient',
@@ -421,113 +450,325 @@ class BackendApiClient {
                   }
                   return;
                 case 'error':
-                  final error = StateError(
+                  final payloadError = StateError(
                     (payload['message'] as String?) ??
                         'Speech recognition failed.',
                   );
                   developer.log(
                     'Backend STT websocket received error payload=${payload['message']}',
                     name: 'BackendApiClient',
-                    error: error,
+                    error: payloadError,
                   );
-                  if (!ready.isCompleted) ready.completeError(error);
-                  if (!resultController.isClosed) {
-                    resultController.addError(error);
+                  if (!sessionReady) {
+                    if (!ready.isCompleted) {
+                      ready.completeError(payloadError);
+                    }
+                    return;
                   }
-                  unawaited(closeSession());
+                  unawaited(failSession(payloadError));
                   return;
                 default:
                   return;
               }
             },
-            onError: (Object error, StackTrace stackTrace) {
+            onError: (Object streamError, StackTrace streamStackTrace) {
               developer.log(
                 'Backend STT websocket stream error',
                 name: 'BackendApiClient',
-                error: error,
-                stackTrace: stackTrace,
+                error: streamError,
+                stackTrace: streamStackTrace,
               );
-              if (!ready.isCompleted) ready.completeError(error, stackTrace);
-              if (!resultController.isClosed) {
-                resultController.addError(error, stackTrace);
+              if (!sessionReady) {
+                if (!ready.isCompleted) {
+                  ready.completeError(streamError, streamStackTrace);
+                }
+                return;
               }
-              unawaited(closeSession());
+              unawaited(
+                handleConnectedSocketInterrupted(
+                  streamError,
+                  streamStackTrace,
+                  currentChannel,
+                ),
+              );
             },
             onDone: () {
               developer.log(
                 'Backend STT websocket closed by server',
                 name: 'BackendApiClient',
               );
-              if (!ready.isCompleted) {
-                ready.completeError(
-                  StateError(
-                    'Speech recognition websocket closed before ready.',
-                  ),
-                );
+              if (!sessionReady) {
+                if (!ready.isCompleted) {
+                  ready.completeError(
+                    StateError(
+                      'Speech recognition websocket closed before ready.',
+                    ),
+                  );
+                }
+                return;
               }
-              unawaited(closeSession());
+              unawaited(
+                handleConnectedSocketInterrupted(
+                  StateError(
+                    'Speech recognition websocket closed unexpectedly.',
+                  ),
+                  StackTrace.current,
+                  currentChannel,
+                ),
+              );
             },
             cancelOnError: true,
-          ),
-        );
-
-        channel.sink.add(
-          jsonEncode({
-            'type': 'start',
-            'token': token,
-            'sourceLanguage': sourceLanguage,
-            'sampleRate': sampleRate,
-            ...?(model == null ? null : {'model': model}),
-            ...?(language == null ? null : {'language': language}),
-            'diarize': diarize,
-            'utterances': utterances,
-            'punctuate': punctuate,
-            'smartFormat': smartFormat,
-            'detectLanguage': detectLanguage,
-          }),
-        );
-        developer.log(
-          'Backend STT websocket sent start message tokenLength=${token.length}',
-          name: 'BackendApiClient',
-        );
-
-        startupPhase = 'awaiting_ready';
-        try {
-          await ready.future.timeout(_startupTimeout);
-        } on TimeoutException catch (error, stackTrace) {
-          await closeSession();
-          Error.throwWithStackTrace(
-            SpeechConnectionStartupException(
-              message: 'Timed out waiting for the STT stream to become ready.',
-              debugInfo: _copyDebugInfo(debugInfo, phase: 'awaiting_ready'),
-              cause: error,
-            ),
-            stackTrace,
           );
-        } catch (error, stackTrace) {
-          await closeSession();
-          Error.throwWithStackTrace(
-            SpeechConnectionStartupException(
-              message:
-                  'STT stream startup failed before the session became ready.',
-              debugInfo: _copyDebugInfo(debugInfo, phase: 'awaiting_ready'),
-              cause: error,
-            ),
-            stackTrace,
+
+          currentChannel.sink.add(
+            jsonEncode({
+              'type': 'start',
+              'token': connectionToken,
+              'sourceLanguage': sourceLanguage,
+              'sampleRate': sampleRate,
+              ...?(model == null ? null : {'model': model}),
+              ...?(language == null ? null : {'language': language}),
+              'diarize': diarize,
+              'utterances': utterances,
+              'punctuate': punctuate,
+              'smartFormat': smartFormat,
+              'detectLanguage': detectLanguage,
+            }),
+          );
+          developer.log(
+            'Backend STT websocket sent start message tokenLength=${connectionToken.length}',
+            name: 'BackendApiClient',
+          );
+
+          try {
+            if (isStartup) {
+              startupPhase = 'awaiting_ready';
+            }
+            await ready.future.timeout(timeout);
+          } on TimeoutException catch (error, stackTrace) {
+            await currentSubscription.cancel();
+            await closeChannel(currentChannel, sendStop: false);
+            if (!isStartup) {
+              Error.throwWithStackTrace(error, stackTrace);
+            }
+            Error.throwWithStackTrace(
+              SpeechConnectionStartupException(
+                message:
+                    'Timed out waiting for the STT stream to become ready.',
+                debugInfo: _copyDebugInfo(debugInfo, phase: 'awaiting_ready'),
+                cause: error,
+              ),
+              stackTrace,
+            );
+          } catch (error, stackTrace) {
+            await currentSubscription.cancel();
+            await closeChannel(currentChannel, sendStop: false);
+            if (!isStartup) {
+              Error.throwWithStackTrace(error, stackTrace);
+            }
+            Error.throwWithStackTrace(
+              SpeechConnectionStartupException(
+                message:
+                    'STT stream startup failed before the session became ready.',
+                debugInfo: _copyDebugInfo(debugInfo, phase: 'awaiting_ready'),
+                cause: error,
+              ),
+              stackTrace,
+            );
+          }
+
+          return _ConnectedSttSocket(
+            channel: currentChannel,
+            subscription: currentSubscription,
           );
         }
 
-        subscriptions.add(
-          audioStream.listen(
-            channel.sink.add,
-            onError: (Object error, StackTrace stackTrace) {
-              if (!resultController.isClosed) {
-                resultController.addError(error, stackTrace);
+        closeChannel =
+            (WebSocketChannel? currentChannel, {bool sendStop = false}) async {
+              if (currentChannel == null) {
+                return;
               }
-              unawaited(closeSession());
-            },
-            cancelOnError: true,
-          ),
+              if (sendStop) {
+                try {
+                  currentChannel.sink.add(jsonEncode({'type': 'stop'}));
+                } catch (_) {}
+              }
+              try {
+                await currentChannel.sink.close();
+              } catch (_) {}
+            };
+
+        closeSession = ({bool sendStop = true}) async {
+          if (closed) return;
+          closed = true;
+          reconnecting = false;
+          await audioSubscription?.cancel();
+          audioSubscription = null;
+          await amplitudeSubscription?.cancel();
+          amplitudeSubscription = null;
+          await channelSubscription?.cancel();
+          channelSubscription = null;
+          final currentChannel = activeChannel;
+          activeChannel = null;
+          await stopCaptureOnce();
+          await closeChannel(currentChannel, sendStop: sendStop);
+          if (!resultController.isClosed) {
+            await resultController.close();
+          }
+          if (!outgoingAmplitude.isClosed) {
+            await outgoingAmplitude.close();
+          }
+        };
+
+        failSession = (Object error, [StackTrace? stackTrace]) async {
+          if (closed) {
+            return;
+          }
+          if (!resultController.isClosed) {
+            resultController.addError(error, stackTrace);
+          }
+          await closeSession(sendStop: false);
+        };
+
+        handleConnectedSocketInterrupted =
+            (
+              Object error,
+              StackTrace stackTrace,
+              WebSocketChannel failedChannel,
+            ) async {
+              if (closed ||
+                  reconnecting ||
+                  !identical(activeChannel, failedChannel)) {
+                return;
+              }
+
+              developer.log(
+                'Backend STT websocket interrupted; attempting resume',
+                name: 'BackendApiClient',
+                error: error,
+                stackTrace: stackTrace,
+              );
+
+              reconnecting = true;
+              await channelSubscription?.cancel();
+              channelSubscription = null;
+              activeChannel = null;
+              await closeChannel(failedChannel, sendStop: false);
+
+              final deadline = DateTime.now().add(_sessionResumeTimeout);
+              Object? lastError = error;
+              StackTrace? lastStackTrace = stackTrace;
+
+              while (!closed) {
+                final remaining = deadline.difference(DateTime.now());
+                if (remaining <= Duration.zero) {
+                  break;
+                }
+
+                try {
+                  final attemptTimeout = remaining < _startupTimeout
+                      ? remaining
+                      : _startupTimeout;
+                  final connected = await connectChannel(
+                    tokenProvider: _authTokenProvider,
+                    timeout: attemptTimeout,
+                  );
+                  if (closed) {
+                    await connected.subscription.cancel();
+                    await closeChannel(connected.channel, sendStop: false);
+                    return;
+                  }
+                  activeChannel = connected.channel;
+                  channelSubscription = connected.subscription;
+                  reconnecting = false;
+                  flushPendingAudio();
+                  developer.log(
+                    'Backend STT websocket resumed successfully',
+                    name: 'BackendApiClient',
+                  );
+                  return;
+                } catch (retryError, retryStackTrace) {
+                  lastError = retryError;
+                  lastStackTrace = retryStackTrace;
+
+                  final delay = remaining < _reconnectRetryDelay
+                      ? remaining
+                      : _reconnectRetryDelay;
+                  if (delay <= Duration.zero) {
+                    break;
+                  }
+                  await Future<void>.delayed(delay);
+                }
+              }
+
+              reconnecting = false;
+              await failSession(
+                StateError('listeningConnectionLost'),
+                lastStackTrace,
+              );
+              developer.log(
+                'Backend STT websocket failed to resume within ${_sessionResumeTimeout.inMilliseconds} ms',
+                name: 'BackendApiClient',
+                error: lastError,
+                stackTrace: lastStackTrace,
+              );
+            };
+
+        flushPendingAudio = () {
+          if (closed || reconnecting) {
+            return;
+          }
+          final currentChannel = activeChannel;
+          if (currentChannel == null) {
+            return;
+          }
+
+          while (pendingAudioChunks.isNotEmpty) {
+            final chunk = pendingAudioChunks.first;
+            try {
+              currentChannel.sink.add(chunk);
+              pendingAudioChunks.removeFirst();
+            } catch (error, stackTrace) {
+              unawaited(
+                handleConnectedSocketInterrupted(
+                  error,
+                  stackTrace,
+                  currentChannel,
+                ),
+              );
+              return;
+            }
+          }
+        };
+
+        startupPhase = 'awaiting_ready';
+        try {
+          final connected = await connectChannel(
+            tokenProvider: () async => token,
+            timeout: _startupTimeout,
+            isStartup: true,
+          );
+          channelSubscription = connected.subscription;
+        } catch (error, stackTrace) {
+          await closeSession();
+          Error.throwWithStackTrace(error, stackTrace);
+        }
+
+        amplitudeSubscription = amplitudeStream.listen((value) {
+          if (!outgoingAmplitude.isClosed) {
+            outgoingAmplitude.add(value);
+          }
+        });
+
+        audioSubscription = audioStream.listen(
+          (chunk) {
+            pendingAudioChunks.add(chunk);
+            flushPendingAudio();
+          },
+          onError: (Object audioError, StackTrace audioStackTrace) {
+            unawaited(failSession(audioError, audioStackTrace));
+          },
+          cancelOnError: true,
         );
 
         return SpeechRecognitionSession(
@@ -616,4 +857,14 @@ class BackendApiClient {
   void close() {
     _httpClient.close();
   }
+}
+
+class _ConnectedSttSocket {
+  const _ConnectedSttSocket({
+    required this.channel,
+    required this.subscription,
+  });
+
+  final WebSocketChannel channel;
+  final StreamSubscription<dynamic> subscription;
 }

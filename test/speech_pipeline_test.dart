@@ -318,6 +318,44 @@ void main() {
       },
     );
 
+    test('session errors stop listening and expose a retry message', () async {
+      final results = StreamController<SpeechRecognitionResult>.broadcast();
+      final amplitudes = StreamController<double>.broadcast();
+      final fakePipeline = _FakeSpeechPipeline()
+        ..session = SpeechRecognitionSession(
+          resultStream: results.stream,
+          amplitudeStream: amplitudes.stream,
+          stop: () async {},
+        );
+      final localController = SpeechController(
+        backendApiClient: BackendApiClient(
+          baseUrl: 'https://api.example.com',
+          authTokenProvider: () async => 'token',
+        ),
+        speechPipeline: fakePipeline,
+        micActivationSoundPlayer: _FakeMicActivationSoundPlayer(),
+      );
+      addTearDown(() async {
+        await results.close();
+        await amplitudes.close();
+        localController.dispose();
+      });
+
+      await localController.init();
+      await localController.startListening();
+
+      results.addError(StateError('listeningConnectionLost'));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+
+      expect(localController.isListening, isFalse);
+      expect(
+        localController.speechError,
+        contains('connection could not be resumed'),
+      );
+    });
+
     test(
       'route changes refresh devices and emit listening device update',
       () async {
@@ -369,39 +407,42 @@ void main() {
       },
     );
 
-    test('route changes with no effective device change do not emit update', () async {
-      final fakePipeline = _FakeSpeechPipeline()
-        ..playbackDevices = const [
-          PlaybackDevice(id: 'speaker', name: 'Phone', type: 'Built-in'),
-        ]
-        ..currentPlaybackRouteId = 'speaker';
-      final localController = SpeechController(
-        backendApiClient: BackendApiClient(
-          baseUrl: 'https://api.example.com',
-          authTokenProvider: () async => 'token',
-        ),
-        speechPipeline: fakePipeline,
-      );
-      addTearDown(() async {
-        await fakePipeline.disposeFake();
-        localController.dispose();
-      });
+    test(
+      'route changes with no effective device change do not emit update',
+      () async {
+        final fakePipeline = _FakeSpeechPipeline()
+          ..playbackDevices = const [
+            PlaybackDevice(id: 'speaker', name: 'Phone', type: 'Built-in'),
+          ]
+          ..currentPlaybackRouteId = 'speaker';
+        final localController = SpeechController(
+          backendApiClient: BackendApiClient(
+            baseUrl: 'https://api.example.com',
+            authTokenProvider: () async => 'token',
+          ),
+          speechPipeline: fakePipeline,
+        );
+        addTearDown(() async {
+          await fakePipeline.disposeFake();
+          localController.dispose();
+        });
 
-      mockInputDevices = const [
-        {'id': 'built-in', 'label': 'Built-in Mic'},
-      ];
+        mockInputDevices = const [
+          {'id': 'built-in', 'label': 'Built-in Mic'},
+        ];
 
-      await localController.init();
+        await localController.init();
 
-      final received = <String>[];
-      final sub = localController.listeningDeviceUpdates.listen(received.add);
-      addTearDown(sub.cancel);
+        final received = <String>[];
+        final sub = localController.listeningDeviceUpdates.listen(received.add);
+        addTearDown(sub.cancel);
 
-      fakePipeline.routeChanges.add({'event': 'route_changed'});
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        fakePipeline.routeChanges.add({'event': 'route_changed'});
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(received, isEmpty);
-    });
+        expect(received, isEmpty);
+      },
+    );
   });
 }
