@@ -38,6 +38,8 @@ import 'widgets/provider_settings_dialog.dart';
 import 'widgets/speech_connection_debug_dialog.dart';
 import 'widgets/two_way_chat.dart';
 
+const Duration _suggestedResponseSnackBarDuration = Duration(seconds: 10);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -668,11 +670,12 @@ class _MyHomePageState extends State<MyHomePage> {
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 10),
+          duration: _suggestedResponseSnackBarDuration,
           content: _SuggestedResponseSnackBarContent(
             title: context.l10n.suggestedResponseTitle,
             closeTooltip: context.l10n.close,
             onClose: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+            timeout: _suggestedResponseSnackBarDuration,
             originalLabel: context.l10n.suggestedResponseOriginalLabel(
               sourceLanguageLabel,
             ),
@@ -1370,6 +1373,7 @@ class _SuggestedResponseSnackBarContent extends StatelessWidget {
     required this.title,
     required this.closeTooltip,
     required this.onClose,
+    required this.timeout,
     required this.originalLabel,
     required this.translatedLabel,
     required this.originalText,
@@ -1379,6 +1383,7 @@ class _SuggestedResponseSnackBarContent extends StatelessWidget {
   final String title;
   final String closeTooltip;
   final VoidCallback onClose;
+  final Duration timeout;
   final String originalLabel;
   final String translatedLabel;
   final String originalText;
@@ -1404,13 +1409,50 @@ class _SuggestedResponseSnackBarContent extends StatelessWidget {
                 ),
               ),
             ),
-            IconButton(
-              tooltip: closeTooltip,
-              onPressed: onClose,
-              visualDensity: VisualDensity.compact,
-              icon: Icon(
-                Icons.close,
-                color: theme.colorScheme.onInverseSurface,
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 1, end: 0),
+              duration: timeout,
+              builder: (context, remaining, child) {
+                return SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Positioned.fill(
+                        child: CircularProgressIndicator(
+                          key: const Key('suggested-response-timeout-progress'),
+                          value: remaining,
+                          strokeWidth: 2,
+                          backgroundColor: theme.colorScheme.onInverseSurface
+                              .withValues(alpha: 0.18),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            theme.colorScheme.onInverseSurface.withValues(
+                              alpha: 0.82,
+                            ),
+                          ),
+                        ),
+                      ),
+                      child!,
+                    ],
+                  ),
+                );
+              },
+              child: IconButton(
+                tooltip: closeTooltip,
+                onPressed: onClose,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 28,
+                  height: 28,
+                ),
+                iconSize: 20,
+                splashRadius: 16,
+                visualDensity: VisualDensity.standard,
+                icon: Icon(
+                  Icons.close,
+                  color: theme.colorScheme.onInverseSurface,
+                ),
               ),
             ),
           ],
