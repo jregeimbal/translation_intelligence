@@ -222,6 +222,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late BackendApiClient _backendApiClient;
   StreamSubscription<String>? _listeningDeviceUpdateSub;
   StreamSubscription<SuggestedResponseEvent>? _suggestedResponseSub;
+  Timer? _suggestedResponseTimer;
   late final DebouncedMessageDispatcher _listeningDeviceSnackBarDebouncer;
   bool _initializing = true;
   bool _controllersReady = false;
@@ -246,6 +247,8 @@ class _MyHomePageState extends State<MyHomePage> {
   List<PlaybackDevice> _playbackDevices = const [];
   String? _listeningDeviceId;
   String? _playbackDeviceId;
+  SuggestedResponseEvent? _activeSuggestedResponse;
+  int _suggestedResponsePresentationKey = 0;
   AppPreferencesSnapshot? _lastPersistedPreferences;
   bool _hasSeenAudioPlaybackBluetoothNotice = false;
   bool _hasCompletedFirstLaunchWalkthrough = false;
@@ -261,6 +264,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _listeningDeviceUpdateSub = null;
     _suggestedResponseSub?.cancel();
     _suggestedResponseSub = null;
+    _clearSuggestedResponse(notify: false);
     if (_controllersReady) {
       _controller.dispose();
       _twoWayController.dispose();
@@ -651,42 +655,34 @@ class _MyHomePageState extends State<MyHomePage> {
       if (!mounted || _initializing || !_isGroupSection) {
         return;
       }
-      _showSuggestedResponseSnackBar(event);
+      _showSuggestedResponsePanel(event);
     });
   }
 
-  void _showSuggestedResponseSnackBar(SuggestedResponseEvent event) {
-    final sourceLanguageLabel = localizedAppLanguageName(
-      context,
-      event.response.sourceLanguageCode,
-    );
-    final targetLanguageLabel = localizedAppLanguageName(
-      context,
-      event.response.targetLanguageCode,
-    );
+  void _showSuggestedResponsePanel(SuggestedResponseEvent event) {
+    _suggestedResponseTimer?.cancel();
+    setState(() {
+      _activeSuggestedResponse = event;
+      _suggestedResponsePresentationKey += 1;
+    });
+    _suggestedResponseTimer = Timer(_suggestedResponseSnackBarDuration, () {
+      if (!mounted) {
+        return;
+      }
+      _clearSuggestedResponse();
+    });
+  }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          duration: _suggestedResponseSnackBarDuration,
-          content: _SuggestedResponseSnackBarContent(
-            title: context.l10n.suggestedResponseTitle,
-            closeTooltip: context.l10n.close,
-            onClose: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-            timeout: _suggestedResponseSnackBarDuration,
-            originalLabel: context.l10n.suggestedResponseOriginalLabel(
-              sourceLanguageLabel,
-            ),
-            translatedLabel: context.l10n.suggestedResponseTranslatedLabel(
-              targetLanguageLabel,
-            ),
-            originalText: event.response.originalText,
-            translatedText: event.response.translatedText,
-          ),
-        ),
-      );
+  void _clearSuggestedResponse({bool notify = true}) {
+    _suggestedResponseTimer?.cancel();
+    _suggestedResponseTimer = null;
+    if (!notify || !mounted || _activeSuggestedResponse == null) {
+      _activeSuggestedResponse = null;
+      return;
+    }
+    setState(() {
+      _activeSuggestedResponse = null;
+    });
   }
 
   Future<void> _startGroupListeningWithDebugDialog() async {
@@ -1070,7 +1066,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     if (!mounted) return;
     if (index != 0) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      _clearSuggestedResponse();
     }
     setState(() {
       _selectedSection = index;
@@ -1161,6 +1157,9 @@ class _MyHomePageState extends State<MyHomePage> {
     final theme = Theme.of(context);
     final textRoles = resolveAppThemeTextRoles(theme);
     final tokens = resolveAppThemeTokens(theme);
+    final activeSuggestedResponse = _isGroupSection
+        ? _activeSuggestedResponse
+        : null;
 
     if (_initializationError.isNotEmpty) {
       return Material(
@@ -1333,6 +1332,22 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  child: activeSuggestedResponse == null
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          key: ValueKey<int>(_suggestedResponsePresentationKey),
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _SuggestedResponsePanel(
+                            event: activeSuggestedResponse,
+                            title: context.l10n.suggestedResponseTitle,
+                            closeTooltip: context.l10n.close,
+                            onClose: _clearSuggestedResponse,
+                            timeout: _suggestedResponseSnackBarDuration,
+                          ),
+                        ),
+                ),
                 if (!_initializing && _isGroupSection) ...[
                   ChangeNotifierProvider<SpeechController>.value(
                     value: _controller,
@@ -1368,116 +1383,142 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class _SuggestedResponseSnackBarContent extends StatelessWidget {
-  const _SuggestedResponseSnackBarContent({
+class _SuggestedResponsePanel extends StatelessWidget {
+  const _SuggestedResponsePanel({
+    required this.event,
     required this.title,
     required this.closeTooltip,
     required this.onClose,
     required this.timeout,
-    required this.originalLabel,
-    required this.translatedLabel,
-    required this.originalText,
-    required this.translatedText,
   });
 
+  final SuggestedResponseEvent event;
   final String title;
   final String closeTooltip;
   final VoidCallback onClose;
   final Duration timeout;
-  final String originalLabel;
-  final String translatedLabel;
-  final String originalText;
-  final String translatedText;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final sourceLanguageLabel = localizedAppLanguageName(
+      context,
+      event.response.sourceLanguageCode,
+    );
+    final targetLanguageLabel = localizedAppLanguageName(
+      context,
+      event.response.targetLanguageCode,
+    );
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return Material(
+      key: const Key('suggested-response-panel'),
+      color: colorScheme.inverseSurface,
+      elevation: 6,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: theme.colorScheme.onInverseSurface,
-                  fontWeight: FontWeight.w700,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: colorScheme.onInverseSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 1, end: 0),
-              duration: timeout,
-              builder: (context, remaining, child) {
-                return SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Positioned.fill(
-                        child: CircularProgressIndicator(
-                          key: const Key('suggested-response-timeout-progress'),
-                          value: remaining,
-                          strokeWidth: 2,
-                          backgroundColor: theme.colorScheme.onInverseSurface
-                              .withValues(alpha: 0.18),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            theme.colorScheme.onInverseSurface.withValues(
-                              alpha: 0.82,
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 1, end: 0),
+                  duration: timeout,
+                  builder: (context, remaining, child) {
+                    return SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Positioned.fill(
+                            child: CircularProgressIndicator(
+                              key: const Key(
+                                'suggested-response-timeout-progress',
+                              ),
+                              value: remaining,
+                              strokeWidth: 2,
+                              backgroundColor: colorScheme.onInverseSurface
+                                  .withValues(alpha: 0.18),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                colorScheme.onInverseSurface.withValues(
+                                  alpha: 0.82,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          child!,
+                        ],
                       ),
-                      child!,
-                    ],
+                    );
+                  },
+                  child: IconButton(
+                    tooltip: closeTooltip,
+                    onPressed: onClose,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 28,
+                      height: 28,
+                    ),
+                    iconSize: 20,
+                    splashRadius: 16,
+                    visualDensity: VisualDensity.standard,
+                    icon: Icon(
+                      Icons.close,
+                      color: colorScheme.onInverseSurface,
+                    ),
                   ),
-                );
-              },
-              child: IconButton(
-                tooltip: closeTooltip,
-                onPressed: onClose,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints.tightFor(
-                  width: 28,
-                  height: 28,
                 ),
-                iconSize: 20,
-                splashRadius: 16,
-                visualDensity: VisualDensity.standard,
-                icon: Icon(
-                  Icons.close,
-                  color: theme.colorScheme.onInverseSurface,
-                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              context.l10n.suggestedResponseOriginalLabel(sourceLanguageLabel),
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: colorScheme.onInverseSurface.withValues(alpha: 0.82),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              event.response.originalText,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onInverseSurface,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              context.l10n.suggestedResponseTranslatedLabel(
+                targetLanguageLabel,
+              ),
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: colorScheme.onInverseSurface.withValues(alpha: 0.82),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              event.response.translatedText,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onInverseSurface,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          originalLabel,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onInverseSurface.withValues(alpha: 0.82),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(originalText),
-        const SizedBox(height: 8),
-        Text(
-          translatedLabel,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onInverseSurface.withValues(alpha: 0.82),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(translatedText),
-      ],
+      ),
     );
   }
 }
