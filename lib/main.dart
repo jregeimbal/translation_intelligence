@@ -30,6 +30,7 @@ import 'services/speech_translation_provider.dart';
 import 'theme/app_theme_resolver.dart';
 import 'theme/hyper_linguist_theme.dart';
 import 'theme/hyper_listen_theme.dart';
+import 'widgets/audio_debug_dialog.dart';
 import 'widgets/chat_message.dart';
 import 'widgets/first_launch_walkthrough_dialog.dart';
 import 'widgets/footer.dart';
@@ -452,184 +453,15 @@ class _MyHomePageState extends State<MyHomePage> {
     await _showWalkthrough(markCompleted: false);
   }
 
-  SpeechSttProvider? get _activeSessionSttProvider => _isGroupSection
-      ? _controller.activeSessionSttProvider
-      : _twoWayController.activeSessionSttProvider;
-
-  String? get _activeSessionSourceLanguage => _isGroupSection
-      ? _controller.activeSessionSourceLanguage
-      : _twoWayController.activeSessionSourceLanguage;
-
-  String? get _activeSessionResolvedLanguageCode => _isGroupSection
-      ? _controller.activeSessionResolvedLanguageCode
-      : _twoWayController.activeSessionResolvedLanguageCode;
-
-  int? get _activeSessionSampleRate => _isGroupSection
-      ? _controller.activeSessionSampleRate
-      : _twoWayController.activeSessionSampleRate;
-
-  String? get _activeSessionListeningDeviceId => _isGroupSection
-      ? _controller.activeSessionListeningDeviceId
-      : _twoWayController.activeSessionListeningDeviceId;
-
-  DateTime? get _activeSessionStartedAt => _isGroupSection
-      ? _controller.activeSessionStartedAt
-      : _twoWayController.activeSessionStartedAt;
-
-  bool get _isActiveListening =>
-      _isGroupSection ? _controller.isListening : _twoWayController.isListening;
-
-  double get _activeAmplitude =>
-      _isGroupSection ? _controller.amplitude : _twoWayController.amplitude;
-
   void _showDebugAudioDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        final l10n = context.l10n;
-        return AlertDialog(
-          title: Text(l10n.debugAudioStream),
-          content: StreamBuilder<int>(
-            stream: Stream<int>.periodic(
-              const Duration(milliseconds: 250),
-              (count) => count,
-            ),
-            initialData: 0,
-            builder: (context, _) {
-              final startedAt = _activeSessionStartedAt;
-              final elapsed = startedAt == null
-                  ? null
-                  : DateTime.now().difference(startedAt);
-              final elapsedLabel = elapsed == null
-                  ? l10n.notAvailableShort
-                  : '${elapsed.inMinutes.toString().padLeft(2, '0')}:${(elapsed.inSeconds % 60).toString().padLeft(2, '0')}';
-
-              final rows = <MapEntry<String, String>>[
-                MapEntry(
-                  l10n.debugSection,
-                  _isGroupSection
-                      ? l10n.debugSectionGroup
-                      : l10n.debugSectionTwoWay,
-                ),
-                MapEntry(
-                  l10n.debugListeningActive,
-                  _isActiveListening ? l10n.yes : l10n.no,
-                ),
-                MapEntry(
-                  l10n.debugSttProvider,
-                  _activeSessionSttProvider == null
-                      ? l10n.notAvailableShort
-                      : localizedSttProviderLabel(
-                          context,
-                          _activeSessionSttProvider!,
-                        ),
-                ),
-                MapEntry(
-                  l10n.debugSourceLanguage,
-                  _activeSessionSourceLanguage == null
-                      ? l10n.notAvailableShort
-                      : localizedRecognitionLocaleLabel(
-                          context,
-                          _activeSessionSourceLanguage!,
-                        ),
-                ),
-                MapEntry(
-                  l10n.debugResolvedLanguageCode,
-                  _activeSessionResolvedLanguageCode ?? l10n.notAvailableShort,
-                ),
-                MapEntry(
-                  l10n.debugActiveSampleRate,
-                  _activeSessionSampleRate == null
-                      ? l10n.notAvailableShort
-                      : l10n.sampleRateHertz(_activeSessionSampleRate!),
-                ),
-                MapEntry(
-                  l10n.debugListeningDeviceId,
-                  _activeSessionListeningDeviceId ?? l10n.autoDefault,
-                ),
-                MapEntry(
-                  l10n.debugAmplitude,
-                  _activeAmplitude.toStringAsFixed(3),
-                ),
-                MapEntry(l10n.debugSessionElapsed, elapsedLabel),
-                MapEntry(
-                  l10n.debugSessionStartedAt,
-                  startedAt?.toIso8601String() ?? l10n.notAvailableShort,
-                ),
-                MapEntry(
-                  l10n.debugConfiguredSttProvider,
-                  _isGroupSection
-                      ? localizedSttProviderLabel(
-                          context,
-                          _controller.sttProvider,
-                        )
-                      : localizedSttProviderLabel(
-                          context,
-                          _twoWayController.sttProvider,
-                        ),
-                ),
-                MapEntry(
-                  l10n.debugConfiguredDeepgramLanguage,
-                  _isGroupSection
-                      ? localizedDeepgramLanguageLabel(
-                          context,
-                          _controller.deepgramRecognitionLanguage,
-                        )
-                      : localizedDeepgramLanguageLabel(
-                          context,
-                          _twoWayController.deepgramRecognitionLanguage,
-                        ),
-                ),
-                MapEntry(
-                  l10n.debugConfiguredGoogleLocale,
-                  _isGroupSection
-                      ? localizedRecognitionLocaleLabel(
-                          context,
-                          _controller.speechToTextRecognitionLocale,
-                        )
-                      : localizedRecognitionLocaleLabel(
-                          context,
-                          _twoWayController.speechToTextRecognitionLocale,
-                        ),
-                ),
-                MapEntry(
-                  l10n.debugConfiguredSttLocale,
-                  _isGroupSection
-                      ? localizedRecognitionLocaleLabel(
-                          context,
-                          _controller.speechToTextRecognitionLocale,
-                        )
-                      : localizedRecognitionLocaleLabel(
-                          context,
-                          _twoWayController.speechToTextRecognitionLocale,
-                        ),
-                ),
-              ];
-
-              return SizedBox(
-                width: 520,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (final row in rows) ...[
-                        Text('${row.key}: ${row.value}'),
-                        const SizedBox(height: 8),
-                      ],
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(l10n.close),
-            ),
-          ],
-        );
-      },
+    AudioDebugDialog.showInDialog(
+      context,
+      _controller,
+      _twoWayController,
+      _outputProvider,
+      _sttProvider,
+      _translationProvider,
+      _isGroupSection,
     );
   }
 
