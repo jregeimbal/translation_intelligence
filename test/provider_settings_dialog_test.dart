@@ -140,7 +140,9 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byKey(const ValueKey<String>('target-language-settings')));
+      await tester.tap(
+        find.byKey(const ValueKey<String>('target-language-settings')),
+      );
       await tester.pumpAndSettle();
 
       await tester.enterText(
@@ -251,7 +253,7 @@ void main() {
 
       final deviceDropdown = find.byWidgetPredicate((widget) {
         return widget is DropdownMenuFormField<String?> &&
-        widget.initialValue == 'usb-1';
+            widget.initialValue == 'usb-1';
       });
       expect(deviceDropdown, findsOneWidget);
 

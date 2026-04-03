@@ -11,19 +11,14 @@ import 'package:record/record.dart';
 
 import 'controllers/speech_controller.dart';
 import 'controllers/two_way_chat_controller.dart';
-import 'firebase_options.dart';
 import 'models/provider_settings_selection.dart';
 import 'models/playback_device.dart';
 import 'models/suggested_response.dart';
 import 'models/two_way_message.dart';
-import 'services/backend_api_client.dart';
 import 'services/app_preferences.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/app_localizations_ext.dart';
 import 'services/deepgram_recognition_catalog.dart';
-import 'services/firebase_auth_session.dart';
-import 'services/runtime_config.dart';
-import 'services/speech_to_text_service.dart';
 import 'services/speech_output_provider.dart';
 import 'services/speech_stt_provider.dart';
 import 'services/speech_translation_provider.dart';
@@ -98,26 +93,6 @@ void main() async {
   runApp(MyApp());
 }
 
-typedef HomePageInitializer = Future<HomePageInitializationBundle> Function();
-
-class HomePageInitializationBundle {
-  const HomePageInitializationBundle({
-    required this.backendApiClient,
-    required this.controller,
-    required this.twoWayController,
-  });
-
-  final BackendApiClient backendApiClient;
-  final SpeechController controller;
-  final TwoWayChatController twoWayController;
-
-  void dispose() {
-    controller.dispose();
-    twoWayController.dispose();
-    backendApiClient.close();
-  }
-}
-
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -156,19 +131,28 @@ class _MyAppState extends State<MyApp> {
         ? HyperLinguistTheme.dark()
         : HyperListenTheme.dark();
 
-    return MaterialApp(
-      onGenerateTitle: (context) => context.l10n.appTitle,
-      theme: selectedLightTheme,
-      darkTheme: selectedDarkTheme,
-      themeMode: _themeMode,
-      localizationsDelegates: const [
-        LocaleNamesLocalizationsDelegate(),
-        ...AppLocalizations.localizationsDelegates,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SpeechController(), lazy: false),
+        ChangeNotifierProvider(
+          create: (_) => TwoWayChatController(),
+          lazy: false,
+        ),
       ],
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: MyHomePage(
+      child: MaterialApp(
+        onGenerateTitle: (context) => context.l10n.appTitle,
+        theme: selectedLightTheme,
+        darkTheme: selectedDarkTheme,
         themeMode: _themeMode,
-        onThemeModeChanged: _setThemeMode,
+        localizationsDelegates: const [
+          LocaleNamesLocalizationsDelegate(),
+          ...AppLocalizations.localizationsDelegates,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: MyHomePage(
+          themeMode: _themeMode,
+          onThemeModeChanged: _setThemeMode,
+        ),
       ),
     );
   }
@@ -177,13 +161,11 @@ class _MyAppState extends State<MyApp> {
 class MyHomePage extends StatefulWidget {
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
-  final HomePageInitializer? initializer;
 
   const MyHomePage({
     super.key,
     required this.themeMode,
     required this.onThemeModeChanged,
-    this.initializer,
   });
 
   @override
@@ -218,16 +200,11 @@ class DebouncedMessageDispatcher {
 
 class _MyHomePageState extends State<MyHomePage> {
   final AppPreferences _appPreferences = AppPreferences();
-  late SpeechController _controller;
-  late TwoWayChatController _twoWayController;
-  late BackendApiClient _backendApiClient;
   StreamSubscription<String>? _listeningDeviceUpdateSub;
   StreamSubscription<SuggestedResponseEvent>? _suggestedResponseSub;
   Timer? _suggestedResponseTimer;
   late final DebouncedMessageDispatcher _listeningDeviceSnackBarDebouncer;
   bool _initializing = true;
-  bool _controllersReady = false;
-  bool _backendClientReady = false;
   String _initializationError = '';
   int _selectedSection = 0;
   SpeechOutputProvider _outputProvider = SpeechOutputProvider.google;
@@ -239,10 +216,10 @@ class _MyHomePageState extends State<MyHomePage> {
   String _deepgramRecognitionLanguage =
       DeepgramRecognitionCatalog.defaultRecognitionLanguage;
   String _speechToTextRecognitionLocale =
-      SpeechToTextService.defaultRecognitionLanguage;
+      DeepgramRecognitionCatalog.defaultRecognitionLanguage;
   String _targetLanguage = 'en';
   Map<String, String> _speechToTextRecognitionLocales = const {
-    'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
+    'Multi (Auto)': DeepgramRecognitionCatalog.defaultRecognitionLanguage,
   };
   List<InputDevice> _listeningDevices = const [];
   List<PlaybackDevice> _playbackDevices = const [];
@@ -258,23 +235,11 @@ class _MyHomePageState extends State<MyHomePage> {
   bool get _isGroupSection => _selectedSection == 0;
 
   void _disposeInitializedResources() {
-    if (_controllersReady) {
-      _controller.removeListener(_persistControllerPreferences);
-    }
     _listeningDeviceUpdateSub?.cancel();
     _listeningDeviceUpdateSub = null;
     _suggestedResponseSub?.cancel();
     _suggestedResponseSub = null;
     _clearSuggestedResponse(notify: false);
-    if (_controllersReady) {
-      _controller.dispose();
-      _twoWayController.dispose();
-      _controllersReady = false;
-    }
-    if (_backendClientReady) {
-      _backendApiClient.close();
-      _backendClientReady = false;
-    }
   }
 
   Future<void> _loadPersistedPreferences() async {
@@ -320,15 +285,16 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _persistControllerPreferences() {
-    if (!_controllersReady) return;
+    final speechController = context.read<SpeechController>();
 
     final snapshot = AppPreferencesSnapshot(
-      deepgramRecognitionModel: _controller.deepgramRecognitionModel,
-      deepgramRecognitionLanguage: _controller.deepgramRecognitionLanguage,
-      speechToTextRecognitionLocale: _controller.speechToTextRecognitionLocale,
-      targetLanguage: _controller.targetLanguage,
-      hideTranslatedOriginalText: _controller.hideTranslatedOriginalText,
-      audioPlaybackEnabled: _controller.audioPlaybackEnabled,
+      deepgramRecognitionModel: speechController.deepgramRecognitionModel,
+      deepgramRecognitionLanguage: speechController.deepgramRecognitionLanguage,
+      speechToTextRecognitionLocale:
+          speechController.speechToTextRecognitionLocale,
+      targetLanguage: speechController.targetLanguage,
+      hideTranslatedOriginalText: speechController.hideTranslatedOriginalText,
+      audioPlaybackEnabled: speechController.audioPlaybackEnabled,
       hasSeenAudioPlaybackBluetoothNotice: _hasSeenAudioPlaybackBluetoothNotice,
       hasCompletedFirstLaunchWalkthrough: _hasCompletedFirstLaunchWalkthrough,
     );
@@ -454,10 +420,13 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _showDebugAudioDialog() {
+    final speechController = context.read<SpeechController>();
+    final twoWayController = context.read<TwoWayChatController>();
+
     AudioDebugDialog.showInDialog(
       context,
-      _controller,
-      _twoWayController,
+      speechController,
+      twoWayController,
       _outputProvider,
       _sttProvider,
       _translationProvider,
@@ -472,8 +441,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _bindListeningDeviceNotifications() {
+    final speechController = context.read<SpeechController>();
+
     _listeningDeviceUpdateSub?.cancel();
-    _listeningDeviceUpdateSub = _controller.listeningDeviceUpdates.listen((
+    _listeningDeviceUpdateSub = speechController.listeningDeviceUpdates.listen((
       message,
     ) {
       if (!mounted || _initializing) return;
@@ -482,8 +453,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _bindSuggestedResponseNotifications() {
+    final speechController = context.read<SpeechController>();
+
     _suggestedResponseSub?.cancel();
-    _suggestedResponseSub = _controller.suggestedResponses.listen((event) {
+    _suggestedResponseSub = speechController.suggestedResponses.listen((event) {
       if (!mounted || _initializing || !_isGroupSection) {
         return;
       }
@@ -519,7 +492,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _startGroupListeningWithDebugDialog() async {
     try {
-      await _controller.startListening();
+      final speechController = context.read<SpeechController>();
+      await speechController.startListening();
     } catch (error) {
       if (!mounted) return;
       final handled = await SpeechConnectionDebugDialog.showIfAvailable(
@@ -536,7 +510,8 @@ class _MyHomePageState extends State<MyHomePage> {
     TwoWaySpeaker speaker,
   ) async {
     try {
-      await _twoWayController.startListening(speaker);
+      final twoWayController = context.read<TwoWayChatController>();
+      await twoWayController.startListening(speaker);
     } catch (error) {
       if (!mounted) return;
       final handled = await SpeechConnectionDebugDialog.showIfAvailable(
@@ -549,168 +524,147 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<HomePageInitializationBundle> _createInitializationBundle() async {
-    final runtimeConfig = RuntimeConfig.fromDotEnv(dotenv);
-    final authSession = FirebaseAuthSession(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    await authSession.initialize();
-    final backendApiClient = BackendApiClient(
-      baseUrl: runtimeConfig.apiBaseUrl,
-      authTokenProvider: authSession.getIdToken,
-    );
-
-    final controller = SpeechController(backendApiClient: backendApiClient);
-    controller.setSttProvider(_sttProvider);
-    controller.setTranslationProvider(_translationProvider);
-    controller.setDeepgramRecognitionModel(_deepgramRecognitionModel);
-    controller.setDeepgramRecognitionLanguage(_deepgramRecognitionLanguage);
-    controller.setSpeechToTextRecognitionLocale(_speechToTextRecognitionLocale);
-    controller.setTargetLanguage(_targetLanguage);
-    if (_lastPersistedPreferences != null) {
-      controller.setHideTranslatedOriginalText(
-        _lastPersistedPreferences!.hideTranslatedOriginalText,
-      );
-      controller.setAudioPlaybackEnabled(
-        _lastPersistedPreferences!.audioPlaybackEnabled,
-      );
-    }
-
-    final twoWayController = TwoWayChatController(
-      backendApiClient: backendApiClient,
-    );
-    twoWayController.setSttProvider(_sttProvider);
-    twoWayController.setTranslationProvider(_translationProvider);
-    twoWayController.setDeepgramRecognitionModel(_deepgramRecognitionModel);
-    twoWayController.setDeepgramRecognitionLanguage(
-      _deepgramRecognitionLanguage,
-    );
-    twoWayController.setSpeechToTextRecognitionLocale(
-      _speechToTextRecognitionLocale,
-    );
-
-    await controller.init();
-    await twoWayController.init();
-
-    return HomePageInitializationBundle(
-      backendApiClient: backendApiClient,
-      controller: controller,
-      twoWayController: twoWayController,
-    );
-  }
-
   Future<void> _initializeControllers() async {
-    _disposeInitializedResources();
-
     setState(() {
       _initializing = true;
       _initializationError = '';
     });
 
-    HomePageInitializationBundle? bundle;
-
     try {
       await _loadPersistedPreferences();
-      bundle = await (widget.initializer ?? _createInitializationBundle)();
+
+      if (!mounted) return;
+
+      // Access controllers via context
+      final speechController = context.read<SpeechController>();
+      final twoWayController = context.read<TwoWayChatController>();
+
+      // Initialize with persisted values
+      speechController.setDeepgramRecognitionModel(_deepgramRecognitionModel);
+      speechController.setDeepgramRecognitionLanguage(
+        _deepgramRecognitionLanguage,
+      );
+      speechController.setSpeechToTextRecognitionLocale(
+        _speechToTextRecognitionLocale,
+      );
+      speechController.setTargetLanguage(_targetLanguage);
+      if (_lastPersistedPreferences != null) {
+        speechController.setHideTranslatedOriginalText(
+          _lastPersistedPreferences!.hideTranslatedOriginalText,
+        );
+        speechController.setAudioPlaybackEnabled(
+          _lastPersistedPreferences!.audioPlaybackEnabled,
+        );
+      }
+
+      await speechController.init();
+      await twoWayController.init();
+
+      // Listen to controller updates
+      speechController.addListener(_persistControllerPreferences);
+
+      // Bind notifications
+      _bindListeningDeviceNotifications();
+      _bindSuggestedResponseNotifications();
+
+      setState(() {
+        _listeningDevices = speechController.listeningDevices;
+        _listeningDeviceId = speechController.listeningDeviceId;
+        _playbackDevices = speechController.playbackDevices;
+        _playbackDeviceId = speechController.playbackDeviceId;
+        _speechToTextRecognitionLocales =
+            speechController.speechToTextRecognitionLocales;
+        _speechToTextRecognitionLocale =
+            speechController.speechToTextRecognitionLocale;
+        _targetLanguage = speechController.targetLanguage;
+        _initializing = false;
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_maybeShowFirstLaunchWalkthrough());
+      });
     } catch (error) {
-      bundle?.dispose();
       if (!mounted) return;
       setState(() {
         _initializationError = '$error';
         _initializing = false;
       });
-      return;
     }
-
-    if (!mounted) {
-      bundle.dispose();
-      return;
-    }
-
-    _backendApiClient = bundle.backendApiClient;
-    _controller = bundle.controller;
-    _twoWayController = bundle.twoWayController;
-    _controller.addListener(_persistControllerPreferences);
-    _backendClientReady = true;
-    _controllersReady = true;
-    _bindListeningDeviceNotifications();
-    _bindSuggestedResponseNotifications();
-    setState(() {
-      _listeningDevices = _controller.listeningDevices;
-      _listeningDeviceId = _controller.listeningDeviceId;
-      _playbackDevices = _controller.playbackDevices;
-      _playbackDeviceId = _controller.playbackDeviceId;
-      _speechToTextRecognitionLocales =
-          _controller.speechToTextRecognitionLocales;
-      _speechToTextRecognitionLocale =
-          _controller.speechToTextRecognitionLocale;
-      _targetLanguage = _controller.targetLanguage;
-      _initializing = false;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_maybeShowFirstLaunchWalkthrough());
-    });
   }
 
   void _setOutputProvider(SpeechOutputProvider provider) {
     if (_outputProvider == provider || _initializing) return;
+    final speechController = context.read<SpeechController>();
+    final twoWayController = context.read<TwoWayChatController>();
+
     setState(() {
       _outputProvider = provider;
-      _controller.setOutputProvider(provider);
-      _twoWayController.setOutputProvider(provider);
+      speechController.setOutputProvider(provider);
+      twoWayController.setOutputProvider(provider);
     });
   }
 
   Future<void> _setSttProvider(SpeechSttProvider provider) async {
     if (_sttProvider == provider || _initializing) return;
 
-    if (_controller.isListening) {
-      await _controller.stopListening();
+    final speechController = context.read<SpeechController>();
+    final twoWayController = context.read<TwoWayChatController>();
+
+    if (speechController.isListening) {
+      await speechController.stopListening();
     }
-    if (_twoWayController.isListening) {
-      await _twoWayController.stopListening();
+    if (twoWayController.isListening) {
+      await twoWayController.stopListening();
     }
 
     if (!mounted) return;
     setState(() {
       _sttProvider = provider;
-      _controller.setSttProvider(provider);
-      _twoWayController.setSttProvider(provider);
+      speechController.setSttProvider(provider);
+      twoWayController.setSttProvider(provider);
     });
   }
 
   void _setTranslationProvider(SpeechTranslationProvider provider) {
     if (_translationProvider == provider || _initializing) return;
+    final speechController = context.read<SpeechController>();
+    final twoWayController = context.read<TwoWayChatController>();
+
     setState(() {
       _translationProvider = provider;
-      _controller.setTranslationProvider(provider);
-      _twoWayController.setTranslationProvider(provider);
+      speechController.setTranslationProvider(provider);
+      twoWayController.setTranslationProvider(provider);
     });
   }
 
   void _setDeepgramRecognitionModel(String model) {
     if (_deepgramRecognitionModel == model || _initializing) return;
+    final speechController = context.read<SpeechController>();
+    final twoWayController = context.read<TwoWayChatController>();
+
     setState(() {
       _deepgramRecognitionModel = model;
-      _controller.setDeepgramRecognitionModel(model);
-      _twoWayController.setDeepgramRecognitionModel(model);
+      speechController.setDeepgramRecognitionModel(model);
+      twoWayController.setDeepgramRecognitionModel(model);
     });
   }
 
   Future<void> _setDeepgramRecognitionLanguage(String language) async {
     if (_deepgramRecognitionLanguage == language || _initializing) return;
 
-    final restartListening = _controller.isListening;
+    final speechController = context.read<SpeechController>();
+    final twoWayController = context.read<TwoWayChatController>();
+
+    final restartListening = speechController.isListening;
     if (restartListening) {
-      await _controller.stopListening();
+      await speechController.stopListening();
     }
     if (!mounted) return;
 
     setState(() {
       _deepgramRecognitionLanguage = language;
-      _controller.setDeepgramRecognitionLanguage(language);
-      _twoWayController.setDeepgramRecognitionLanguage(language);
+      speechController.setDeepgramRecognitionLanguage(language);
+      twoWayController.setDeepgramRecognitionLanguage(language);
     });
 
     if (restartListening) {
@@ -721,16 +675,19 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _setSpeechToTextRecognitionLocale(String locale) async {
     if (_speechToTextRecognitionLocale == locale || _initializing) return;
 
-    final restartListening = _controller.isListening;
+    final speechController = context.read<SpeechController>();
+    final twoWayController = context.read<TwoWayChatController>();
+
+    final restartListening = speechController.isListening;
     if (restartListening) {
-      await _controller.stopListening();
+      await speechController.stopListening();
     }
     if (!mounted) return;
 
     setState(() {
       _speechToTextRecognitionLocale = locale;
-      _controller.setSpeechToTextRecognitionLocale(locale);
-      _twoWayController.setSpeechToTextRecognitionLocale(locale);
+      speechController.setSpeechToTextRecognitionLocale(locale);
+      twoWayController.setSpeechToTextRecognitionLocale(locale);
     });
 
     if (restartListening) {
@@ -740,23 +697,33 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _setListeningDeviceId(String? deviceId) {
     if (_listeningDeviceId == deviceId || _initializing) return;
+    final speechController = context.read<SpeechController>();
+    final twoWayController = context.read<TwoWayChatController>();
+
     setState(() {
       _listeningDeviceId = deviceId;
-      _controller.setListeningDeviceId(deviceId);
-      _twoWayController.setListeningDeviceId(deviceId);
+      speechController.setListeningDeviceId(deviceId);
+      twoWayController.setListeningDeviceId(deviceId);
     });
   }
 
   Future<void> _setPlaybackDeviceId(String? deviceId) async {
     if (_playbackDeviceId == deviceId || _initializing) return;
 
-    final applied = await _controller.setPlaybackDeviceId(deviceId);
-    await _twoWayController.setPlaybackDeviceId(deviceId);
+    if (!mounted) return;
+
+    final speechController = context.read<SpeechController>();
+    final applied = await speechController.setPlaybackDeviceId(deviceId);
+    if (!mounted) return;
+
+    final twoWayController = context.read<TwoWayChatController>();
+    await twoWayController.setPlaybackDeviceId(deviceId);
 
     if (!mounted) return;
+
     setState(() {
-      _playbackDevices = _controller.playbackDevices;
-      _playbackDeviceId = _controller.playbackDeviceId;
+      _playbackDevices = speechController.playbackDevices;
+      _playbackDeviceId = speechController.playbackDeviceId;
     });
 
     if (!applied && deviceId != null) {
@@ -774,19 +741,20 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _showProviderSettingsDialog() async {
     if (_initializing) return;
 
-    await _controller.refreshListeningDevices();
-    await _controller.refreshPlaybackDevices();
-    await _controller.refreshSpeechToTextRecognitionLocales();
+    final speechController = context.read<SpeechController>();
+    await speechController.refreshListeningDevices();
+    await speechController.refreshPlaybackDevices();
+    await speechController.refreshSpeechToTextRecognitionLocales();
     if (!mounted) return;
     setState(() {
-      _listeningDevices = _controller.listeningDevices;
-      _listeningDeviceId = _controller.listeningDeviceId;
-      _playbackDevices = _controller.playbackDevices;
-      _playbackDeviceId = _controller.playbackDeviceId;
+      _listeningDevices = speechController.listeningDevices;
+      _listeningDeviceId = speechController.listeningDeviceId;
+      _playbackDevices = speechController.playbackDevices;
+      _playbackDeviceId = speechController.playbackDeviceId;
       _speechToTextRecognitionLocales =
-          _controller.speechToTextRecognitionLocales;
+          speechController.speechToTextRecognitionLocales;
       _speechToTextRecognitionLocale =
-          _controller.speechToTextRecognitionLocale;
+          speechController.speechToTextRecognitionLocale;
     });
 
     final selection = await Navigator.of(context)
@@ -821,17 +789,20 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
-    final restartGroupListening = _controller.isListening;
-    final restartTwoWayListening = _twoWayController.isListening;
-    final restartTwoWaySpeaker = _twoWayController.activeSpeaker;
+    if (!mounted) return;
+
+    final twoWayController = context.read<TwoWayChatController>();
+
+    final restartGroupListening = speechController.isListening;
+    final restartTwoWayListening = twoWayController.isListening;
+    final restartTwoWaySpeaker = twoWayController.activeSpeaker;
 
     if (restartGroupListening) {
-      await _controller.stopListening();
+      await speechController.stopListening();
     }
     if (restartTwoWayListening) {
-      await _twoWayController.stopListening();
+      await twoWayController.stopListening();
     }
-    if (!mounted) return;
 
     if (selection.sttProvider != _sttProvider) {
       await _setSttProvider(selection.sttProvider);
@@ -846,7 +817,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (selection.targetLanguage != _targetLanguage) {
       setState(() {
         _targetLanguage = selection.targetLanguage;
-        _controller.setTargetLanguage(selection.targetLanguage);
+        speechController.setTargetLanguage(selection.targetLanguage);
       });
     }
     if (selection.deepgramRecognitionModel != _deepgramRecognitionModel) {
@@ -884,16 +855,21 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _onSectionSelected(int index) async {
     if (_selectedSection == index) return;
 
-    if (_selectedSection == 0 && !_initializing && _controller.isListening) {
+    final speechController = context.read<SpeechController>();
+    final twoWayController = context.read<TwoWayChatController>();
+
+    if (_selectedSection == 0 &&
+        !_initializing &&
+        speechController.isListening) {
       try {
-        await _controller.stopListening();
+        await speechController.stopListening();
       } catch (_) {}
     }
     if (_selectedSection == 1 &&
         !_initializing &&
-        _twoWayController.isListening) {
+        twoWayController.isListening) {
       try {
-        await _twoWayController.stopListening();
+        await twoWayController.stopListening();
       } catch (_) {}
     }
     if (!mounted) return;
@@ -908,8 +884,10 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _canSwapGroupLanguages(Map<String, String> sourceLanguages) {
     if (_initializing || !_isGroupSection) return false;
 
-    final source = _controller.deepgramRecognitionLanguage;
-    final target = _controller.targetLanguage;
+    final speechController = context.read<SpeechController>();
+
+    final source = speechController.deepgramRecognitionLanguage;
+    final target = speechController.targetLanguage;
 
     if (source == 'multi' || target == 'multi') {
       return false;
@@ -929,23 +907,26 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _swapGroupLanguages(Map<String, String> sourceLanguages) async {
     if (!_canSwapGroupLanguages(sourceLanguages)) return;
 
-    final source = _controller.deepgramRecognitionLanguage;
-    final target = _controller.targetLanguage;
+    final speechController = context.read<SpeechController>();
+    final twoWayController = context.read<TwoWayChatController>();
+
+    final source = speechController.deepgramRecognitionLanguage;
+    final target = speechController.targetLanguage;
 
     if (source == target) return;
 
-    final restartListening = _controller.isListening;
+    final restartListening = speechController.isListening;
     if (restartListening) {
-      await _controller.stopListening();
+      await speechController.stopListening();
     }
     if (!mounted) return;
 
     setState(() {
       _deepgramRecognitionLanguage = target;
       _targetLanguage = source;
-      _controller.setDeepgramRecognitionLanguage(target);
-      _twoWayController.setDeepgramRecognitionLanguage(target);
-      _controller.setTargetLanguage(source);
+      speechController.setDeepgramRecognitionLanguage(target);
+      twoWayController.setDeepgramRecognitionLanguage(target);
+      speechController.setTargetLanguage(source);
     });
 
     if (restartListening) {
@@ -976,6 +957,11 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     _listeningDeviceSnackBarDebouncer.dispose();
+
+    // Clean up controller listeners
+    final speechController = context.read<SpeechController>();
+    speechController.removeListener(_persistControllerPreferences);
+
     _disposeInitializedResources();
     super.dispose();
   }
@@ -1101,9 +1087,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           key: ValueKey('group_loading'),
                           child: CircularProgressIndicator(),
                         )
-                      : ChangeNotifierProvider<SpeechController>.value(
-                          value: _controller,
-                          child: Padding(
+                      : Builder(
+                          builder: (context) => Padding(
                             key: const ValueKey('group_chat'),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10.0,
@@ -1112,26 +1097,36 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: Column(
                               children: [
                                 GroupLanguageBar(
-                                  sourceLanguages:
-                                      _controller.deepgramRecognitionLanguages,
+                                  sourceLanguages: context
+                                      .watch<SpeechController>()
+                                      .deepgramRecognitionLanguages,
                                   targetLanguages:
                                       SpeechController.supportedLanguages,
-                                  sourceCode:
-                                      _controller.deepgramRecognitionLanguage,
-                                  targetCode: _controller.targetLanguage,
+                                  sourceCode: context
+                                      .watch<SpeechController>()
+                                      .deepgramRecognitionLanguage,
+                                  targetCode: context
+                                      .watch<SpeechController>()
+                                      .targetLanguage,
                                   canSwap: _canSwapGroupLanguages(
-                                    _controller.deepgramRecognitionLanguages,
+                                    context
+                                        .watch<SpeechController>()
+                                        .deepgramRecognitionLanguages,
                                   ),
                                   onSourceSelected:
                                       _setDeepgramRecognitionLanguage,
                                   onTargetSelected: (value) {
                                     setState(() {
                                       _targetLanguage = value;
-                                      _controller.setTargetLanguage(value);
+                                      context
+                                          .read<SpeechController>()
+                                          .setTargetLanguage(value);
                                     });
                                   },
                                   onSwap: () => _swapGroupLanguages(
-                                    _controller.deepgramRecognitionLanguages,
+                                    context
+                                        .watch<SpeechController>()
+                                        .deepgramRecognitionLanguages,
                                   ),
                                 ),
                                 const SizedBox(height: 10),
@@ -1149,10 +1144,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       child: _initializing
                           ? const Center(child: CircularProgressIndicator())
-                          : ChangeNotifierProvider<TwoWayChatController>.value(
-                              value: _twoWayController,
-                              child: const TwoWayChatView(),
-                            ),
+                          : const TwoWayChatView(),
                     ),
                   ),
           ),
@@ -1181,14 +1173,11 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                 ),
                 if (!_initializing && _isGroupSection) ...[
-                  ChangeNotifierProvider<SpeechController>.value(
-                    value: _controller,
-                    child: SpeechFooter(
-                      hasSeenAudioPlaybackBluetoothNotice:
-                          _hasSeenAudioPlaybackBluetoothNotice,
-                      onAudioPlaybackBluetoothNoticeSeen:
-                          _markAudioPlaybackBluetoothNoticeSeen,
-                    ),
+                  SpeechFooter(
+                    hasSeenAudioPlaybackBluetoothNotice:
+                        _hasSeenAudioPlaybackBluetoothNotice,
+                    onAudioPlaybackBluetoothNoticeSeen:
+                        _markAudioPlaybackBluetoothNoticeSeen,
                   ),
                   const SizedBox(height: 8),
                 ],

@@ -47,7 +47,8 @@ class _FakeRecognitionSpeechPipeline extends SpeechPipeline {
   Future<String?> getCurrentPlaybackDeviceId() async => null;
 
   @override
-  Stream<dynamic> listeningDeviceRouteChanges() => const Stream<dynamic>.empty();
+  Stream<dynamic> listeningDeviceRouteChanges() =>
+      const Stream<dynamic>.empty();
 
   @override
   Future<SpeechRecognitionSession> startRecognitionSession(
@@ -105,49 +106,55 @@ void main() {
         .setMockMethodCallHandler(wakelockChannel, null);
   });
 
-  test('SpeechController plays activation cue after listening starts', () async {
-    final pipeline = _FakeRecognitionSpeechPipeline();
-    final soundPlayer = _FakeMicActivationSoundPlayer();
-    final controller = SpeechController(
-      speechPipeline: pipeline,
-      micActivationSoundPlayer: soundPlayer,
-    );
+  test(
+    'SpeechController plays activation cue after listening starts',
+    () async {
+      final pipeline = _FakeRecognitionSpeechPipeline();
+      final soundPlayer = _FakeMicActivationSoundPlayer();
+      final controller = SpeechController(
+        speechPipeline: pipeline,
+        micActivationSoundPlayer: soundPlayer,
+      );
 
-    addTearDown(() async {
-      await controller.stopListening();
-      controller.dispose();
-      await pipeline.disposeFake();
-    });
+      addTearDown(() async {
+        await controller.stopListening();
+        controller.dispose();
+        await pipeline.disposeFake();
+      });
 
-    await controller.init();
-    await controller.startListening();
+      await controller.init();
+      await controller.startListening();
 
-    expect(controller.isListening, isTrue);
-    expect(pipeline.startRecognitionCalls, equals(1));
-    expect(soundPlayer.playCallCount, equals(1));
-  });
+      expect(controller.isListening, isTrue);
+      expect(pipeline.startRecognitionCalls, equals(1));
+      expect(soundPlayer.playCallCount, equals(1));
+    },
+  );
 
-  test('TwoWayChatController plays activation cue after listening starts', () async {
-    final pipeline = _FakeRecognitionSpeechPipeline();
-    final soundPlayer = _FakeMicActivationSoundPlayer();
-    final controller = TwoWayChatController(
-      speechPipeline: pipeline,
-      micActivationSoundPlayer: soundPlayer,
-    );
+  test(
+    'TwoWayChatController plays activation cue after listening starts',
+    () async {
+      final pipeline = _FakeRecognitionSpeechPipeline();
+      final soundPlayer = _FakeMicActivationSoundPlayer();
+      final controller = TwoWayChatController(
+        speechPipeline: pipeline,
+        micActivationSoundPlayer: soundPlayer,
+      );
 
-    addTearDown(() async {
-      await controller.stopListening();
-      controller.dispose();
-      await pipeline.disposeFake();
-    });
+      addTearDown(() async {
+        await controller.stopListening();
+        controller.dispose();
+        await pipeline.disposeFake();
+      });
 
-    await controller.init();
-    await controller.startListening(TwoWaySpeaker.primary);
+      await controller.init();
+      await controller.startListening(TwoWaySpeaker.primary);
 
-    expect(controller.isListening, isTrue);
-    expect(controller.activeSpeaker, equals(TwoWaySpeaker.primary));
-    expect(pipeline.startRecognitionCalls, equals(1));
-    expect(pipeline.lastSourceLanguage, equals('en'));
-    expect(soundPlayer.playCallCount, equals(1));
-  });
+      expect(controller.isListening, isTrue);
+      expect(controller.activeSpeaker, equals(TwoWaySpeaker.primary));
+      expect(pipeline.startRecognitionCalls, equals(1));
+      expect(pipeline.lastSourceLanguage, equals('en'));
+      expect(soundPlayer.playCallCount, equals(1));
+    },
+  );
 }

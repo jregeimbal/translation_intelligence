@@ -1,12 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:translation_intelligence/controllers/two_way_chat_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:translation_intelligence/main.dart';
 import 'package:translation_intelligence/models/two_way_message.dart';
-import 'package:translation_intelligence/services/backend_api_client.dart';
 import 'package:translation_intelligence/services/app_preferences.dart';
 
 import 'speech_controller_stub.dart';
@@ -107,32 +104,9 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final controller = TestSpeechController();
-    final twoWayController = FakeTwoWayChatController();
-    final secondAttempt = Completer<HomePageInitializationBundle>();
-    var initializerCalls = 0;
-
-    Future<HomePageInitializationBundle> initializer() {
-      initializerCalls += 1;
-      if (initializerCalls == 1) {
-        throw StateError('network unavailable');
-      }
-
-      return secondAttempt.future;
-    }
-
-    final backendApiClient = BackendApiClient(
-      baseUrl: 'https://example.com',
-      authTokenProvider: () async => 'token',
-    );
-
     await pumpTestApp(
       tester,
-      MyHomePage(
-        themeMode: ThemeMode.light,
-        onThemeModeChanged: (_) {},
-        initializer: initializer,
-      ),
+      MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
     );
 
     await tester.pump();
@@ -143,17 +117,8 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
     await tester.pump();
 
-    expect(initializerCalls, 2);
     expect(find.textContaining('Initialization failed'), findsNothing);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-    secondAttempt.complete(
-      HomePageInitializationBundle(
-        backendApiClient: backendApiClient,
-        controller: controller,
-        twoWayController: twoWayController,
-      ),
-    );
 
     await tester.pumpAndSettle();
 
@@ -171,23 +136,10 @@ void main() {
 
     final controller = TestSpeechController();
     await controller.startListening();
-    final twoWayController = FakeTwoWayChatController();
-    final backendApiClient = BackendApiClient(
-      baseUrl: 'https://example.com',
-      authTokenProvider: () async => 'token',
-    );
 
     await pumpTestApp(
       tester,
-      MyHomePage(
-        themeMode: ThemeMode.light,
-        onThemeModeChanged: (_) {},
-        initializer: () async => HomePageInitializationBundle(
-          backendApiClient: backendApiClient,
-          controller: controller,
-          twoWayController: twoWayController,
-        ),
-      ),
+      MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
     );
 
     await tester.pumpAndSettle();
@@ -212,23 +164,10 @@ void main() {
     final controller = TestSpeechController();
     controller.setDeepgramRecognitionLanguage('multi');
     await controller.startListening();
-    final twoWayController = FakeTwoWayChatController();
-    final backendApiClient = BackendApiClient(
-      baseUrl: 'https://example.com',
-      authTokenProvider: () async => 'token',
-    );
 
     await pumpTestApp(
       tester,
-      MyHomePage(
-        themeMode: ThemeMode.light,
-        onThemeModeChanged: (_) {},
-        initializer: () async => HomePageInitializationBundle(
-          backendApiClient: backendApiClient,
-          controller: controller,
-          twoWayController: twoWayController,
-        ),
-      ),
+      MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
     );
 
     await tester.pumpAndSettle();

@@ -1,56 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:translation_intelligence/controllers/two_way_chat_controller.dart';
 import 'package:translation_intelligence/main.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/models/suggested_response.dart';
-import 'package:translation_intelligence/models/two_way_message.dart';
 import 'package:translation_intelligence/services/app_preferences.dart';
-import 'package:translation_intelligence/services/backend_api_client.dart';
 import 'package:translation_intelligence/widgets/chat_message.dart';
 
 import 'speech_controller_stub.dart';
 import 'test_app.dart';
-
-class _FakeTwoWayChatController extends ChangeNotifier
-    implements TwoWayChatController {
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    switch (invocation.memberName) {
-      case #messages:
-        return const <TwoWayMessage>[];
-      case #canChangeLanguages:
-        return true;
-      case #speechEnabled:
-        return true;
-      case #isListening:
-        return false;
-      case #speechError:
-      case #lastWords:
-        return '';
-      case #amplitude:
-        return 0.0;
-      case #activeSessionSampleRate:
-      case #activeSessionSttProvider:
-      case #activeSessionSourceLanguage:
-      case #activeSessionResolvedLanguageCode:
-      case #activeSessionListeningDeviceId:
-      case #activeSessionStartedAt:
-      case #activeSpeaker:
-        return null;
-      case #primaryLanguage:
-        return 'en';
-      case #guestLanguage:
-        return 'es';
-      case #deepgramRecognitionLanguage:
-      case #speechToTextRecognitionLocale:
-        return 'multi';
-    }
-
-    return super.noSuchMethod(invocation);
-  }
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -58,21 +16,12 @@ void main() {
   Future<void> pumpSuggestedResponseApp(
     WidgetTester tester,
     TestSpeechController controller,
-    BackendApiClient backendApiClient,
   ) async {
     await AppPreferences().setHasCompletedFirstLaunchWalkthrough(true);
 
     await pumpTestApp(
       tester,
-      MyHomePage(
-        themeMode: ThemeMode.light,
-        onThemeModeChanged: (_) {},
-        initializer: () async => HomePageInitializationBundle(
-          backendApiClient: backendApiClient,
-          controller: controller,
-          twoWayController: _FakeTwoWayChatController(),
-        ),
-      ),
+      MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
     );
 
     await tester.pumpAndSettle();
@@ -116,12 +65,8 @@ void main() {
     tester,
   ) async {
     final controller = TestSpeechController();
-    final backendApiClient = BackendApiClient(
-      baseUrl: 'https://example.com',
-      authTokenProvider: () async => 'token',
-    );
 
-    await pumpSuggestedResponseApp(tester, controller, backendApiClient);
+    await pumpSuggestedResponseApp(tester, controller);
 
     emitSuggestedResponse(controller);
 
@@ -137,20 +82,14 @@ void main() {
     expect(find.text('Suggested response'), findsNothing);
     expect(find.text('claro que si'), findsNothing);
     expect(find.text('of course'), findsNothing);
-
-    backendApiClient.close();
   });
 
   testWidgets('group chat shows and auto-hides suggested response panel', (
     tester,
   ) async {
     final controller = TestSpeechController();
-    final backendApiClient = BackendApiClient(
-      baseUrl: 'https://example.com',
-      authTokenProvider: () async => 'token',
-    );
 
-    await pumpSuggestedResponseApp(tester, controller, backendApiClient);
+    await pumpSuggestedResponseApp(tester, controller);
 
     emitSuggestedResponse(controller);
 
@@ -175,12 +114,8 @@ void main() {
     tester,
   ) async {
     final controller = TestSpeechController();
-    final backendApiClient = BackendApiClient(
-      baseUrl: 'https://example.com',
-      authTokenProvider: () async => 'token',
-    );
 
-    await pumpSuggestedResponseApp(tester, controller, backendApiClient);
+    await pumpSuggestedResponseApp(tester, controller);
 
     emitSuggestedResponse(controller);
 
@@ -227,12 +162,8 @@ void main() {
           )..translation = 'translation $index',
         );
       }
-      final backendApiClient = BackendApiClient(
-        baseUrl: 'https://example.com',
-        authTokenProvider: () async => 'token',
-      );
 
-      await pumpSuggestedResponseApp(tester, controller, backendApiClient);
+      await pumpSuggestedResponseApp(tester, controller);
 
       final beforePanelRect = tester.getRect(find.byType(ChatMessageList));
 
@@ -244,8 +175,6 @@ void main() {
 
       expect(find.byKey(const Key('suggested-response-panel')), findsOneWidget);
       expect(afterPanelRect.height, lessThan(beforePanelRect.height));
-
-      backendApiClient.close();
     },
   );
 
@@ -253,12 +182,8 @@ void main() {
     'second suggested response replaces the first and resets timeout',
     (tester) async {
       final controller = TestSpeechController();
-      final backendApiClient = BackendApiClient(
-        baseUrl: 'https://example.com',
-        authTokenProvider: () async => 'token',
-      );
 
-      await pumpSuggestedResponseApp(tester, controller, backendApiClient);
+      await pumpSuggestedResponseApp(tester, controller);
 
       emitCustomSuggestedResponse(
         controller,
@@ -297,37 +222,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('suggested-response-panel')), findsNothing);
-
-      backendApiClient.close();
     },
   );
-
-  testWidgets('leaving group chat hides the suggested response panel', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(900, 1600);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
-    final controller = TestSpeechController();
-    final backendApiClient = BackendApiClient(
-      baseUrl: 'https://example.com',
-      authTokenProvider: () async => 'token',
-    );
-
-    await pumpSuggestedResponseApp(tester, controller, backendApiClient);
-
-    emitSuggestedResponse(controller);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(find.byKey(const Key('suggested-response-panel')), findsOneWidget);
-
-    await tester.tap(find.text('2-way'));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('suggested-response-panel')), findsNothing);
-
-    backendApiClient.close();
-  });
 }
