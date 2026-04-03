@@ -244,4 +244,40 @@ void main() {
     expect(controller.deepgramRecognitionLanguage, 'es');
     expect(controller.isListening, isTrue);
   });
+
+  testWidgets('debug dialog opens without provider lookup crash', (
+    tester,
+  ) async {
+    await markWalkthroughSeen();
+    await tester.binding.setSurfaceSize(const Size(1400, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final controller = TestSpeechController();
+    final twoWayController = FakeTwoWayChatController();
+    final backendApiClient = BackendApiClient(
+      baseUrl: 'https://example.com',
+      authTokenProvider: () async => 'token',
+    );
+
+    await pumpTestApp(
+      tester,
+      MyHomePage(
+        themeMode: ThemeMode.light,
+        onThemeModeChanged: (_) {},
+        initializer: () async => HomePageInitializationBundle(
+          backendApiClient: backendApiClient,
+          controller: controller,
+          twoWayController: twoWayController,
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.bug_report_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Close'), findsOneWidget);
+  });
 }

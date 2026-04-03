@@ -453,15 +453,11 @@ class _MyHomePageState extends State<MyHomePage> {
     await _showWalkthrough(markCompleted: false);
   }
 
-  void _showDebugAudioDialog() {
+  void _showDebugAudioDialog(BuildContext dialogContext) {
+    if (!_controllersReady) return;
     AudioDebugDialog.showInDialog(
-      context,
-      _controller,
-      _twoWayController,
-      _outputProvider,
-      _sttProvider,
-      _translationProvider,
-      _isGroupSection,
+      dialogContext,
+      isGroupSection: _isGroupSection,
     );
   }
 
@@ -689,6 +685,14 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _setTargetLanguage(String language) {
+    if (_targetLanguage == language || _initializing) return;
+    setState(() {
+      _targetLanguage = language;
+      _controller.setTargetLanguage(language);
+    });
+  }
+
   void _setDeepgramRecognitionModel(String model) {
     if (_deepgramRecognitionModel == model || _initializing) return;
     setState(() {
@@ -844,10 +848,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _setOutputProvider(selection.outputProvider);
     }
     if (selection.targetLanguage != _targetLanguage) {
-      setState(() {
-        _targetLanguage = selection.targetLanguage;
-        _controller.setTargetLanguage(selection.targetLanguage);
-      });
+      _setTargetLanguage(selection.targetLanguage);
     }
     if (selection.deepgramRecognitionModel != _deepgramRecognitionModel) {
       _setDeepgramRecognitionModel(selection.deepgramRecognitionModel);
@@ -986,13 +987,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textRoles = resolveAppThemeTextRoles(theme);
-    final tokens = resolveAppThemeTokens(theme);
-    final activeSuggestedResponse = _isGroupSection
-        ? _activeSuggestedResponse
-        : null;
-
     if (_initializationError.isNotEmpty) {
       return Material(
         child: Center(
@@ -1017,6 +1011,91 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       );
     }
+
+    final homeScaffold = _HomePageScaffold(
+      initializing: _initializing,
+      controllersReady: _controllersReady,
+      isGroupSection: _isGroupSection,
+      selectedSection: _selectedSection,
+      activeSuggestedResponse: _isGroupSection
+          ? _activeSuggestedResponse
+          : null,
+      suggestedResponsePresentationKey: _suggestedResponsePresentationKey,
+      hasSeenAudioPlaybackBluetoothNotice: _hasSeenAudioPlaybackBluetoothNotice,
+      onShowHelpWalkthrough: _showHelpWalkthrough,
+      onShowDebugAudioDialog: _showDebugAudioDialog,
+      onShowProviderSettingsDialog: _showProviderSettingsDialog,
+      onSectionSelected: _onSectionSelected,
+      onSourceSelected: _setDeepgramRecognitionLanguage,
+      onTargetSelected: _setTargetLanguage,
+      onSwapGroupLanguages: _swapGroupLanguages,
+      canSwapGroupLanguages: _canSwapGroupLanguages,
+      onClearSuggestedResponse: _clearSuggestedResponse,
+      onAudioPlaybackBluetoothNoticeSeen: _markAudioPlaybackBluetoothNoticeSeen,
+    );
+
+    if (!_controllersReady) {
+      return homeScaffold;
+    }
+
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<SpeechController>.value(value: _controller),
+        ChangeNotifierProvider<TwoWayChatController>.value(
+          value: _twoWayController,
+        ),
+      ],
+      child: homeScaffold,
+    );
+  }
+}
+
+class _HomePageScaffold extends StatelessWidget {
+  const _HomePageScaffold({
+    required this.initializing,
+    required this.controllersReady,
+    required this.isGroupSection,
+    required this.selectedSection,
+    required this.activeSuggestedResponse,
+    required this.suggestedResponsePresentationKey,
+    required this.hasSeenAudioPlaybackBluetoothNotice,
+    required this.onShowHelpWalkthrough,
+    required this.onShowDebugAudioDialog,
+    required this.onShowProviderSettingsDialog,
+    required this.onSectionSelected,
+    required this.onSourceSelected,
+    required this.onTargetSelected,
+    required this.onSwapGroupLanguages,
+    required this.canSwapGroupLanguages,
+    required this.onClearSuggestedResponse,
+    required this.onAudioPlaybackBluetoothNoticeSeen,
+  });
+
+  final bool initializing;
+  final bool controllersReady;
+  final bool isGroupSection;
+  final int selectedSection;
+  final SuggestedResponseEvent? activeSuggestedResponse;
+  final int suggestedResponsePresentationKey;
+  final bool hasSeenAudioPlaybackBluetoothNotice;
+  final Future<void> Function() onShowHelpWalkthrough;
+  final void Function(BuildContext context) onShowDebugAudioDialog;
+  final Future<void> Function() onShowProviderSettingsDialog;
+  final Future<void> Function(int index) onSectionSelected;
+  final Future<void> Function(String value) onSourceSelected;
+  final void Function(String value) onTargetSelected;
+  final Future<void> Function(Map<String, String> sourceLanguages)
+  onSwapGroupLanguages;
+  final bool Function(Map<String, String> sourceLanguages)
+  canSwapGroupLanguages;
+  final VoidCallback onClearSuggestedResponse;
+  final Future<void> Function() onAudioPlaybackBluetoothNoticeSeen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textRoles = resolveAppThemeTextRoles(theme);
+    final tokens = resolveAppThemeTokens(theme);
 
     return Container(
       decoration: BoxDecoration(
@@ -1071,23 +1150,23 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           actions: [
-            if (!_initializing)
+            if (!initializing)
               IconButton(
                 icon: const Icon(Icons.help_outline_rounded),
                 tooltip: context.l10n.walkthroughHelp,
-                onPressed: _showHelpWalkthrough,
+                onPressed: onShowHelpWalkthrough,
               ),
-            if (kDebugMode)
+            if (kDebugMode && controllersReady)
               IconButton(
                 icon: const Icon(Icons.bug_report_outlined),
                 tooltip: context.l10n.debugAudioStream,
-                onPressed: _showDebugAudioDialog,
+                onPressed: () => onShowDebugAudioDialog(context),
               ),
-            if (!_initializing)
+            if (!initializing)
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
                 tooltip: context.l10n.settingsTitle,
-                onPressed: _showProviderSettingsDialog,
+                onPressed: onShowProviderSettingsDialog,
               ),
             const SizedBox(width: 8),
           ],
@@ -1095,50 +1174,18 @@ class _MyHomePageState extends State<MyHomePage> {
         body: SafeArea(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
-            child: _isGroupSection
-                ? (_initializing
+            child: isGroupSection
+                ? (initializing
                       ? const Center(
                           key: ValueKey('group_loading'),
                           child: CircularProgressIndicator(),
                         )
-                      : ChangeNotifierProvider<SpeechController>.value(
-                          value: _controller,
-                          child: Padding(
-                            key: const ValueKey('group_chat'),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10.0,
-                              vertical: 12,
-                            ),
-                            child: Column(
-                              children: [
-                                GroupLanguageBar(
-                                  sourceLanguages:
-                                      _controller.deepgramRecognitionLanguages,
-                                  targetLanguages:
-                                      SpeechController.supportedLanguages,
-                                  sourceCode:
-                                      _controller.deepgramRecognitionLanguage,
-                                  targetCode: _controller.targetLanguage,
-                                  canSwap: _canSwapGroupLanguages(
-                                    _controller.deepgramRecognitionLanguages,
-                                  ),
-                                  onSourceSelected:
-                                      _setDeepgramRecognitionLanguage,
-                                  onTargetSelected: (value) {
-                                    setState(() {
-                                      _targetLanguage = value;
-                                      _controller.setTargetLanguage(value);
-                                    });
-                                  },
-                                  onSwap: () => _swapGroupLanguages(
-                                    _controller.deepgramRecognitionLanguages,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                const Expanded(child: ChatMessageList()),
-                              ],
-                            ),
-                          ),
+                      : _GroupChatSection(
+                          key: const ValueKey('group_chat'),
+                          onSourceSelected: onSourceSelected,
+                          onTargetSelected: onTargetSelected,
+                          onSwapGroupLanguages: onSwapGroupLanguages,
+                          canSwapGroupLanguages: canSwapGroupLanguages,
                         ))
                 : Center(
                     key: const ValueKey('two_way_placeholder'),
@@ -1147,12 +1194,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         horizontal: 10.0,
                         vertical: 12,
                       ),
-                      child: _initializing
+                      child: initializing
                           ? const Center(child: CircularProgressIndicator())
-                          : ChangeNotifierProvider<TwoWayChatController>.value(
-                              value: _twoWayController,
-                              child: const TwoWayChatView(),
-                            ),
+                          : const TwoWayChatView(),
                     ),
                   ),
           ),
@@ -1169,32 +1213,29 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: activeSuggestedResponse == null
                       ? const SizedBox.shrink()
                       : Padding(
-                          key: ValueKey<int>(_suggestedResponsePresentationKey),
+                          key: ValueKey<int>(suggestedResponsePresentationKey),
                           padding: const EdgeInsets.only(bottom: 8),
                           child: _SuggestedResponsePanel(
-                            event: activeSuggestedResponse,
+                            event: activeSuggestedResponse!,
                             title: context.l10n.suggestedResponseTitle,
                             closeTooltip: context.l10n.close,
-                            onClose: _clearSuggestedResponse,
+                            onClose: onClearSuggestedResponse,
                             timeout: _suggestedResponseSnackBarDuration,
                           ),
                         ),
                 ),
-                if (!_initializing && _isGroupSection) ...[
-                  ChangeNotifierProvider<SpeechController>.value(
-                    value: _controller,
-                    child: SpeechFooter(
-                      hasSeenAudioPlaybackBluetoothNotice:
-                          _hasSeenAudioPlaybackBluetoothNotice,
-                      onAudioPlaybackBluetoothNoticeSeen:
-                          _markAudioPlaybackBluetoothNoticeSeen,
-                    ),
+                if (!initializing && isGroupSection) ...[
+                  SpeechFooter(
+                    hasSeenAudioPlaybackBluetoothNotice:
+                        hasSeenAudioPlaybackBluetoothNotice,
+                    onAudioPlaybackBluetoothNoticeSeen:
+                        onAudioPlaybackBluetoothNoticeSeen,
                   ),
                   const SizedBox(height: 8),
                 ],
                 NavigationBar(
-                  selectedIndex: _selectedSection,
-                  onDestinationSelected: _onSectionSelected,
+                  selectedIndex: selectedSection,
+                  onDestinationSelected: onSectionSelected,
                   destinations: [
                     NavigationDestination(
                       icon: const Icon(Icons.group_rounded),
@@ -1210,6 +1251,49 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GroupChatSection extends StatelessWidget {
+  const _GroupChatSection({
+    super.key,
+    required this.onSourceSelected,
+    required this.onTargetSelected,
+    required this.onSwapGroupLanguages,
+    required this.canSwapGroupLanguages,
+  });
+
+  final Future<void> Function(String value) onSourceSelected;
+  final void Function(String value) onTargetSelected;
+  final Future<void> Function(Map<String, String> sourceLanguages)
+  onSwapGroupLanguages;
+  final bool Function(Map<String, String> sourceLanguages)
+  canSwapGroupLanguages;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<SpeechController>();
+    final sourceLanguages = controller.deepgramRecognitionLanguages;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 12),
+      child: Column(
+        children: [
+          GroupLanguageBar(
+            sourceLanguages: sourceLanguages,
+            targetLanguages: SpeechController.supportedLanguages,
+            sourceCode: controller.deepgramRecognitionLanguage,
+            targetCode: controller.targetLanguage,
+            canSwap: canSwapGroupLanguages(sourceLanguages),
+            onSourceSelected: onSourceSelected,
+            onTargetSelected: onTargetSelected,
+            onSwap: () => onSwapGroupLanguages(sourceLanguages),
+          ),
+          const SizedBox(height: 10),
+          const Expanded(child: ChatMessageList()),
+        ],
       ),
     );
   }
