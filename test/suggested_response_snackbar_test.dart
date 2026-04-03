@@ -22,6 +22,7 @@ void main() {
     await pumpTestApp(
       tester,
       MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
+      speechController: controller,
     );
 
     await tester.pumpAndSettle();

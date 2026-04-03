@@ -12,6 +12,9 @@ import 'speech_controller_stub.dart';
 /// Fake TwoWayChatController for widget tests.
 class _FakeTwoWayChatController extends ChangeNotifier
     implements TwoWayChatController {
+  bool _isListening = false;
+  TwoWaySpeaker? _activeSpeaker;
+
   @override
   dynamic noSuchMethod(Invocation invocation) {
     switch (invocation.memberName) {
@@ -22,7 +25,7 @@ class _FakeTwoWayChatController extends ChangeNotifier
       case #speechEnabled:
         return true;
       case #isListening:
-        return false;
+        return _isListening;
       case #speechError:
       case #lastWords:
         return '';
@@ -35,7 +38,7 @@ class _FakeTwoWayChatController extends ChangeNotifier
       case #activeSessionListeningDeviceId:
       case #activeSessionStartedAt:
       case #activeSpeaker:
-        return null;
+        return _activeSpeaker;
       case #primaryLanguage:
         return 'en';
       case #guestLanguage:
@@ -48,6 +51,53 @@ class _FakeTwoWayChatController extends ChangeNotifier
 
     return super.noSuchMethod(invocation);
   }
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> startListening(TwoWaySpeaker speaker) async {
+    _isListening = true;
+    _activeSpeaker = speaker;
+    notifyListeners();
+  }
+
+  @override
+  Future<void> stopListening() async {
+    _isListening = false;
+    _activeSpeaker = null;
+    notifyListeners();
+  }
+
+  @override
+  void setOutputProvider(dynamic provider) {}
+
+  @override
+  void setSttProvider(dynamic provider) {}
+
+  @override
+  void setTranslationProvider(dynamic provider) {}
+
+  @override
+  void setDeepgramRecognitionModel(String model) {}
+
+  @override
+  void setDeepgramRecognitionLanguage(String language) {}
+
+  @override
+  void setSpeechToTextRecognitionLocale(String locale) {}
+
+  @override
+  Future<void> refreshSpeechToTextRecognitionLocales() async {}
+
+  @override
+  void setListeningDeviceId(String? deviceId) {}
+
+  @override
+  Future<bool> setPlaybackDeviceId(String? deviceId) async => true;
+
+  @override
+  void clearMessages() {}
 }
 
 Widget buildTestApp(

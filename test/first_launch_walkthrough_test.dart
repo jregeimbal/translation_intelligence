@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:translation_intelligence/main.dart';
 import 'package:translation_intelligence/services/app_preferences.dart';
 
+import 'speech_controller_stub.dart';
 import 'test_app.dart';
 
 void main() {
@@ -16,9 +17,12 @@ void main() {
   testWidgets('first launch shows walkthrough and skip dismisses it', (
     tester,
   ) async {
+    final controller = TestSpeechController();
+
     await pumpTestApp(
       tester,
       MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
+      speechController: controller,
     );
 
     await tester.pumpAndSettle();
@@ -41,9 +45,12 @@ void main() {
   ) async {
     await AppPreferences().setHasCompletedFirstLaunchWalkthrough(true);
 
+    final controller = TestSpeechController();
+
     await pumpTestApp(
       tester,
       MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
+      speechController: controller,
     );
 
     await tester.pumpAndSettle();
@@ -57,9 +64,12 @@ void main() {
   ) async {
     await AppPreferences().setHasCompletedFirstLaunchWalkthrough(true);
 
+    final controller = TestSpeechController();
+
     await pumpTestApp(
       tester,
       MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
+      speechController: controller,
     );
 
     await tester.pumpAndSettle();

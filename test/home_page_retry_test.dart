@@ -59,6 +59,9 @@ class FakeTwoWayChatController extends ChangeNotifier
   }
 
   @override
+  Future<void> init() async {}
+
+  @override
   Future<void> startListening(TwoWaySpeaker speaker) async {
     startListeningCallCount += 1;
     listening = true;
@@ -70,8 +73,21 @@ class FakeTwoWayChatController extends ChangeNotifier
   Future<void> stopListening() async {
     stopListeningCallCount += 1;
     listening = false;
+    listeningSpeaker = null;
     notifyListeners();
   }
+
+  @override
+  void setOutputProvider(dynamic provider) {}
+
+  @override
+  void setSttProvider(dynamic provider) {}
+
+  @override
+  void setTranslationProvider(dynamic provider) {}
+
+  @override
+  void setDeepgramRecognitionModel(String model) {}
 
   @override
   void setDeepgramRecognitionLanguage(String language) {
@@ -84,6 +100,18 @@ class FakeTwoWayChatController extends ChangeNotifier
     speechToTextRecognitionLocale = locale;
     notifyListeners();
   }
+
+  @override
+  Future<void> refreshSpeechToTextRecognitionLocales() async {}
+
+  @override
+  void setListeningDeviceId(String? deviceId) {}
+
+  @override
+  Future<bool> setPlaybackDeviceId(String? deviceId) async => true;
+
+  @override
+  void clearMessages() {}
 }
 
 void main() {
@@ -104,9 +132,22 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
+    var initCalls = 0;
+    final controller = TestSpeechController(
+      onInit: () async {
+        initCalls += 1;
+        if (initCalls == 1) {
+          throw StateError('network unavailable');
+        }
+      },
+    );
+    final twoWayController = FakeTwoWayChatController();
+
     await pumpTestApp(
       tester,
       MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
+      speechController: controller,
+      twoWayController: twoWayController,
     );
 
     await tester.pump();
@@ -117,8 +158,8 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
     await tester.pump();
 
+    expect(initCalls, 2);
     expect(find.textContaining('Initialization failed'), findsNothing);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
     await tester.pumpAndSettle();
 
@@ -136,10 +177,13 @@ void main() {
 
     final controller = TestSpeechController();
     await controller.startListening();
+    final twoWayController = FakeTwoWayChatController();
 
     await pumpTestApp(
       tester,
       MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
+      speechController: controller,
+      twoWayController: twoWayController,
     );
 
     await tester.pumpAndSettle();
@@ -164,10 +208,13 @@ void main() {
     final controller = TestSpeechController();
     controller.setDeepgramRecognitionLanguage('multi');
     await controller.startListening();
+    final twoWayController = FakeTwoWayChatController();
 
     await pumpTestApp(
       tester,
       MyHomePage(themeMode: ThemeMode.light, onThemeModeChanged: (_) {}),
+      speechController: controller,
+      twoWayController: twoWayController,
     );
 
     await tester.pumpAndSettle();

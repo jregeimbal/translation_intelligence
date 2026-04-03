@@ -200,10 +200,12 @@ class DebouncedMessageDispatcher {
 
 class _MyHomePageState extends State<MyHomePage> {
   final AppPreferences _appPreferences = AppPreferences();
+  SpeechController? _speechController;
   StreamSubscription<String>? _listeningDeviceUpdateSub;
   StreamSubscription<SuggestedResponseEvent>? _suggestedResponseSub;
   Timer? _suggestedResponseTimer;
   late final DebouncedMessageDispatcher _listeningDeviceSnackBarDebouncer;
+  bool _controllerPreferencesListenerBound = false;
   bool _initializing = true;
   String _initializationError = '';
   int _selectedSection = 0;
@@ -235,6 +237,10 @@ class _MyHomePageState extends State<MyHomePage> {
   bool get _isGroupSection => _selectedSection == 0;
 
   void _disposeInitializedResources() {
+    if (_controllerPreferencesListenerBound) {
+      _speechController?.removeListener(_persistControllerPreferences);
+      _controllerPreferencesListenerBound = false;
+    }
     _listeningDeviceUpdateSub?.cancel();
     _listeningDeviceUpdateSub = null;
     _suggestedResponseSub?.cancel();
@@ -530,14 +536,14 @@ class _MyHomePageState extends State<MyHomePage> {
       _initializationError = '';
     });
 
+    final speechController = context.read<SpeechController>();
+    _speechController = speechController;
+    final twoWayController = context.read<TwoWayChatController>();
+
     try {
       await _loadPersistedPreferences();
 
       if (!mounted) return;
-
-      // Access controllers via context
-      final speechController = context.read<SpeechController>();
-      final twoWayController = context.read<TwoWayChatController>();
 
       // Initialize with persisted values
       speechController.setDeepgramRecognitionModel(_deepgramRecognitionModel);
@@ -560,8 +566,11 @@ class _MyHomePageState extends State<MyHomePage> {
       await speechController.init();
       await twoWayController.init();
 
-      // Listen to controller updates
+      if (_controllerPreferencesListenerBound) {
+        speechController.removeListener(_persistControllerPreferences);
+      }
       speechController.addListener(_persistControllerPreferences);
+      _controllerPreferencesListenerBound = true;
 
       // Bind notifications
       _bindListeningDeviceNotifications();
@@ -957,10 +966,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     _listeningDeviceSnackBarDebouncer.dispose();
-
-    // Clean up controller listeners
-    final speechController = context.read<SpeechController>();
-    speechController.removeListener(_persistControllerPreferences);
 
     _disposeInitializedResources();
     super.dispose();

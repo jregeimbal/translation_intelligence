@@ -22,11 +22,14 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
     bool audioPlaybackEnabled = false,
     double amplitude = 0.0,
     String targetLanguage = 'en',
+    this.onInit,
   }) : _isListening = isListening,
        _speechEnabled = speechEnabled,
        _audioPlaybackEnabled = audioPlaybackEnabled,
        _amplitude = amplitude,
        _targetLanguage = targetLanguage;
+
+  final Future<void> Function()? onInit;
 
   final List<ChatMessage> _chatMessages = [];
   bool _isListening;
@@ -221,7 +224,9 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   }
 
   @override
-  Future<void> init() async {}
+  Future<void> init() async {
+    await onInit?.call();
+  }
 
   @override
   Future<void> startListening() async {
