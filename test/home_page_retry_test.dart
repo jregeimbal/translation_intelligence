@@ -9,7 +9,7 @@ import 'package:translation_intelligence/models/two_way_message.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 import 'package:translation_intelligence/services/app_preferences.dart';
 
-import 'speech_controller_stub.dart';
+import 'group_controller_stub.dart';
 import 'test_app.dart';
 
 class FakeTwoWayChatController extends ChangeNotifier
@@ -107,7 +107,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final controller = TestSpeechController();
+    final controller = TestGroupController();
     final twoWayController = FakeTwoWayChatController();
     final secondAttempt = Completer<HomePageInitializationBundle>();
     var initializerCalls = 0;
@@ -150,7 +150,7 @@ void main() {
     secondAttempt.complete(
       HomePageInitializationBundle(
         backendApiClient: backendApiClient,
-        controller: controller,
+        groupController: controller,
         twoWayController: twoWayController,
       ),
     );
@@ -169,7 +169,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final controller = TestSpeechController();
+    final controller = TestGroupController();
     await controller.startListening();
     final twoWayController = FakeTwoWayChatController();
     final backendApiClient = BackendApiClient(
@@ -184,7 +184,7 @@ void main() {
         onThemeModeChanged: (_) {},
         initializer: () async => HomePageInitializationBundle(
           backendApiClient: backendApiClient,
-          controller: controller,
+          groupController: controller,
           twoWayController: twoWayController,
         ),
       ),
@@ -209,7 +209,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final controller = TestSpeechController();
+    final controller = TestGroupController();
     controller.setDeepgramRecognitionLanguage('multi');
     await controller.startListening();
     final twoWayController = FakeTwoWayChatController();
@@ -225,7 +225,7 @@ void main() {
         onThemeModeChanged: (_) {},
         initializer: () async => HomePageInitializationBundle(
           backendApiClient: backendApiClient,
-          controller: controller,
+          groupController: controller,
           twoWayController: twoWayController,
         ),
       ),
@@ -252,7 +252,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final controller = TestSpeechController();
+    final controller = TestGroupController();
     final twoWayController = FakeTwoWayChatController();
     final backendApiClient = BackendApiClient(
       baseUrl: 'https://example.com',
@@ -266,7 +266,7 @@ void main() {
         onThemeModeChanged: (_) {},
         initializer: () async => HomePageInitializationBundle(
           backendApiClient: backendApiClient,
-          controller: controller,
+          groupController: controller,
           twoWayController: twoWayController,
         ),
       ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../controllers/speech_controller.dart';
+import '../controllers/group_controller.dart';
 import '../controllers/two_way_chat_controller.dart';
 import '../l10n/app_localizations_ext.dart';
 import '../services/speech_stt_provider.dart';
@@ -13,14 +13,16 @@ class AudioDebugDialog extends StatelessWidget {
     BuildContext context, {
     required bool isGroupSection,
   }) async {
-    final controller = context.read<SpeechController>();
+    final groupController = context.read<GroupController>();
     final twoWayController = context.read<TwoWayChatController>();
 
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => MultiProvider(
         providers: [
-          ChangeNotifierProvider<SpeechController>.value(value: controller),
+          ChangeNotifierProvider<GroupController>.value(
+            value: groupController,
+          ),
           ChangeNotifierProvider<TwoWayChatController>.value(
             value: twoWayController,
           ),
@@ -35,7 +37,7 @@ class AudioDebugDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final controller = context.read<SpeechController>();
+    final groupController = context.read<GroupController>();
     final twoWayController = context.read<TwoWayChatController>();
 
     return AlertDialog(
@@ -48,7 +50,7 @@ class AudioDebugDialog extends StatelessWidget {
         initialData: 0,
         builder: (context, _) {
           final startedAt = _getActiveSessionStartedAt(
-            controller,
+            groupController,
             twoWayController,
             isGroupSection,
           );
@@ -67,7 +69,7 @@ class AudioDebugDialog extends StatelessWidget {
             MapEntry(
               l10n.debugListeningActive,
               _getIsActiveListening(
-                    controller,
+                  groupController,
                     twoWayController,
                     isGroupSection,
                   )
@@ -77,7 +79,7 @@ class AudioDebugDialog extends StatelessWidget {
             MapEntry(
               l10n.debugSttProvider,
               _getActiveSessionSttProvider(
-                        controller,
+                        groupController,
                         twoWayController,
                         isGroupSection,
                       ) ==
@@ -86,7 +88,7 @@ class AudioDebugDialog extends StatelessWidget {
                   : localizedSttProviderLabel(
                       context,
                       _getActiveSessionSttProvider(
-                        controller,
+                        groupController,
                         twoWayController,
                         isGroupSection,
                       )!,
@@ -95,7 +97,7 @@ class AudioDebugDialog extends StatelessWidget {
             MapEntry(
               l10n.debugSourceLanguage,
               _getActiveSessionSourceLanguage(
-                        controller,
+                        groupController,
                         twoWayController,
                         isGroupSection,
                       ) ==
@@ -104,7 +106,7 @@ class AudioDebugDialog extends StatelessWidget {
                   : localizedRecognitionLocaleLabel(
                       context,
                       _getActiveSessionSourceLanguage(
-                        controller,
+                        groupController,
                         twoWayController,
                         isGroupSection,
                       )!,
@@ -113,7 +115,7 @@ class AudioDebugDialog extends StatelessWidget {
             MapEntry(
               l10n.debugResolvedLanguageCode,
               _getActiveSessionResolvedLanguageCode(
-                    controller,
+                  groupController,
                     twoWayController,
                     isGroupSection,
                   ) ??
@@ -122,7 +124,7 @@ class AudioDebugDialog extends StatelessWidget {
             MapEntry(
               l10n.debugActiveSampleRate,
               _getActiveSessionSampleRate(
-                        controller,
+                        groupController,
                         twoWayController,
                         isGroupSection,
                       ) ==
@@ -130,7 +132,7 @@ class AudioDebugDialog extends StatelessWidget {
                   ? l10n.notAvailableShort
                   : l10n.sampleRateHertz(
                       _getActiveSessionSampleRate(
-                        controller,
+                        groupController,
                         twoWayController,
                         isGroupSection,
                       )!,
@@ -139,7 +141,7 @@ class AudioDebugDialog extends StatelessWidget {
             MapEntry(
               l10n.debugListeningDeviceId,
               _getActiveSessionListeningDeviceId(
-                    controller,
+                  groupController,
                     twoWayController,
                     isGroupSection,
                   ) ??
@@ -148,7 +150,7 @@ class AudioDebugDialog extends StatelessWidget {
             MapEntry(
               l10n.debugAmplitude,
               _getActiveAmplitude(
-                controller,
+                groupController,
                 twoWayController,
                 isGroupSection,
               ).toStringAsFixed(3),
@@ -157,7 +159,7 @@ class AudioDebugDialog extends StatelessWidget {
             MapEntry(
               l10n.debugSessionStartedAt,
               _getActiveSessionStartedAt(
-                    controller,
+                  groupController,
                     twoWayController,
                     isGroupSection,
                   )?.toIso8601String() ??
@@ -166,7 +168,10 @@ class AudioDebugDialog extends StatelessWidget {
             MapEntry(
               l10n.debugConfiguredSttProvider,
               isGroupSection
-                  ? localizedSttProviderLabel(context, controller.sttProvider)
+                  ? localizedSttProviderLabel(
+                    context,
+                    groupController.sttProvider,
+                  )
                   : localizedSttProviderLabel(
                       context,
                       twoWayController.sttProvider,
@@ -177,7 +182,7 @@ class AudioDebugDialog extends StatelessWidget {
               isGroupSection
                   ? localizedDeepgramLanguageLabel(
                       context,
-                      controller.deepgramRecognitionLanguage,
+                      groupController.deepgramRecognitionLanguage,
                     )
                   : localizedDeepgramLanguageLabel(
                       context,
@@ -189,7 +194,7 @@ class AudioDebugDialog extends StatelessWidget {
               isGroupSection
                   ? localizedRecognitionLocaleLabel(
                       context,
-                      controller.speechToTextRecognitionLocale,
+                      groupController.speechToTextRecognitionLocale,
                     )
                   : localizedRecognitionLocaleLabel(
                       context,
@@ -201,7 +206,7 @@ class AudioDebugDialog extends StatelessWidget {
               isGroupSection
                   ? localizedRecognitionLocaleLabel(
                       context,
-                      controller.speechToTextRecognitionLocale,
+                      groupController.speechToTextRecognitionLocale,
                     )
                   : localizedRecognitionLocaleLabel(
                       context,
@@ -236,80 +241,82 @@ class AudioDebugDialog extends StatelessWidget {
   }
 
   bool _getIsActiveListening(
-    SpeechController controller,
+    GroupController groupController,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
     return isGroupSection
-        ? controller.isListening
+        ? groupController.isListening
         : twoWayController.isListening;
   }
 
   SpeechSttProvider? _getActiveSessionSttProvider(
-    SpeechController controller,
+    GroupController groupController,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
     return isGroupSection
-        ? controller.activeSessionSttProvider
+        ? groupController.activeSessionSttProvider
         : twoWayController.activeSessionSttProvider;
   }
 
   String? _getActiveSessionSourceLanguage(
-    SpeechController controller,
+    GroupController groupController,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
     return isGroupSection
-        ? controller.activeSessionSourceLanguage
+        ? groupController.activeSessionSourceLanguage
         : twoWayController.activeSessionSourceLanguage;
   }
 
   String? _getActiveSessionResolvedLanguageCode(
-    SpeechController controller,
+    GroupController groupController,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
     return isGroupSection
-        ? controller.activeSessionResolvedLanguageCode
+        ? groupController.activeSessionResolvedLanguageCode
         : twoWayController.activeSessionResolvedLanguageCode;
   }
 
   int? _getActiveSessionSampleRate(
-    SpeechController controller,
+    GroupController groupController,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
     return isGroupSection
-        ? controller.activeSessionSampleRate
+        ? groupController.activeSessionSampleRate
         : twoWayController.activeSessionSampleRate;
   }
 
   String? _getActiveSessionListeningDeviceId(
-    SpeechController controller,
+    GroupController groupController,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
     return isGroupSection
-        ? controller.activeSessionListeningDeviceId
+        ? groupController.activeSessionListeningDeviceId
         : twoWayController.activeSessionListeningDeviceId;
   }
 
   DateTime? _getActiveSessionStartedAt(
-    SpeechController controller,
+    GroupController groupController,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
     return isGroupSection
-        ? controller.activeSessionStartedAt
+        ? groupController.activeSessionStartedAt
         : twoWayController.activeSessionStartedAt;
   }
 
   double _getActiveAmplitude(
-    SpeechController controller,
+    GroupController groupController,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
-    return isGroupSection ? controller.amplitude : twoWayController.amplitude;
+    return isGroupSection
+        ? groupController.amplitude
+        : twoWayController.amplitude;
   }
 }

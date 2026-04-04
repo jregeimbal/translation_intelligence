@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_controller.dart';
 import 'package:translation_intelligence/controllers/two_way_chat_controller.dart';
 import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/models/two_way_message.dart';
@@ -105,24 +105,24 @@ void main() {
         .setMockMethodCallHandler(wakelockChannel, null);
   });
 
-  test('SpeechController plays activation cue after listening starts', () async {
+  test('GroupController plays activation cue after listening starts', () async {
     final pipeline = _FakeRecognitionSpeechPipeline();
     final soundPlayer = _FakeMicActivationSoundPlayer();
-    final controller = SpeechController(
+    final groupController = GroupController(
       speechPipeline: pipeline,
       micActivationSoundPlayer: soundPlayer,
     );
 
     addTearDown(() async {
-      await controller.stopListening();
-      controller.dispose();
+      await groupController.stopListening();
+      groupController.dispose();
       await pipeline.disposeFake();
     });
 
-    await controller.init();
-    await controller.startListening();
+    await groupController.init();
+    await groupController.startListening();
 
-    expect(controller.isListening, isTrue);
+    expect(groupController.isListening, isTrue);
     expect(pipeline.startRecognitionCalls, equals(1));
     expect(soundPlayer.playCallCount, equals(1));
   });

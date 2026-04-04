@@ -20,7 +20,7 @@ import '../services/speech_output_provider.dart';
 import '../services/speech_stt_provider.dart';
 import '../services/speech_translation_provider.dart';
 
-final logger = Logger('SpeechController'); // Create a logger with a name
+final logger = Logger('GroupController'); // Create a logger with a name
 const String _sessionResumeFailureMessage =
     'Listening stopped because the connection could not be resumed. Tap the mic to try again.';
 
@@ -31,7 +31,7 @@ const String _sessionResumeFailureMessage =
 ///
 /// Notifies listeners when relevant properties change so individual widgets
 /// can rebuild independently.
-class SpeechController extends ChangeNotifier {
+class GroupController extends ChangeNotifier {
   final SpeechPipeline _speechPipeline;
   final BackendApiClient? _backendApiClient;
   final MicActivationSoundPlayer _micActivationSoundPlayer;
@@ -75,7 +75,7 @@ class SpeechController extends ChangeNotifier {
   /// Null means no preference (all left).
   int? preferredSpeaker;
 
-  SpeechController({
+  GroupController({
     String deepgramApiKey = '',
     BackendApiClient? backendApiClient,
     SpeechPipeline? speechPipeline,

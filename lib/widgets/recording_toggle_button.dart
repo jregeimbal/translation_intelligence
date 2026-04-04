@@ -2,13 +2,13 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_controller.dart';
 import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 
 import 'speech_connection_debug_dialog.dart';
 
-/// Floating action button that toggles speech listening.  Holds its own listen
-/// state via the controller rather than being re-built by the parent.
+/// Floating action button that toggles speech listening. Holds its own listen
+/// state via the group controller rather than being re-built by the parent.
 class SpeechFab extends StatefulWidget {
   const SpeechFab({super.key});
 
@@ -23,9 +23,9 @@ class _SpeechFabState extends State<SpeechFab> {
   Widget _buildCircularWaveform(
     ThemeData theme,
     Color ringColor,
-    SpeechController controller,
+    GroupController groupController,
   ) {
-    final amp = controller.amplitude.clamp(0.0, 1.0);
+    final amp = groupController.amplitude.clamp(0.0, 1.0);
     final trackColor = ringColor.withValues(alpha: 0.22);
     return SizedBox(
       width: 40,
@@ -45,9 +45,9 @@ class _SpeechFabState extends State<SpeechFab> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<SpeechController>();
-    final enabled = controller.speechEnabled;
-    final isNotListening = !controller.isListening;
+    final groupController = context.watch<GroupController>();
+    final enabled = groupController.speechEnabled;
+    final isNotListening = !groupController.isListening;
     final theme = Theme.of(context);
     final activeColor = theme.colorScheme.onPrimary;
     Widget child;
@@ -58,7 +58,7 @@ class _SpeechFabState extends State<SpeechFab> {
         child: CircularProgressIndicator(strokeWidth: 2, color: activeColor),
       );
     } else if (!isNotListening) {
-      child = _buildCircularWaveform(theme, activeColor, controller);
+      child = _buildCircularWaveform(theme, activeColor, groupController);
     } else {
       child = Icon(
         Icons.mic,
@@ -82,7 +82,7 @@ class _SpeechFabState extends State<SpeechFab> {
                 ? () async {
                     setState(() => _processing = true);
                     try {
-                      await context.read<SpeechController>().startListening();
+                      await context.read<GroupController>().startListening();
                     } catch (error) {
                       if (!context.mounted) {
                         return;
@@ -101,7 +101,7 @@ class _SpeechFabState extends State<SpeechFab> {
                       }
                     }
                   }
-                : context.read<SpeechController>().stopListening)
+                : context.read<GroupController>().stopListening)
           : null,
       tooltip: enabled ? context.l10n.listen : context.l10n.speechUnavailable,
       child: child,

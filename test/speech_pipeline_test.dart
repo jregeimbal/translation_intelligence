@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
@@ -113,13 +113,13 @@ void main() {
         .setMockMethodCallHandler(recordChannel, null);
   });
 
-  group('SpeechController', () {
-    late SpeechController controller;
+  group('GroupController', () {
+    late GroupController groupController;
 
     setUp(() {
       hasPermission = true;
       mockInputDevices = const [];
-      controller = SpeechController(
+      groupController = GroupController(
         backendApiClient: BackendApiClient(
           baseUrl: 'https://api.example.com',
           authTokenProvider: () async => 'token',
@@ -128,103 +128,103 @@ void main() {
     });
 
     tearDown(() {
-      controller.dispose();
+      groupController.dispose();
     });
 
     test('has expected default state', () {
-      expect(controller.speechEnabled, isFalse);
-      expect(controller.isListening, isFalse);
-      expect(controller.speechError, isEmpty);
-      expect(controller.getOptimisticMessages(), isEmpty);
-      expect(controller.amplitude, equals(0.0));
-      expect(controller.chatMessages, isEmpty);
-      expect(controller.speakers, isEmpty);
-      expect(controller.preferredSpeaker, isNull);
-      expect(controller.targetLanguage, equals('en'));
-      expect(controller.hasSupportedTargetLanguage, isTrue);
+      expect(groupController.speechEnabled, isFalse);
+      expect(groupController.isListening, isFalse);
+      expect(groupController.speechError, isEmpty);
+      expect(groupController.getOptimisticMessages(), isEmpty);
+      expect(groupController.amplitude, equals(0.0));
+      expect(groupController.chatMessages, isEmpty);
+      expect(groupController.speakers, isEmpty);
+      expect(groupController.preferredSpeaker, isNull);
+      expect(groupController.targetLanguage, equals('en'));
+      expect(groupController.hasSupportedTargetLanguage, isTrue);
     });
 
     test('supportedLanguages contains expected baseline entries', () {
-      expect(SpeechController.supportedLanguages, contains('en'));
-      expect(SpeechController.supportedLanguages, contains('es'));
-      expect(SpeechController.supportedLanguages, contains('zh-CN'));
+      expect(GroupController.supportedLanguages, contains('en'));
+      expect(GroupController.supportedLanguages, contains('es'));
+      expect(GroupController.supportedLanguages, contains('zh-CN'));
     });
 
     test('setTargetLanguage updates and notifies only on changes', () {
       var notifications = 0;
-      controller.addListener(() => notifications++);
+      groupController.addListener(() => notifications++);
 
-      controller.setTargetLanguage('es');
-      expect(controller.targetLanguage, equals('es'));
-      expect(controller.hasSupportedTargetLanguage, isTrue);
+      groupController.setTargetLanguage('es');
+      expect(groupController.targetLanguage, equals('es'));
+      expect(groupController.hasSupportedTargetLanguage, isTrue);
       expect(notifications, equals(1));
 
-      controller.setTargetLanguage('es');
+      groupController.setTargetLanguage('es');
       expect(notifications, equals(1));
     });
 
     test('hasSupportedTargetLanguage is false for unknown language', () {
-      controller.setTargetLanguage('xx-custom');
-      expect(controller.targetLanguage, equals('xx-custom'));
-      expect(controller.hasSupportedTargetLanguage, isFalse);
+      groupController.setTargetLanguage('xx-custom');
+      expect(groupController.targetLanguage, equals('xx-custom'));
+      expect(groupController.hasSupportedTargetLanguage, isFalse);
     });
 
     test('setPreferredSpeaker updates and notifies listeners', () {
       var notifications = 0;
-      controller.addListener(() => notifications++);
+      groupController.addListener(() => notifications++);
 
-      controller.setPreferredSpeaker(3);
-      expect(controller.preferredSpeaker, equals(3));
+      groupController.setPreferredSpeaker(3);
+      expect(groupController.preferredSpeaker, equals(3));
       expect(notifications, equals(1));
 
-      controller.setPreferredSpeaker(null);
-      expect(controller.preferredSpeaker, isNull);
+      groupController.setPreferredSpeaker(null);
+      expect(groupController.preferredSpeaker, isNull);
       expect(notifications, equals(2));
     });
 
     test('clearMessages notifies listeners', () {
       var notifications = 0;
-      controller.addListener(() => notifications++);
+      groupController.addListener(() => notifications++);
 
-      controller.clearMessages();
-      expect(controller.chatMessages, isEmpty);
+      groupController.clearMessages();
+      expect(groupController.chatMessages, isEmpty);
       expect(notifications, equals(1));
     });
 
     test('chatMessages getter is immutable', () {
-      final messages = controller.chatMessages;
+      final messages = groupController.chatMessages;
       expect(() => messages.add(ChatMessage('Hello')), throwsUnsupportedError);
     });
 
     test('provider and deepgram getters expose pipeline state', () {
-      expect(controller.outputProvider, equals(SpeechOutputProvider.google));
-      expect(controller.sttProvider, equals(SpeechSttProvider.deepgram));
+      expect(groupController.outputProvider, equals(SpeechOutputProvider.google));
+      expect(groupController.sttProvider, equals(SpeechSttProvider.deepgram));
       expect(
-        controller.translationProvider,
+        groupController.translationProvider,
         equals(SpeechTranslationProvider.google),
       );
-      expect(controller.deepgramRecognitionModel, equals('nova-3'));
-      expect(controller.deepgramRecognitionLanguage, equals('multi'));
-      expect(controller.deepgramRecognitionModels, contains('nova-3-medical'));
-      expect(controller.deepgramRecognitionLanguages.values, contains('multi'));
+      expect(groupController.deepgramRecognitionModel, equals('nova-3'));
+      expect(groupController.deepgramRecognitionLanguage, equals('multi'));
+      expect(groupController.deepgramRecognitionModels, contains('nova-3-medical'));
+      expect(groupController.deepgramRecognitionLanguages.values, contains('multi'));
     });
 
     test('provider/model/language setters notify only when changed', () {
       var notifications = 0;
-      controller.addListener(() => notifications++);
+      groupController.addListener(() => notifications++);
 
-      controller.setOutputProvider(SpeechOutputProvider.google);
-      controller.setSttProvider(SpeechSttProvider.deepgram);
-      controller.setTranslationProvider(SpeechTranslationProvider.google);
-      controller.setDeepgramRecognitionModel('nova-3');
-      controller.setDeepgramRecognitionLanguage('multi');
+      groupController.setOutputProvider(SpeechOutputProvider.google);
+      groupController.setSttProvider(SpeechSttProvider.deepgram);
+      groupController.setTranslationProvider(SpeechTranslationProvider.google);
+      groupController.setDeepgramRecognitionModel('nova-3');
+      groupController.setDeepgramRecognitionLanguage('multi');
       expect(notifications, equals(0));
 
-      controller.setOutputProvider(SpeechOutputProvider.deepgram);
-      controller.setSttProvider(SpeechSttProvider.google);
-      controller.setTranslationProvider(SpeechTranslationProvider.google);
-      controller.setDeepgramRecognitionModel('nova-3-medical');
-      controller.setDeepgramRecognitionLanguage('en-US');
+      groupController.setOutputProvider(SpeechOutputProvider.deepgram);
+      groupController.setSttProvider(SpeechSttProvider.google);
+      groupController.setTranslationProvider(SpeechTranslationProvider.google);
+      groupController.setDeepgramRecognitionModel('nova-3-medical');
+      groupController.setDeepgramRecognitionLanguage('en-US');
       expect(notifications, equals(4));
     });
 
@@ -232,16 +232,16 @@ void main() {
       'init sets speechError when microphone permission is denied',
       () async {
         hasPermission = false;
-        await controller.init();
+        await groupController.init();
 
-        expect(controller.speechEnabled, isFalse);
-        expect(controller.speechError, equals('microphonePermissionDenied'));
+        expect(groupController.speechEnabled, isFalse);
+        expect(groupController.speechError, equals('microphonePermissionDenied'));
       },
     );
 
     test('init sets speechError when API key validation fails', () async {
       final fakePipeline = _FakeSpeechPipeline()..apiKeyValid = false;
-      final localController = SpeechController(
+      final localController = GroupController(
         backendApiClient: BackendApiClient(
           baseUrl: 'https://api.example.com',
           authTokenProvider: () async => 'token',
@@ -267,7 +267,7 @@ void main() {
             amplitudeStream: amplitudes.stream,
             stop: () async {},
           );
-        final localController = SpeechController(
+        final localController = GroupController(
           backendApiClient: BackendApiClient(
             baseUrl: 'https://api.example.com',
             authTokenProvider: () async => 'token',
@@ -298,7 +298,7 @@ void main() {
       'startListening uses multi source for non-deepgram STT provider',
       () async {
         final fakePipeline = _FakeSpeechPipeline();
-        final localController = SpeechController(
+        final localController = GroupController(
           backendApiClient: BackendApiClient(
             baseUrl: 'https://api.example.com',
             authTokenProvider: () async => 'token',
@@ -327,7 +327,7 @@ void main() {
           amplitudeStream: amplitudes.stream,
           stop: () async {},
         );
-      final localController = SpeechController(
+      final localController = GroupController(
         backendApiClient: BackendApiClient(
           baseUrl: 'https://api.example.com',
           authTokenProvider: () async => 'token',
@@ -364,7 +364,7 @@ void main() {
             PlaybackDevice(id: 'speaker', name: 'Phone', type: 'Built-in'),
           ]
           ..currentPlaybackRouteId = 'speaker';
-        final localController = SpeechController(
+        final localController = GroupController(
           backendApiClient: BackendApiClient(
             baseUrl: 'https://api.example.com',
             authTokenProvider: () async => 'token',
@@ -415,7 +415,7 @@ void main() {
             PlaybackDevice(id: 'speaker', name: 'Phone', type: 'Built-in'),
           ]
           ..currentPlaybackRouteId = 'speaker';
-        final localController = SpeechController(
+        final localController = GroupController(
           backendApiClient: BackendApiClient(
             baseUrl: 'https://api.example.com',
             authTokenProvider: () async => 'token',

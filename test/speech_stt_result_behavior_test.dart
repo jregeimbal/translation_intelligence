@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_controller.dart';
 import 'package:translation_intelligence/services/mic_activation_sound_player.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 
@@ -76,11 +76,11 @@ class _FakeSpeechPipeline extends SpeechPipeline {
   }
 }
 
-SpeechController _buildController(
+GroupController _buildController(
   _FakeSpeechPipeline pipeline, {
   Duration finalResultGroupingWindow = Duration.zero,
 }) {
-  return SpeechController(
+  return GroupController(
     deepgramApiKey: 'test-deepgram',
     speechPipeline: pipeline,
     micActivationSoundPlayer: _FakeMicActivationSoundPlayer(),
@@ -126,26 +126,26 @@ void main() {
         .setMockMethodCallHandler(wakelockChannel, null);
   });
 
-  group('SpeechController STT result behavior', () {
+  group('GroupController STT result behavior', () {
     late _FakeSpeechPipeline pipeline;
-    late SpeechController controller;
+    late GroupController groupController;
 
     setUp(() {
       pipeline = _FakeSpeechPipeline();
-      controller = _buildController(pipeline);
+      groupController = _buildController(pipeline);
     });
 
     tearDown(() async {
-      await controller.stopListening();
-      controller.dispose();
+      await groupController.stopListening();
+      groupController.dispose();
       await pipeline.disposeFake();
     });
 
     test(
       'partial recognition updates transcript without creating message',
       () async {
-        await controller.init();
-        await controller.startListening();
+        await groupController.init();
+        await groupController.startListening();
 
         pipeline.resultController.add(
           SpeechRecognitionResult.fromTranscript(
@@ -165,10 +165,10 @@ void main() {
 
         await Future<void>.delayed(Duration.zero);
 
-        final optimistic = controller.getOptimisticMessages();
+        final optimistic = groupController.getOptimisticMessages();
         expect(optimistic.length, equals(1));
         expect(optimistic.first.original, equals('hello partial'));
-        expect(controller.chatMessages, isEmpty);
+        expect(groupController.chatMessages, isEmpty);
         expect(pipeline.synthesizeCallCount, equals(0));
       },
     );
@@ -176,8 +176,8 @@ void main() {
     test(
       'final recognition commits message and clears live transcript',
       () async {
-        await controller.init();
-        await controller.startListening();
+        await groupController.init();
+        await groupController.startListening();
 
         pipeline.resultController.add(
           SpeechRecognitionResult.fromTranscript(
@@ -189,9 +189,9 @@ void main() {
         await Future<void>.delayed(Duration.zero);
         await Future<void>.delayed(Duration.zero);
 
-        expect(controller.chatMessages.length, equals(1));
-        expect(controller.chatMessages.first.original, equals('hello final.'));
-        expect(controller.getOptimisticMessages(), isEmpty);
+        expect(groupController.chatMessages.length, equals(1));
+        expect(groupController.chatMessages.first.original, equals('hello final.'));
+        expect(groupController.getOptimisticMessages(), isEmpty);
         expect(pipeline.synthesizeCallCount, equals(1));
       },
     );
@@ -199,8 +199,8 @@ void main() {
     test(
       'translation omits source language when active source is multi',
       () async {
-        await controller.init();
-        await controller.startListening();
+        await groupController.init();
+        await groupController.startListening();
 
         pipeline.resultController.add(
           SpeechRecognitionResult.fromTranscript(
@@ -219,9 +219,9 @@ void main() {
     test(
       'translation sends source language when active source is fixed',
       () async {
-        await controller.init();
-        controller.setDeepgramRecognitionLanguage('es');
-        await controller.startListening();
+        await groupController.init();
+        groupController.setDeepgramRecognitionLanguage('es');
+        await groupController.startListening();
 
         pipeline.resultController.add(
           SpeechRecognitionResult.fromTranscript(
@@ -238,8 +238,8 @@ void main() {
     );
 
     test('speechFinal advances non-final words to queue and commits', () async {
-      await controller.init();
-      await controller.startListening();
+      await groupController.init();
+      await groupController.startListening();
 
       pipeline.resultController.add(
         SpeechRecognitionResult.fromTranscript(
@@ -252,18 +252,18 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      expect(controller.chatMessages.length, equals(1));
+      expect(groupController.chatMessages.length, equals(1));
       expect(
-        controller.chatMessages.first.original,
+        groupController.chatMessages.first.original,
         equals('hello speech final.'),
       );
-      expect(controller.getOptimisticMessages(), isEmpty);
+      expect(groupController.getOptimisticMessages(), isEmpty);
       expect(pipeline.synthesizeCallCount, equals(1));
     });
 
     test('speechFinal with no words commits buffered partial words', () async {
-      await controller.init();
-      await controller.startListening();
+      await groupController.init();
+      await groupController.startListening();
 
       pipeline.resultController.add(
         SpeechRecognitionResult.fromTranscript(
@@ -284,12 +284,12 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      expect(controller.chatMessages.length, equals(1));
+      expect(groupController.chatMessages.length, equals(1));
       expect(
-        controller.chatMessages.first.original,
+        groupController.chatMessages.first.original,
         equals('buffered partial.'),
       );
-      expect(controller.getOptimisticMessages(), isEmpty);
+      expect(groupController.getOptimisticMessages(), isEmpty);
       expect(pipeline.synthesizeCallCount, equals(1));
     });
 
@@ -338,8 +338,8 @@ void main() {
     test(
       'stopping with partial transcript commits pending STT words',
       () async {
-        await controller.init();
-        await controller.startListening();
+        await groupController.init();
+        await groupController.startListening();
 
         pipeline.resultController.add(
           SpeechRecognitionResult.fromTranscript(
@@ -349,23 +349,23 @@ void main() {
         );
 
         await Future<void>.delayed(Duration.zero);
-        await controller.stopListening();
+        await groupController.stopListening();
         await Future<void>.delayed(Duration.zero);
 
-        expect(controller.chatMessages.length, equals(1));
+        expect(groupController.chatMessages.length, equals(1));
         expect(
-          controller.chatMessages.first.original,
+          groupController.chatMessages.first.original,
           equals('pending partial.'),
         );
-        expect(controller.getOptimisticMessages(), isEmpty);
+        expect(groupController.getOptimisticMessages(), isEmpty);
       },
     );
 
     test(
       'empty final result does not create messages or trigger TTS',
       () async {
-        await controller.init();
-        await controller.startListening();
+        await groupController.init();
+        await groupController.startListening();
 
         pipeline.resultController.add(
           SpeechRecognitionResult.fromTranscript(transcript: '', isFinal: true),
@@ -373,15 +373,15 @@ void main() {
 
         await Future<void>.delayed(Duration.zero);
 
-        expect(controller.chatMessages, isEmpty);
-        expect(controller.getOptimisticMessages(), isEmpty);
+        expect(groupController.chatMessages, isEmpty);
+        expect(groupController.getOptimisticMessages(), isEmpty);
         expect(pipeline.synthesizeCallCount, equals(0));
       },
     );
 
     test('later partial result replaces earlier partial transcript', () async {
-      await controller.init();
-      await controller.startListening();
+      await groupController.init();
+      await groupController.startListening();
 
       pipeline.resultController.add(
         SpeechRecognitionResult.fromTranscript(
@@ -399,16 +399,16 @@ void main() {
       );
       await Future<void>.delayed(Duration.zero);
 
-      final optimistic = controller.getOptimisticMessages();
+      final optimistic = groupController.getOptimisticMessages();
       expect(optimistic.length, equals(1));
       expect(optimistic.first.original, equals('hello world'));
-      expect(controller.chatMessages, isEmpty);
+      expect(groupController.chatMessages, isEmpty);
       expect(pipeline.synthesizeCallCount, equals(0));
     });
 
     test('final diarized words are split into speaker messages', () async {
-      await controller.init();
-      await controller.startListening();
+      await groupController.init();
+      await groupController.startListening();
 
       pipeline.resultController.add(
         SpeechRecognitionResult(
@@ -425,19 +425,19 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      expect(controller.chatMessages.length, equals(2));
-      expect(controller.chatMessages[0].original, equals('Hello there.'));
-      expect(controller.chatMessages[0].speaker, equals(0));
-      expect(controller.chatMessages[1].original, equals('General Kenobi.'));
-      expect(controller.chatMessages[1].speaker, equals(1));
-      expect(controller.preferredSpeaker, equals(0));
+      expect(groupController.chatMessages.length, equals(2));
+      expect(groupController.chatMessages[0].original, equals('Hello there.'));
+      expect(groupController.chatMessages[0].speaker, equals(0));
+      expect(groupController.chatMessages[1].original, equals('General Kenobi.'));
+      expect(groupController.chatMessages[1].speaker, equals(1));
+      expect(groupController.preferredSpeaker, equals(0));
       expect(pipeline.synthesizeCallCount, equals(1));
-      expect(controller.getOptimisticMessages(), isEmpty);
+      expect(groupController.getOptimisticMessages(), isEmpty);
     });
 
     test('partial diarized words set preferred speaker before queueing', () async {
-      await controller.init();
-      await controller.startListening();
+      await groupController.init();
+      await groupController.startListening();
 
       pipeline.resultController.add(
         SpeechRecognitionResult(
@@ -452,18 +452,18 @@ void main() {
 
       await Future<void>.delayed(Duration.zero);
 
-      expect(controller.chatMessages, isEmpty);
-      expect(controller.preferredSpeaker, equals(0));
+      expect(groupController.chatMessages, isEmpty);
+      expect(groupController.preferredSpeaker, equals(0));
 
-      final optimistic = controller.getOptimisticMessages();
+      final optimistic = groupController.getOptimisticMessages();
       expect(optimistic.length, equals(2));
       expect(optimistic[0].speaker, equals(0));
       expect(optimistic[1].speaker, equals(1));
     });
 
     test('final words take precedence over transcript fallback', () async {
-      await controller.init();
-      await controller.startListening();
+      await groupController.init();
+      await groupController.startListening();
 
       pipeline.resultController.add(
         SpeechRecognitionResult(
@@ -478,8 +478,8 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      expect(controller.chatMessages.length, equals(1));
-      expect(controller.chatMessages.first.original, equals('actual words.'));
+      expect(groupController.chatMessages.length, equals(1));
+      expect(groupController.chatMessages.first.original, equals('actual words.'));
     });
 
     test(
@@ -844,9 +844,9 @@ void main() {
     test(
       'consecutive final transcripts with final diarized words are split into speaker messages',
       () async {
-        await controller.init();
-        await controller.startListening();
-        controller.finalResultGroupingWindow = const Duration(milliseconds: 50);
+        await groupController.init();
+        await groupController.startListening();
+        groupController.finalResultGroupingWindow = const Duration(milliseconds: 50);
 
         pipeline.resultController.add(
           SpeechRecognitionResult(
@@ -899,29 +899,29 @@ void main() {
 
         await Future<void>.delayed(const Duration(milliseconds: 60));
 
-        expect(controller.chatMessages.length, equals(2));
+        expect(groupController.chatMessages.length, equals(2));
         expect(
-          controller.chatMessages[0].original,
+          groupController.chatMessages[0].original,
           equals('Hello there how are you today?'),
         );
-        expect(controller.chatMessages[0].speaker, equals(0));
+        expect(groupController.chatMessages[0].speaker, equals(0));
         expect(
-          controller.chatMessages[1].original,
+          groupController.chatMessages[1].original,
           equals('Help me Obi-Wan Kenobi, you are my only hope.'),
         );
-        expect(controller.chatMessages[1].speaker, equals(1));
-        expect(controller.preferredSpeaker, equals(0));
+        expect(groupController.chatMessages[1].speaker, equals(1));
+        expect(groupController.preferredSpeaker, equals(0));
         expect(pipeline.synthesizeCallCount, equals(2));
-        expect(controller.getOptimisticMessages(), isEmpty);
+        expect(groupController.getOptimisticMessages(), isEmpty);
       },
     );
 
     test(
       'consecutive pending transcripts with final diarized words are split into optimistic speaker messages',
       () async {
-        await controller.init();
-        await controller.startListening();
-        controller.finalResultGroupingWindow = const Duration(milliseconds: 50);
+        await groupController.init();
+        await groupController.startListening();
+        groupController.finalResultGroupingWindow = const Duration(milliseconds: 50);
 
         pipeline.resultController.add(
           SpeechRecognitionResult(
@@ -974,8 +974,8 @@ void main() {
 
         await Future<void>.delayed(const Duration(milliseconds: 10));
 
-        final optimistic = controller.getOptimisticMessages();
-        expect(controller.chatMessages.length, equals(0));
+        final optimistic = groupController.getOptimisticMessages();
+        expect(groupController.chatMessages.length, equals(0));
         expect(optimistic.length, equals(2));
         expect(
           optimistic[0].original,
@@ -987,7 +987,7 @@ void main() {
           equals('Help me Obi-Wan Kenobi, you are my only hope'),
         );
         expect(optimistic[1].speaker, equals(1));
-        expect(controller.preferredSpeaker, equals(0));
+        expect(groupController.preferredSpeaker, equals(0));
         expect(pipeline.synthesizeCallCount, equals(2));
       },
     );
@@ -995,9 +995,9 @@ void main() {
     test(
       'consecutive pending transcripts with final diarized words are split into optimistic speaker messages',
       () async {
-        await controller.init();
-        await controller.startListening();
-        controller.finalResultGroupingWindow = const Duration(milliseconds: 50);
+        await groupController.init();
+        await groupController.startListening();
+        groupController.finalResultGroupingWindow = const Duration(milliseconds: 50);
 
         pipeline.resultController.add(
           SpeechRecognitionResult(
@@ -1050,8 +1050,8 @@ void main() {
 
         await Future<void>.delayed(const Duration(milliseconds: 10));
 
-        final optimistic = controller.getOptimisticMessages();
-        expect(controller.chatMessages.length, equals(0));
+        final optimistic = groupController.getOptimisticMessages();
+        expect(groupController.chatMessages.length, equals(0));
         expect(optimistic.length, equals(2));
         expect(
           optimistic[0].original,
@@ -1063,27 +1063,27 @@ void main() {
           equals('Help me Obi-Wan Kenobi, you are my only hope'),
         );
         expect(optimistic[1].speaker, equals(1));
-        expect(controller.preferredSpeaker, equals(0));
+        expect(groupController.preferredSpeaker, equals(0));
         expect(pipeline.synthesizeCallCount, equals(2));
 
         await Future<void>.delayed(const Duration(milliseconds: 60));
         await Future<void>.delayed(const Duration(milliseconds: 60));
 
-        expect(controller.getOptimisticMessages().length, equals(0));
-        expect(controller.chatMessages.length, equals(2));
+        expect(groupController.getOptimisticMessages().length, equals(0));
+        expect(groupController.chatMessages.length, equals(2));
         expect(
-          controller.chatMessages[0].original,
+          groupController.chatMessages[0].original,
           equals('Hello there how are you today?'),
         );
-        expect(controller.chatMessages[0].speaker, equals(0));
+        expect(groupController.chatMessages[0].speaker, equals(0));
         expect(
-          controller.chatMessages[1].original,
+          groupController.chatMessages[1].original,
           equals('Help me Obi-Wan Kenobi, you are my only hope.'),
         );
-        expect(controller.chatMessages[1].speaker, equals(1));
-        expect(controller.preferredSpeaker, equals(0));
+        expect(groupController.chatMessages[1].speaker, equals(1));
+        expect(groupController.preferredSpeaker, equals(0));
         expect(pipeline.synthesizeCallCount, equals(2));
-        expect(controller.getOptimisticMessages(), isEmpty);
+        expect(groupController.getOptimisticMessages(), isEmpty);
       },
     );
 

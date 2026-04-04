@@ -10,7 +10,7 @@ import 'package:translation_intelligence/services/app_preferences.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 import 'package:translation_intelligence/widgets/chat_message.dart';
 
-import 'speech_controller_stub.dart';
+import 'group_controller_stub.dart';
 import 'test_app.dart';
 
 class _FakeTwoWayChatController extends ChangeNotifier
@@ -57,7 +57,7 @@ void main() {
 
   Future<void> pumpSuggestedResponseApp(
     WidgetTester tester,
-    TestSpeechController controller,
+    TestGroupController controller,
     BackendApiClient backendApiClient,
   ) async {
     await AppPreferences().setHasCompletedFirstLaunchWalkthrough(true);
@@ -69,7 +69,7 @@ void main() {
         onThemeModeChanged: (_) {},
         initializer: () async => HomePageInitializationBundle(
           backendApiClient: backendApiClient,
-          controller: controller,
+          groupController: controller,
           twoWayController: _FakeTwoWayChatController(),
         ),
       ),
@@ -79,7 +79,7 @@ void main() {
   }
 
   void emitCustomSuggestedResponse(
-    TestSpeechController controller, {
+    TestGroupController controller, {
     required String originalText,
     required String translatedText,
     required String messageId,
@@ -99,7 +99,7 @@ void main() {
     );
   }
 
-  void emitSuggestedResponse(TestSpeechController controller) {
+  void emitSuggestedResponse(TestGroupController controller) {
     emitCustomSuggestedResponse(
       controller,
       originalText: 'claro que si',
@@ -115,7 +115,7 @@ void main() {
   testWidgets('group chat suggested response panel can be dismissed', (
     tester,
   ) async {
-    final controller = TestSpeechController();
+    final controller = TestGroupController();
     final backendApiClient = BackendApiClient(
       baseUrl: 'https://example.com',
       authTokenProvider: () async => 'token',
@@ -144,7 +144,7 @@ void main() {
   testWidgets('group chat shows and auto-hides suggested response panel', (
     tester,
   ) async {
-    final controller = TestSpeechController();
+    final controller = TestGroupController();
     final backendApiClient = BackendApiClient(
       baseUrl: 'https://example.com',
       authTokenProvider: () async => 'token',
@@ -174,7 +174,7 @@ void main() {
   testWidgets('group chat shows timeout progress on dismiss icon', (
     tester,
   ) async {
-    final controller = TestSpeechController();
+    final controller = TestGroupController();
     final backendApiClient = BackendApiClient(
       baseUrl: 'https://example.com',
       authTokenProvider: () async => 'token',
@@ -217,7 +217,7 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
-      final controller = TestSpeechController();
+      final controller = TestGroupController();
       for (var index = 0; index < 20; index += 1) {
         controller.addMessage(
           ChatMessage(
@@ -252,7 +252,7 @@ void main() {
   testWidgets(
     'second suggested response replaces the first and resets timeout',
     (tester) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupController();
       final backendApiClient = BackendApiClient(
         baseUrl: 'https://example.com',
         authTokenProvider: () async => 'token',
@@ -309,7 +309,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    final controller = TestSpeechController();
+    final controller = TestGroupController();
     final backendApiClient = BackendApiClient(
       baseUrl: 'https://example.com',
       authTokenProvider: () async => 'token',

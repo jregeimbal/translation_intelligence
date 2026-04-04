@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_controller.dart';
 import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/theme/app_theme_resolver.dart';
@@ -155,23 +155,23 @@ class _ChatMessageListState extends State<ChatMessageList> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<SpeechController>();
+    final groupController = context.watch<GroupController>();
     final theme = Theme.of(context);
     final textRoles = resolveAppThemeTextRoles(theme);
     final tokens = resolveAppThemeTokens(theme);
-    final hideTranslatedOriginalText = controller.hideTranslatedOriginalText;
+    final hideTranslatedOriginalText = groupController.hideTranslatedOriginalText;
     final l10n = context.l10n;
 
-    var messages = controller.chatMessages;
-    final optimisticMessages = controller.getOptimisticMessages();
+    var messages = groupController.chatMessages;
+    final optimisticMessages = groupController.getOptimisticMessages();
     if (optimisticMessages.isNotEmpty) {
       messages = [...messages, ...optimisticMessages];
     }
     _maybeAutoScrollOnMessageChanges(messages);
 
     if (messages.isEmpty) {
-      final isListening = controller.isListening;
-      final speechEnabled = controller.speechEnabled;
+      final isListening = groupController.isListening;
+      final speechEnabled = groupController.speechEnabled;
       final msgText = isListening
           ? l10n.listeningStatus
           : (speechEnabled
@@ -241,9 +241,9 @@ class _ChatMessageListState extends State<ChatMessageList> {
               final msg = messages[index];
               final isPreferred =
                   msg.speaker != null &&
-                  msg.speaker == controller.preferredSpeaker;
+                  msg.speaker == groupController.preferredSpeaker;
               final isPrimaryStyled =
-                  controller.preferredSpeaker != null && isPreferred;
+                  groupController.preferredSpeaker != null && isPreferred;
               final hasTranslation =
                   msg.translation != null ||
                   msg.groups.any((group) => group.translation != null);
@@ -283,7 +283,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
                       children: [
                         Align(
                           alignment:
-                              controller.preferredSpeaker != null && isPreferred
+                              groupController.preferredSpeaker != null && isPreferred
                               ? Alignment.centerRight
                               : Alignment.centerLeft,
                           child: Row(
@@ -459,7 +459,7 @@ class _ChatMessageContent extends StatelessWidget {
     final translationStyle = textRoles.bubbleTranslation.copyWith(
       color: textColor.withValues(alpha: 0.9),
     );
-    final controller = context.read<SpeechController>();
+    final groupController = context.read<GroupController>();
     final l10n = context.l10n;
     final contentAlignment = isPrimaryStyled
         ? Alignment.centerRight
@@ -567,7 +567,7 @@ class _ChatMessageContent extends StatelessWidget {
                   icon: const Icon(Icons.replay_rounded),
                   visualDensity: VisualDensity.compact,
                   onPressed: () {
-                    controller.replayTranslation(message);
+                    groupController.replayTranslation(message);
                   },
                 ),
               ],

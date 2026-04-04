@@ -211,7 +211,7 @@ If omitted, the app uses `HyperListenTheme`.
 
 ## Notes
 
-* The code is structured around `SpeechController`, which manages live
+* The code is structured around `GroupController`, which manages live
   recognition, translation, and TTS flows and notifies widgets of updates.
   Recognized messages are split by speaker and labeled accordingly in the UI.
 * The app also includes `TwoWayChatController`, which powers the split-panel

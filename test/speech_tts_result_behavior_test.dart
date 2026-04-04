@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:record/record.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_controller.dart';
 import 'package:translation_intelligence/models/suggested_response.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
@@ -150,13 +150,13 @@ void main() {
         .setMockMethodCallHandler(wakelockChannel, null);
   });
 
-  group('SpeechController TTS result behavior', () {
+  group('GroupController TTS result behavior', () {
     late _FakeTtsSpeechPipeline pipeline;
-    late SpeechController controller;
+    late GroupController groupController;
 
     setUp(() {
       pipeline = _FakeTtsSpeechPipeline();
-      controller = SpeechController(
+      groupController = GroupController(
         deepgramApiKey: 'test-deepgram',
         speechPipeline: pipeline,
         finalResultGroupingWindow: Duration.zero,
@@ -164,14 +164,14 @@ void main() {
     });
 
     tearDown(() async {
-      await controller.stopListening();
-      controller.dispose();
+      await groupController.stopListening();
+      groupController.dispose();
       await pipeline.disposeFake();
     });
 
     test('final recognition triggers translation and TTS synthesis', () async {
-      await controller.init();
-      await controller.startListening();
+      await groupController.init();
+      await groupController.startListening();
 
       pipeline.resultController.add(
         SpeechRecognitionResult.fromTranscript(
@@ -183,9 +183,9 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      expect(controller.chatMessages.length, equals(1));
+      expect(groupController.chatMessages.length, equals(1));
       expect(
-        controller.chatMessages.first.translation,
+        groupController.chatMessages.first.translation,
         equals('hello final-translated'),
       );
       expect(pipeline.translateCallCount, equals(1));
@@ -194,9 +194,9 @@ void main() {
     });
 
     test('preferred speaker messages skip TTS synthesis', () async {
-      await controller.init();
-      controller.setPreferredSpeaker(1);
-      await controller.startListening();
+      await groupController.init();
+      groupController.setPreferredSpeaker(1);
+      await groupController.startListening();
 
       pipeline.resultController.add(
         SpeechRecognitionResult(
@@ -211,10 +211,10 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      expect(controller.chatMessages.length, equals(1));
-      expect(controller.chatMessages.first.speaker, equals(1));
+      expect(groupController.chatMessages.length, equals(1));
+      expect(groupController.chatMessages.first.speaker, equals(1));
       expect(
-        controller.chatMessages.first.translation,
+        groupController.chatMessages.first.translation,
         equals('speaker one-translated'),
       );
       expect(pipeline.translateCallCount, equals(1));
@@ -246,7 +246,7 @@ void main() {
           }),
         );
 
-        final suggestionController = SpeechController(
+        final suggestionController = GroupController(
           deepgramApiKey: 'test-deepgram',
           backendApiClient: backendApiClient,
           speechPipeline: pipeline,
@@ -309,7 +309,7 @@ void main() {
           }),
         );
 
-        final suggestionController = SpeechController(
+        final suggestionController = GroupController(
           deepgramApiKey: 'test-deepgram',
           backendApiClient: backendApiClient,
           speechPipeline: pipeline,
@@ -341,9 +341,9 @@ void main() {
     test(
       'TTS synthesis uses mapped language code for selected target language',
       () async {
-        await controller.init();
-        controller.setTargetLanguage('es');
-        await controller.startListening();
+        await groupController.init();
+        groupController.setTargetLanguage('es');
+        await groupController.startListening();
 
         pipeline.resultController.add(
           SpeechRecognitionResult.fromTranscript(
@@ -364,7 +364,7 @@ void main() {
       'queued final result translates and speaks before flush, then does not duplicate on commit',
       () async {
         final groupedPipeline = _FakeTtsSpeechPipeline();
-        final groupedController = SpeechController(
+        final groupedController = GroupController(
           deepgramApiKey: 'test-deepgram',
           speechPipeline: groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 120),
@@ -415,7 +415,7 @@ void main() {
       'queued translation stays visible until replacement translation arrives',
       () async {
         final groupedPipeline = _FakeTtsSpeechPipeline();
-        final groupedController = SpeechController(
+        final groupedController = GroupController(
           deepgramApiKey: 'test-deepgram',
           speechPipeline: groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 250),
@@ -472,7 +472,7 @@ void main() {
       'preferred speaker is chosen at queue time and skips queued TTS before flush',
       () async {
         final groupedPipeline = _FakeTtsSpeechPipeline();
-        final groupedController = SpeechController(
+        final groupedController = GroupController(
           deepgramApiKey: 'test-deepgram',
           speechPipeline: groupedPipeline,
           finalResultGroupingWindow: const Duration(milliseconds: 120),
@@ -511,7 +511,7 @@ void main() {
         final groupedPipeline = _FakeTtsSpeechPipeline();
         groupedPipeline.synthesizeBytes = Uint8List.fromList([1, 2, 3]);
 
-        final groupedController = SpeechController(
+        final groupedController = GroupController(
           deepgramApiKey: 'test-deepgram',
           speechPipeline: groupedPipeline,
           finalResultGroupingWindow: Duration.zero,
@@ -554,7 +554,7 @@ void main() {
         final groupedPipeline = _FakeTtsSpeechPipeline();
         groupedPipeline.synthesizeBytes = Uint8List.fromList([1, 2, 3]);
 
-        final groupedController = SpeechController(
+        final groupedController = GroupController(
           deepgramApiKey: 'test-deepgram',
           speechPipeline: groupedPipeline,
           finalResultGroupingWindow: Duration.zero,
