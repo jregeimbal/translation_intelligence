@@ -12,10 +12,10 @@ class FirebaseAuthSession {
        _firebaseAuth = firebaseAuth;
 
   Future<void> initialize() async {
-    final FirebaseApp app = Firebase.apps.isEmpty
-        ? await Firebase.initializeApp(options: _options)
-        : Firebase.app();
-    _firebaseAuth ??= FirebaseAuth.instanceFor(app: app);
+    if (_firebaseAuth == null) {
+      final FirebaseApp app = await _getFirebaseApp();
+      _firebaseAuth = _getFirebaseAuthForApp(app);
+    }
 
     final firebaseAuth = _requireFirebaseAuth();
     if (firebaseAuth.currentUser == null) {
@@ -24,6 +24,16 @@ class FirebaseAuthSession {
     }
 
     await firebaseAuth.currentUser!.getIdToken();
+  }
+
+  Future<FirebaseApp> _getFirebaseApp() {
+    return Firebase.apps.isEmpty
+        ? Firebase.initializeApp(options: _options)
+        : Future.value(Firebase.app());
+  }
+
+  FirebaseAuth _getFirebaseAuthForApp(FirebaseApp app) {
+    return FirebaseAuth.instanceFor(app: app);
   }
 
   Future<String> getIdToken() async {
