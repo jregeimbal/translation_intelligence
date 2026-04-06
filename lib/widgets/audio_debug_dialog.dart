@@ -17,6 +17,16 @@ class AudioDebugDialog extends StatelessWidget {
     required this.isGroupSection,
   });
 
+  /// Public constructor for testing purposes.
+  const AudioDebugDialog({super.key, 
+    required this.controller,
+    required this.twoWayController,
+    required this.outputProvider,
+    required this.sttProvider,
+    required this.translationProvider,
+    required this.isGroupSection,
+   });
+
   static Future<void> showInDialog(
     BuildContext context,
     SpeechController controller,
