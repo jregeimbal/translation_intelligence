@@ -22,11 +22,23 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
     bool audioPlaybackEnabled = false,
     double amplitude = 0.0,
     String targetLanguage = 'en',
-  }) : _isListening = isListening,
-       _speechEnabled = speechEnabled,
-       _audioPlaybackEnabled = audioPlaybackEnabled,
-       _amplitude = amplitude,
-       _targetLanguage = targetLanguage;
+    int? activeSessionSampleRate,
+    SpeechSttProvider? activeSessionSttProvider,
+    String? activeSessionSourceLanguage,
+    String? activeSessionResolvedLanguageCode,
+    String? activeSessionListeningDeviceId,
+    DateTime? activeSessionStartedAt,
+   }) : _isListening = isListening,
+        _speechEnabled = speechEnabled,
+        _audioPlaybackEnabled = audioPlaybackEnabled,
+        _amplitude = amplitude,
+        _targetLanguage = targetLanguage,
+        _activeSessionSampleRate = activeSessionSampleRate,
+        _activeSessionSttProvider = activeSessionSttProvider,
+        _activeSessionSourceLanguage = activeSessionSourceLanguage,
+        _activeSessionResolvedLanguageCode = activeSessionResolvedLanguageCode,
+        _activeSessionListeningDeviceId = activeSessionListeningDeviceId,
+        _activeSessionStartedAt = activeSessionStartedAt;
 
   final List<ChatMessage> _chatMessages = [];
   bool _isListening;
@@ -36,6 +48,12 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   final String _speechError = '';
   String _lastWords = '';
   final double _amplitude;
+  int? _activeSessionSampleRate;
+  SpeechSttProvider? _activeSessionSttProvider;
+  String? _activeSessionSourceLanguage;
+  String? _activeSessionResolvedLanguageCode;
+  String? _activeSessionListeningDeviceId;
+  DateTime? _activeSessionStartedAt;
   @override
   int? preferredSpeaker;
   String _targetLanguage;
@@ -169,22 +187,25 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
       _suggestedResponsesController.stream;
 
   @override
-  int? get activeSessionSampleRate => null;
+    int? get activeSessionSampleRate => _activeSessionSampleRate;
 
   @override
-  SpeechSttProvider? get activeSessionSttProvider => null;
+    SpeechSttProvider? get activeSessionSttProvider =>
+      _activeSessionSttProvider;
 
   @override
-  String? get activeSessionSourceLanguage => null;
+    String? get activeSessionSourceLanguage => _activeSessionSourceLanguage;
 
   @override
-  String? get activeSessionResolvedLanguageCode => null;
+    String? get activeSessionResolvedLanguageCode =>
+      _activeSessionResolvedLanguageCode;
 
   @override
-  String? get activeSessionListeningDeviceId => null;
+    String? get activeSessionListeningDeviceId =>
+      _activeSessionListeningDeviceId;
 
   @override
-  DateTime? get activeSessionStartedAt => null;
+    DateTime? get activeSessionStartedAt => _activeSessionStartedAt;
 
   @override
   List<PlaybackDevice> get playbackDevices =>
@@ -350,10 +371,28 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
     return true;
   }
 
+
+  void setActiveSessionData({
+    int? sampleRate,
+    SpeechSttProvider? sttProvider,
+    String? sourceLanguage,
+    String? resolvedLanguageCode,
+    String? listeningDeviceId,
+    DateTime? startedAt,
+   }) {
+    _activeSessionSampleRate = sampleRate;
+    _activeSessionSttProvider = sttProvider;
+    _activeSessionSourceLanguage = sourceLanguage;
+    _activeSessionResolvedLanguageCode = resolvedLanguageCode;
+    _activeSessionListeningDeviceId = listeningDeviceId;
+    _activeSessionStartedAt = startedAt;
+    notifyListeners();
+   }
+  
   @override
   void dispose() {
+    super.dispose();
     _listeningDeviceUpdatesController.close();
     _suggestedResponsesController.close();
-    super.dispose();
   }
 }
