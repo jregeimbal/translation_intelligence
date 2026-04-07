@@ -6,9 +6,9 @@ import 'package:translation_intelligence/widgets/audio_debug_dialog.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
-import '../speech_controller_stub.dart';
-import '../test_app.dart';
-import '../two_way_chat_controller_stub.dart';
+import '../stubs/speech_controller_stub.dart';
+import 'test_app.dart';
+import '../stubs/two_way_chat_controller_stub.dart';
 
 Finder _textMatching(RegExp pattern) {
   return find.byWidgetPredicate(

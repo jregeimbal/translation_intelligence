@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:translation_intelligence/models/speech_connection_debug_info.dart';
 import 'package:translation_intelligence/widgets/speech_connection_debug_dialog.dart';
-import '../test_app.dart';
+import 'test_app.dart';
 
 void main() {
   group('SpeechConnectionDebugDialog', () {

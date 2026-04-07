@@ -9,7 +9,7 @@ import 'package:translation_intelligence/services/speech_translation_provider.da
 import 'package:translation_intelligence/widgets/provider_settings_dialog.dart';
 import 'package:translation_intelligence/widgets/searchable_selection_field.dart';
 
-import 'speech_controller_stub.dart';
+import '../stubs/speech_controller_stub.dart';
 import 'test_app.dart';
 
 void main() {
