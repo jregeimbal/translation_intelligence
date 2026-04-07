@@ -12,7 +12,7 @@ import 'package:translation_intelligence/controllers/speech_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/widgets/footer.dart';
 
-import 'speech_controller_stub.dart';
+import '../stubs/speech_controller_stub.dart';
 import 'test_app.dart';
 
 void main() {

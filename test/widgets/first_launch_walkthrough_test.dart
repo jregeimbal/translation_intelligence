@@ -7,7 +7,7 @@ import 'package:translation_intelligence/models/two_way_message.dart';
 import 'package:translation_intelligence/services/app_preferences.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 
-import 'speech_controller_stub.dart';
+import '../stubs/speech_controller_stub.dart';
 import 'test_app.dart';
 
 class _FakeTwoWayChatController extends ChangeNotifier
