@@ -6,6 +6,7 @@ import type {
   TestCase,
   TestResult,
 } from "@playwright/test/reporter";
+import * as fs from "fs";
 import * as path from "path";
 
 /**
@@ -90,7 +91,6 @@ export default class ScreenshotReporter implements Reporter {
       })),
     };
 
-    const fs = require("fs");
     const outPath = path.join(this.outputDir, "e2e-summary.json");
     fs.mkdirSync(this.outputDir, { recursive: true });
     fs.writeFileSync(outPath, JSON.stringify(summary, null, 2));
