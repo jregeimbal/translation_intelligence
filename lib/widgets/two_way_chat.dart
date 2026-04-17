@@ -66,10 +66,10 @@ class _TwoWayChatViewState extends State<TwoWayChatView> {
 }
 
 class _SpeakerPanel extends StatefulWidget {
-  final String title;
-  final TwoWaySpeaker role;
 
   const _SpeakerPanel({required this.title, required this.role});
+  final String title;
+  final TwoWaySpeaker role;
 
   @override
   State<_SpeakerPanel> createState() => _SpeakerPanelState();

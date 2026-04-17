@@ -3,15 +3,6 @@ import 'package:translation_intelligence/services/deepgram_recognition_catalog.d
 import 'package:translation_intelligence/services/speech_to_text_service.dart';
 
 class AppPreferencesSnapshot {
-  final String deepgramRecognitionModel;
-  final String deepgramRecognitionLanguage;
-  final String speechToTextRecognitionLocale;
-  final String targetLanguage;
-  final bool hideTranslatedOriginalText;
-  final bool audioPlaybackEnabled;
-  final bool hasSeenAudioPlaybackBluetoothNotice;
-  final bool hasCompletedFirstLaunchWalkthrough;
-
   const AppPreferencesSnapshot({
     required this.deepgramRecognitionModel,
     required this.deepgramRecognitionLanguage,
@@ -22,9 +13,19 @@ class AppPreferencesSnapshot {
     required this.hasSeenAudioPlaybackBluetoothNotice,
     required this.hasCompletedFirstLaunchWalkthrough,
   });
+  final String deepgramRecognitionModel;
+  final String deepgramRecognitionLanguage;
+  final String speechToTextRecognitionLocale;
+  final String targetLanguage;
+  final bool hideTranslatedOriginalText;
+  final bool audioPlaybackEnabled;
+  final bool hasSeenAudioPlaybackBluetoothNotice;
+  final bool hasCompletedFirstLaunchWalkthrough;
 }
 
 class AppPreferences {
+  AppPreferences({Future<SharedPreferences> Function()? getPreferences})
+    : _getPreferences = getPreferences ?? SharedPreferences.getInstance;
   static const _deepgramRecognitionModelKey = 'pref.deepgramRecognitionModel';
   static const _deepgramRecognitionLanguageKey =
       'pref.deepgramRecognitionLanguage';
@@ -40,9 +41,6 @@ class AppPreferences {
       'pref.hasCompletedFirstLaunchWalkthrough';
 
   final Future<SharedPreferences> Function() _getPreferences;
-
-  AppPreferences({Future<SharedPreferences> Function()? getPreferences})
-    : _getPreferences = getPreferences ?? SharedPreferences.getInstance;
 
   Future<AppPreferencesSnapshot> load() async {
     final preferences = await _getPreferences();
@@ -99,22 +97,26 @@ class AppPreferences {
     await preferences.setString(_targetLanguageKey, value);
   }
 
-  Future<void> setHideTranslatedOriginalText(bool value) async {
+  Future<void> setHideTranslatedOriginalText({required bool value}) async {
     final preferences = await _getPreferences();
     await preferences.setBool(_hideTranslatedOriginalTextKey, value);
   }
 
-  Future<void> setAudioPlaybackEnabled(bool value) async {
+  Future<void> setAudioPlaybackEnabled({required bool value}) async {
     final preferences = await _getPreferences();
     await preferences.setBool(_audioPlaybackEnabledKey, value);
   }
 
-  Future<void> setHasSeenAudioPlaybackBluetoothNotice(bool value) async {
+  Future<void> setHasSeenAudioPlaybackBluetoothNotice({
+    required bool value,
+  }) async {
     final preferences = await _getPreferences();
     await preferences.setBool(_hasSeenAudioPlaybackBluetoothNoticeKey, value);
   }
 
-  Future<void> setHasCompletedFirstLaunchWalkthrough(bool value) async {
+  Future<void> setHasCompletedFirstLaunchWalkthrough({
+    required bool value,
+  }) async {
     final preferences = await _getPreferences();
     await preferences.setBool(_hasCompletedFirstLaunchWalkthroughKey, value);
   }

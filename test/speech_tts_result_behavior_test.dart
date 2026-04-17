@@ -12,6 +12,8 @@ import 'package:translation_intelligence/services/backend_api_client.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 
 class _FakeTtsSpeechPipeline extends SpeechPipeline {
+
+  _FakeTtsSpeechPipeline() : super(deepgramApiKey: 'test-deepgram');
   final StreamController<SpeechRecognitionResult> resultController =
       StreamController<SpeechRecognitionResult>.broadcast();
   final StreamController<double> amplitudeController =
@@ -23,8 +25,6 @@ class _FakeTtsSpeechPipeline extends SpeechPipeline {
   String? lastTtsLanguageRequest;
   int translateCallCount = 0;
   Uint8List synthesizeBytes = Uint8List(0);
-
-  _FakeTtsSpeechPipeline() : super(deepgramApiKey: 'test-deepgram');
 
   @override
   Future<bool> isSpeechApiKeyValid() async => true;

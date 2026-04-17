@@ -4,10 +4,6 @@ import '../services/speech_stt_provider.dart';
 import 'speech_recognition_models.dart';
 
 class MicrophoneCaptureSession {
-  final Stream<Uint8List> audioStream;
-  final Stream<double> amplitudeStream;
-  final Future<void> Function() stop;
-  final int sampleRate;
 
   const MicrophoneCaptureSession({
     required this.audioStream,
@@ -15,18 +11,13 @@ class MicrophoneCaptureSession {
     required this.stop,
     required this.sampleRate,
   });
+  final Stream<Uint8List> audioStream;
+  final Stream<double> amplitudeStream;
+  final Future<void> Function() stop;
+  final int sampleRate;
 }
 
 class SpeechRecognitionSession {
-  final Stream<SpeechRecognitionResult> resultStream;
-  final Stream<double> amplitudeStream;
-  final Future<void> Function() stop;
-  final int? sampleRate;
-  final SpeechSttProvider sttProvider;
-  final String sourceLanguage;
-  final String? resolvedLanguageCode;
-  final String? listeningDeviceId;
-  final DateTime startedAt;
 
   SpeechRecognitionSession({
     required this.resultStream,
@@ -39,4 +30,13 @@ class SpeechRecognitionSession {
     this.listeningDeviceId,
     DateTime? startedAt,
   }) : startedAt = startedAt ?? DateTime.now();
+  final Stream<SpeechRecognitionResult> resultStream;
+  final Stream<double> amplitudeStream;
+  final Future<void> Function() stop;
+  final int? sampleRate;
+  final SpeechSttProvider sttProvider;
+  final String sourceLanguage;
+  final String? resolvedLanguageCode;
+  final String? listeningDeviceId;
+  final DateTime startedAt;
 }

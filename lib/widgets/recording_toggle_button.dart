@@ -110,15 +110,15 @@ class _SpeechFabState extends State<SpeechFab> {
 }
 
 class _CircularWavePainter extends CustomPainter {
-  final double amplitude;
-  final Color ringColor;
-  final Color trackColor;
 
   const _CircularWavePainter({
     required this.amplitude,
     required this.ringColor,
     required this.trackColor,
   });
+  final double amplitude;
+  final Color ringColor;
+  final Color trackColor;
 
   @override
   void paint(Canvas canvas, Size size) {

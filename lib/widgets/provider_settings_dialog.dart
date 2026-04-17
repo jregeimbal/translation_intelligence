@@ -12,20 +12,6 @@ import '../services/speech_translation_provider.dart';
 import 'searchable_selection_field.dart';
 
 class ProviderSettingsDialog extends StatefulWidget {
-  final SpeechSttProvider initialSttProvider;
-  final SpeechTranslationProvider initialTranslationProvider;
-  final SpeechOutputProvider initialOutputProvider;
-  final String initialTargetLanguage;
-  final List<String> targetLanguages;
-  final String initialDeepgramRecognitionModel;
-  final String initialDeepgramRecognitionLanguage;
-  final String initialSpeechToTextRecognitionLocale;
-  final Map<String, String> initialSpeechToTextRecognitionLocales;
-  final List<InputDevice> initialListeningDevices;
-  final String? initialListeningDeviceId;
-  final List<PlaybackDevice> initialPlaybackDevices;
-  final String? initialPlaybackDeviceId;
-  final ThemeMode initialThemeMode;
 
   const ProviderSettingsDialog({
     super.key,
@@ -44,6 +30,20 @@ class ProviderSettingsDialog extends StatefulWidget {
     required this.initialPlaybackDeviceId,
     required this.initialThemeMode,
   });
+  final SpeechSttProvider initialSttProvider;
+  final SpeechTranslationProvider initialTranslationProvider;
+  final SpeechOutputProvider initialOutputProvider;
+  final String initialTargetLanguage;
+  final List<String> targetLanguages;
+  final String initialDeepgramRecognitionModel;
+  final String initialDeepgramRecognitionLanguage;
+  final String initialSpeechToTextRecognitionLocale;
+  final Map<String, String> initialSpeechToTextRecognitionLocales;
+  final List<InputDevice> initialListeningDevices;
+  final String? initialListeningDeviceId;
+  final List<PlaybackDevice> initialPlaybackDevices;
+  final String? initialPlaybackDeviceId;
+  final ThemeMode initialThemeMode;
 
   @override
   State<ProviderSettingsDialog> createState() => _ProviderSettingsDialogState();

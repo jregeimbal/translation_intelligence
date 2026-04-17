@@ -83,7 +83,10 @@ void main() {
 
       expect(bufferedPreviewOpacity(), closeTo(0.7, 0.001));
       expect(
-        find.ancestor(of: find.text('buffered preview text'), matching: find.byType(ShaderMask)),
+        find.ancestor(
+          of: find.text('buffered preview text'),
+          matching: find.byType(ShaderMask),
+        ),
         findsOneWidget,
       );
 
@@ -250,7 +253,7 @@ void main() {
       tester,
     ) async {
       final controller = TestSpeechController();
-      controller.setHideTranslatedOriginalText(false);
+      controller.setHideTranslatedOriginalText(enabled: false);
       final message = ChatMessage('Hola', speaker: 0, isFinal: true)
         ..translation = 'Hello';
       controller.addMessage(message);
@@ -374,13 +377,15 @@ void main() {
 
       final bodyText = tester.widget<Text>(
         find.byWidgetPredicate(
-          (widget) =>
-              widget is Text && widget.data == 'Primary line',
+          (widget) => widget is Text && widget.data == 'Primary line',
         ),
       );
       expect(bodyText.textAlign, TextAlign.right);
       expect(
-        find.ancestor(of: find.text('Primary line'), matching: find.byType(ShaderMask)),
+        find.ancestor(
+          of: find.text('Primary line'),
+          matching: find.byType(ShaderMask),
+        ),
         findsOneWidget,
       );
     });
@@ -414,13 +419,15 @@ void main() {
 
       final bodyText = tester.widget<Text>(
         find.byWidgetPredicate(
-          (widget) =>
-              widget is Text && widget.data == 'Guest line',
+          (widget) => widget is Text && widget.data == 'Guest line',
         ),
       );
       expect(bodyText.textAlign, TextAlign.left);
       expect(
-        find.ancestor(of: find.text('Guest line'), matching: find.byType(ShaderMask)),
+        find.ancestor(
+          of: find.text('Guest line'),
+          matching: find.byType(ShaderMask),
+        ),
         findsOneWidget,
       );
     });
@@ -458,7 +465,9 @@ void main() {
       },
     );
 
-    testWidgets('renders gradient animation for partial messages', (tester) async {
+    testWidgets('renders gradient animation for partial messages', (
+      tester,
+    ) async {
       final controller = TestSpeechController();
       controller.addMessage(ChatMessage('Streaming update', isFinal: false));
 
@@ -485,57 +494,56 @@ void main() {
       expect(textFinder, findsOneWidget);
     });
 
-    testWidgets(
-      'partial opacity remains reduced until message becomes final',
-      (tester) async {
-        final controller = TestSpeechController();
-        final message = ChatMessage('Stabilized preview', isFinal: false);
-        controller.addMessage(message);
+    testWidgets('partial opacity remains reduced until message becomes final', (
+      tester,
+    ) async {
+      final controller = TestSpeechController();
+      final message = ChatMessage('Stabilized preview', isFinal: false);
+      controller.addMessage(message);
 
-        await pumpTestApp(
-          tester,
-          ChangeNotifierProvider<SpeechController>.value(
-            value: controller,
-            child: const ChatMessageList(),
-          ),
+      await pumpTestApp(
+        tester,
+        ChangeNotifierProvider<SpeechController>.value(
+          value: controller,
+          child: const ChatMessageList(),
+        ),
+      );
+
+      double currentOpacityFor(String plainText) {
+        final textFinder = find.byWidgetPredicate(
+          (widget) =>
+              widget is Text &&
+              ((widget.data == plainText) ||
+                  (widget.data == null &&
+                      widget.textSpan?.toPlainText() == plainText)),
         );
+        expect(textFinder, findsOneWidget);
 
-        double currentOpacityFor(String plainText) {
-          final textFinder = find.byWidgetPredicate(
-            (widget) =>
-                widget is Text &&
-                ((widget.data == plainText) ||
-                    (widget.data == null &&
-                        widget.textSpan?.toPlainText() == plainText)),
-          );
-          expect(textFinder, findsOneWidget);
+        final opacityAncestors = find
+            .ancestor(of: textFinder, matching: find.byType(Opacity))
+            .evaluate()
+            .map((element) => element.widget)
+            .whereType<Opacity>()
+            .toList(growable: false);
+        expect(opacityAncestors, isNotEmpty);
+        return opacityAncestors.first.opacity;
+      }
 
-          final opacityAncestors = find
-              .ancestor(of: textFinder, matching: find.byType(Opacity))
-              .evaluate()
-              .map((element) => element.widget)
-              .whereType<Opacity>()
-              .toList(growable: false);
-          expect(opacityAncestors, isNotEmpty);
-          return opacityAncestors.first.opacity;
-        }
+      expect(currentOpacityFor('Stabilized preview'), closeTo(0.7, 0.001));
+      expect(find.text('Stabilized preview...'), findsNothing);
 
-        expect(currentOpacityFor('Stabilized preview'), closeTo(0.7, 0.001));
-        expect(find.text('Stabilized preview...'), findsNothing);
+      await tester.pump(const Duration(milliseconds: 500));
 
-        await tester.pump(const Duration(milliseconds: 500));
+      expect(currentOpacityFor('Stabilized preview'), closeTo(0.7, 0.001));
 
-        expect(currentOpacityFor('Stabilized preview'), closeTo(0.7, 0.001));
+      message.isFinal = true;
+      controller.notifyListeners();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
 
-        message.isFinal = true;
-        controller.notifyListeners();
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 150));
-
-        expect(find.text('Stabilized preview'), findsOneWidget);
-        expect(currentOpacityFor('Stabilized preview'), greaterThan(0.7));
-      },
-    );
+      expect(find.text('Stabilized preview'), findsOneWidget);
+      expect(currentOpacityFor('Stabilized preview'), greaterThan(0.7));
+    });
 
     testWidgets('renders grouped translation partials with gradient text', (
       tester,
@@ -669,9 +677,8 @@ void main() {
     });
 
     testWidgets(
-      'keeps following latest on layout changes until user scrolls away', (
-        tester,
-      ) async {
+      'keeps following latest on layout changes until user scrolls away',
+      (tester) async {
         final controller = TestSpeechController();
         final messages = List.generate(
           30,
@@ -719,7 +726,9 @@ void main() {
 
         expect(find.text('Jump to latest'), findsOneWidget);
 
-        controller.addMessage(ChatMessage('Message after manual scroll', isFinal: true));
+        controller.addMessage(
+          ChatMessage('Message after manual scroll', isFinal: true),
+        );
         await tester.pumpAndSettle();
 
         final pausedScrollable = tester.state<ScrollableState>(

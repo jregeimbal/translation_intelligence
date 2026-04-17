@@ -30,9 +30,6 @@ class SearchableSelectionOption<T> {
 }
 
 class SearchableSelectionField<T> extends StatelessWidget {
-  static const Key searchFieldKey = ValueKey<String>(
-    'searchable-selection-search-field',
-  );
 
   const SearchableSelectionField({
     super.key,
@@ -49,6 +46,9 @@ class SearchableSelectionField<T> extends StatelessWidget {
     this.inputDecorationTheme,
     this.enabled = true,
   });
+  static const Key searchFieldKey = ValueKey<String>(
+    'searchable-selection-search-field',
+  );
 
   final String title;
   final String searchHintText;

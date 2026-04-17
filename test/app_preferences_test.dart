@@ -31,10 +31,10 @@ void main() {
     await preferences.setDeepgramRecognitionLanguage('en');
     await preferences.setSpeechToTextRecognitionLocale('es-ES');
     await preferences.setTargetLanguage('fr');
-    await preferences.setHideTranslatedOriginalText(false);
-    await preferences.setAudioPlaybackEnabled(true);
-    await preferences.setHasSeenAudioPlaybackBluetoothNotice(true);
-    await preferences.setHasCompletedFirstLaunchWalkthrough(true);
+    await preferences.setHideTranslatedOriginalText(value: false);
+    await preferences.setAudioPlaybackEnabled(value: true);
+    await preferences.setHasSeenAudioPlaybackBluetoothNotice(value: true);
+    await preferences.setHasCompletedFirstLaunchWalkthrough(value: true);
 
     final snapshot = await preferences.load();
 

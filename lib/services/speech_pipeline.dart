@@ -23,6 +23,31 @@ export '../models/speech_recognition_session.dart'
     show MicrophoneCaptureSession, SpeechRecognitionSession;
 
 class SpeechPipeline {
+
+  SpeechPipeline({
+    String deepgramApiKey = '',
+    BackendApiClient? backendApiClient,
+    LiveRecognitionService? recognitionService,
+    SpeechOutputProvider initialOutputProvider = SpeechOutputProvider.google,
+    SpeechSttProvider initialSttProvider = SpeechSttProvider.deepgram,
+    SpeechTranslationProvider initialTranslationProvider =
+        SpeechTranslationProvider.google,
+    SpeechToTextService? speechToTextService,
+  }) : _backendApiClient = backendApiClient,
+       _recognitionService = recognitionService,
+       _speechToTextService = speechToTextService ?? SpeechToTextService(),
+       _outputProvider = initialOutputProvider,
+       _sttProvider = initialSttProvider,
+       _translationProvider = initialTranslationProvider,
+       _deepgramRecognitionModel =
+           DeepgramRecognitionCatalog.defaultRecognitionModel,
+       _deepgramRecognitionLanguage =
+           DeepgramRecognitionCatalog.defaultRecognitionLanguage,
+       _speechToTextRecognitionLocale =
+           SpeechToTextService.defaultRecognitionLanguage,
+       _speechToTextRecognitionLocales = const {
+         'multi': SpeechToTextService.defaultRecognitionLanguage,
+       };
   static const MethodChannel _audioRecordChannel = MethodChannel(
     'com.jax3.omnialingo/audio_record',
   );
@@ -49,31 +74,6 @@ class SpeechPipeline {
   Map<String, String> _speechToTextRecognitionLocales;
   String? _listeningDeviceId;
   String? _playbackDeviceId;
-
-  SpeechPipeline({
-    String deepgramApiKey = '',
-    BackendApiClient? backendApiClient,
-    LiveRecognitionService? recognitionService,
-    SpeechOutputProvider initialOutputProvider = SpeechOutputProvider.google,
-    SpeechSttProvider initialSttProvider = SpeechSttProvider.deepgram,
-    SpeechTranslationProvider initialTranslationProvider =
-        SpeechTranslationProvider.google,
-    SpeechToTextService? speechToTextService,
-  }) : _backendApiClient = backendApiClient,
-       _recognitionService = recognitionService,
-       _speechToTextService = speechToTextService ?? SpeechToTextService(),
-       _outputProvider = initialOutputProvider,
-       _sttProvider = initialSttProvider,
-       _translationProvider = initialTranslationProvider,
-       _deepgramRecognitionModel =
-           DeepgramRecognitionCatalog.defaultRecognitionModel,
-       _deepgramRecognitionLanguage =
-           DeepgramRecognitionCatalog.defaultRecognitionLanguage,
-       _speechToTextRecognitionLocale =
-           SpeechToTextService.defaultRecognitionLanguage,
-       _speechToTextRecognitionLocales = const {
-         'multi': SpeechToTextService.defaultRecognitionLanguage,
-       };
 
   SpeechOutputProvider get outputProvider => _outputProvider;
   SpeechSttProvider get sttProvider => _sttProvider;

@@ -6,11 +6,6 @@ class SuggestedResponse {
     required this.targetLanguageCode,
   });
 
-  final String originalText;
-  final String translatedText;
-  final String sourceLanguageCode;
-  final String targetLanguageCode;
-
   factory SuggestedResponse.fromJson(Map<String, dynamic> json) {
     return SuggestedResponse(
       originalText: json['originalText'] as String? ?? '',
@@ -19,6 +14,11 @@ class SuggestedResponse {
       targetLanguageCode: json['targetLanguageCode'] as String? ?? '',
     );
   }
+
+  final String originalText;
+  final String translatedText;
+  final String sourceLanguageCode;
+  final String targetLanguageCode;
 
   Map<String, dynamic> toJson() {
     return {
