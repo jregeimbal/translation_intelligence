@@ -54,7 +54,7 @@ void main() {
     );
     expect(rightAlignedRow.alignment, Alignment.centerRight);
 
-    controller.setHideTranslatedOriginalText(false);
+    controller.setHideTranslatedOriginalText(enabled: false);
     await tester.pumpAndSettle();
     expect(controller.hideTranslatedOriginalText, isFalse);
 

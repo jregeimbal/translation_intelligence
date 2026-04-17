@@ -6,6 +6,12 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../models/speech_recognition_models.dart';
 
 class SpeechToTextService {
+
+  SpeechToTextService({
+    SpeechToText? speechToText,
+    Duration inactivityFinalizeDelay = const Duration(seconds: 1),
+  }) : _speechToText = speechToText ?? SpeechToText(),
+       _inactivityFinalizeDelay = inactivityFinalizeDelay;
   static const String defaultRecognitionLanguage = 'multi';
 
   final SpeechToText _speechToText;
@@ -14,12 +20,6 @@ class SpeechToTextService {
   Timer? _finalizeTimer;
   String _lastTranscript = '';
   String _lastFinalizedTranscript = '';
-
-  SpeechToTextService({
-    SpeechToText? speechToText,
-    Duration inactivityFinalizeDelay = const Duration(seconds: 1),
-  }) : _speechToText = speechToText ?? SpeechToText(),
-       _inactivityFinalizeDelay = inactivityFinalizeDelay;
 
   Future<bool> initialize({String languageCode = 'en-US'}) async {
     if (_initialized) return true;

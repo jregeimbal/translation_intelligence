@@ -79,7 +79,7 @@ void main() async {
   );
 
   await dotenv.load(
-    mergeWith: {if (apiBaseUrl.isNotEmpty) "API_BASE_URL": apiBaseUrl},
+    mergeWith: {if (apiBaseUrl.isNotEmpty) 'API_BASE_URL': apiBaseUrl},
     overrideWithFiles: [if (noDotenvOverride == false) '.env'],
   );
   if (noDotenvOverride == true) {
@@ -179,16 +179,15 @@ class _MyAppState extends State<MyApp> {
 }
 
 class MyHomePage extends StatefulWidget {
-  final ThemeMode themeMode;
-  final ValueChanged<ThemeMode> onThemeModeChanged;
-  final HomePageInitializer? initializer;
-
   const MyHomePage({
     super.key,
     required this.themeMode,
     required this.onThemeModeChanged,
     this.initializer,
   });
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final HomePageInitializer? initializer;
 
   @override
   // ignore: library_private_types_in_public_api
@@ -269,10 +268,10 @@ class _MyHomePageState extends State<MyHomePage> {
     );
     _settings.setTargetLanguage(targetLanguage);
     _settings.setHasSeenAudioPlaybackBluetoothNotice(
-      snapshot.hasSeenAudioPlaybackBluetoothNotice,
+      value: snapshot.hasSeenAudioPlaybackBluetoothNotice,
     );
     _settings.setHasCompletedFirstLaunchWalkthrough(
-      snapshot.hasCompletedFirstLaunchWalkthrough,
+      value: snapshot.hasCompletedFirstLaunchWalkthrough,
     );
     _lastPersistedPreferences = AppPreferencesSnapshot(
       deepgramRecognitionModel: model,
@@ -339,18 +338,20 @@ class _MyHomePageState extends State<MyHomePage> {
     unawaited(_appPreferences.setTargetLanguage(snapshot.targetLanguage));
     unawaited(
       _appPreferences.setHideTranslatedOriginalText(
-        snapshot.hideTranslatedOriginalText,
+        value: snapshot.hideTranslatedOriginalText,
       ),
     );
     unawaited(
-      _appPreferences.setAudioPlaybackEnabled(snapshot.audioPlaybackEnabled),
+      _appPreferences.setAudioPlaybackEnabled(
+        value: snapshot.audioPlaybackEnabled,
+      ),
     );
   }
 
   Future<void> _completeFirstLaunchWalkthrough() async {
     if (_settings.hasCompletedFirstLaunchWalkthrough) return;
 
-    _settings.setHasCompletedFirstLaunchWalkthrough(true);
+    _settings.setHasCompletedFirstLaunchWalkthrough(value: true);
     final previous = _lastPersistedPreferences;
     if (previous != null) {
       _lastPersistedPreferences = AppPreferencesSnapshot(
@@ -366,13 +367,13 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
 
-    await _appPreferences.setHasCompletedFirstLaunchWalkthrough(true);
+    await _appPreferences.setHasCompletedFirstLaunchWalkthrough(value: true);
   }
 
   Future<void> _markAudioPlaybackBluetoothNoticeSeen() async {
     if (_settings.hasSeenAudioPlaybackBluetoothNotice) return;
 
-    _settings.setHasSeenAudioPlaybackBluetoothNotice(true);
+    _settings.setHasSeenAudioPlaybackBluetoothNotice(value: true);
 
     final previous = _lastPersistedPreferences;
     if (previous != null) {
@@ -389,7 +390,7 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
 
-    await _appPreferences.setHasSeenAudioPlaybackBluetoothNotice(true);
+    await _appPreferences.setHasSeenAudioPlaybackBluetoothNotice(value: true);
   }
 
   Future<void> _showWalkthrough({required bool markCompleted}) async {
@@ -430,7 +431,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _settings.outputProvider,
       _settings.sttProvider,
       _settings.translationProvider,
-      _isGroupSection,
+      isGroupSection: _isGroupSection,
     );
   }
 
@@ -542,10 +543,10 @@ class _MyHomePageState extends State<MyHomePage> {
     controller.setTargetLanguage(_settings.targetLanguage);
     if (_lastPersistedPreferences != null) {
       controller.setHideTranslatedOriginalText(
-        _lastPersistedPreferences!.hideTranslatedOriginalText,
+        enabled: _lastPersistedPreferences!.hideTranslatedOriginalText,
       );
       controller.setAudioPlaybackEnabled(
-        _lastPersistedPreferences!.audioPlaybackEnabled,
+        enabled: _lastPersistedPreferences!.audioPlaybackEnabled,
       );
     }
 

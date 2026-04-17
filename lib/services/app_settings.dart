@@ -145,14 +145,14 @@ class AppSettings extends ChangeNotifier {
   }
 
   // UI flags
-  void setHasSeenAudioPlaybackBluetoothNotice(bool value) {
+  void setHasSeenAudioPlaybackBluetoothNotice({required bool value}) {
     if (_hasSeenAudioPlaybackBluetoothNotice != value) {
       _hasSeenAudioPlaybackBluetoothNotice = value;
       notifyListeners();
     }
   }
 
-  void setHasCompletedFirstLaunchWalkthrough(bool value) {
+  void setHasCompletedFirstLaunchWalkthrough({required bool value}) {
     if (_hasCompletedFirstLaunchWalkthrough != value) {
       _hasCompletedFirstLaunchWalkthrough = value;
       notifyListeners();

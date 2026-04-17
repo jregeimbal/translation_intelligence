@@ -89,14 +89,6 @@ class HyperLinguistTheme {
 
 @immutable
 class HyperLinguistTextRoles extends ThemeExtension<HyperLinguistTextRoles> {
-  final TextStyle appSubtitle;
-  final TextStyle statusMessage;
-  final TextStyle helperText;
-  final TextStyle speakerChip;
-  final TextStyle timestamp;
-  final TextStyle bubbleBody;
-  final TextStyle bubbleTranslation;
-  final TextStyle errorText;
 
   const HyperLinguistTextRoles({
     required this.appSubtitle,
@@ -134,6 +126,14 @@ class HyperLinguistTextRoles extends ThemeExtension<HyperLinguistTextRoles> {
       errorText: textTheme.bodyMedium!.copyWith(color: colorScheme.error),
     );
   }
+  final TextStyle appSubtitle;
+  final TextStyle statusMessage;
+  final TextStyle helperText;
+  final TextStyle speakerChip;
+  final TextStyle timestamp;
+  final TextStyle bubbleBody;
+  final TextStyle bubbleTranslation;
+  final TextStyle errorText;
 
   @override
   HyperLinguistTextRoles copyWith({
@@ -185,12 +185,6 @@ class HyperLinguistTextRoles extends ThemeExtension<HyperLinguistTextRoles> {
 
 @immutable
 class HyperLinguistTokens extends ThemeExtension<HyperLinguistTokens> {
-  final Color appGradientTop;
-  final Color appGradientBottom;
-  final Color glassSurface;
-  final Color footerSurface;
-  final Color bubbleShadow;
-  final List<Color> speakerColors;
 
   const HyperLinguistTokens({
     required this.appGradientTop,
@@ -223,6 +217,12 @@ class HyperLinguistTokens extends ThemeExtension<HyperLinguistTokens> {
       ],
     );
   }
+  final Color appGradientTop;
+  final Color appGradientBottom;
+  final Color glassSurface;
+  final Color footerSurface;
+  final Color bubbleShadow;
+  final List<Color> speakerColors;
 
   @override
   HyperLinguistTokens copyWith({

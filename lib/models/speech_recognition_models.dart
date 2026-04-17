@@ -1,24 +1,17 @@
 class SpeechRecognitionWord {
-  String word;
-  final int? speaker;
 
   SpeechRecognitionWord({required this.word, required this.speaker});
+  String word;
+  final int? speaker;
 }
 
 class SpeechRecognitionResult {
-  final bool isFinal;
-  final bool speechFinal;
-  final List<SpeechRecognitionWord> words;
 
   const SpeechRecognitionResult({
     required this.isFinal,
     this.speechFinal = false,
     required this.words,
   });
-
-  String wordsToText() {
-    return words.map((word) => word.word).join(' ').trim();
-  }
 
   factory SpeechRecognitionResult.fromTranscript({
     required String? transcript,
@@ -46,5 +39,12 @@ class SpeechRecognitionResult {
       speechFinal: speechFinal,
       words: words,
     );
+  }
+  final bool isFinal;
+  final bool speechFinal;
+  final List<SpeechRecognitionWord> words;
+
+  String wordsToText() {
+    return words.map((word) => word.word).join(' ').trim();
   }
 }

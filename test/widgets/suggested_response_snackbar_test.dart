@@ -60,7 +60,7 @@ void main() {
     TestSpeechController controller,
     BackendApiClient backendApiClient,
   ) async {
-    await AppPreferences().setHasCompletedFirstLaunchWalkthrough(true);
+    await AppPreferences().setHasCompletedFirstLaunchWalkthrough(value: true);
 
     await pumpTestApp(
       tester,

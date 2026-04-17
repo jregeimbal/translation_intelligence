@@ -93,7 +93,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   Future<void> markWalkthroughSeen() {
-    return AppPreferences().setHasCompletedFirstLaunchWalkthrough(true);
+    return AppPreferences().setHasCompletedFirstLaunchWalkthrough(value: true);
   }
 
   setUp(() {

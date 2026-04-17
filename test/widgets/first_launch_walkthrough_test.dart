@@ -98,7 +98,7 @@ void main() {
   testWidgets('completed walkthrough does not show again on launch', (
     tester,
   ) async {
-    await AppPreferences().setHasCompletedFirstLaunchWalkthrough(true);
+    await AppPreferences().setHasCompletedFirstLaunchWalkthrough(value: true);
 
     await pumpTestApp(
       tester,
@@ -118,7 +118,7 @@ void main() {
   testWidgets('help button reopens walkthrough after first launch', (
     tester,
   ) async {
-    await AppPreferences().setHasCompletedFirstLaunchWalkthrough(true);
+    await AppPreferences().setHasCompletedFirstLaunchWalkthrough(value: true);
 
     await pumpTestApp(
       tester,
