@@ -74,6 +74,7 @@ dev_dependencies:
   shelf: ^1.4.2
   rename: ^3.1.0
   mocktail: ^1.0.4
+  patrol: ^3.13.0
 
 flutter_launcher_icons:
   image_path: "assets/icon_omnialingo.png"
