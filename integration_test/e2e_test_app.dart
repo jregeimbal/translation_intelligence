@@ -15,15 +15,11 @@ import 'fake_two_way_chat_controller.dart';
 /// Each test should create a fresh [E2eTestApp] via [E2eTestApp.create] to
 /// ensure controllers are not shared across tests.
 class E2eTestApp extends StatelessWidget {
-  E2eTestApp._({required this.controller, required this.twoWayController});
+  const E2eTestApp._({
+    required this.controller,
+    required this.twoWayController,
+  });
 
-  /// The fake speech controller used by this test instance.
-  final FakeSpeechController controller;
-
-  /// The fake two-way controller used by this test instance.
-  final FakeTwoWayChatController twoWayController;
-
-  /// Create a fresh test app with new controllers for each test.
   factory E2eTestApp.create() {
     SharedPreferences.setMockInitialValues({
       'pref.hasCompletedFirstLaunchWalkthrough': true,
@@ -33,6 +29,12 @@ class E2eTestApp extends StatelessWidget {
       twoWayController: FakeTwoWayChatController(),
     );
   }
+
+  /// The fake speech controller used by this test instance.
+  final FakeSpeechController controller;
+
+  /// The fake two-way controller used by this test instance.
+  final FakeTwoWayChatController twoWayController;
 
   /// Simulate a user speaking: injects the original text and its translation
   /// into the controller so the chat view can display them.

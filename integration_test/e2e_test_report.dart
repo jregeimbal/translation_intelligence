@@ -14,23 +14,18 @@ import 'package:flutter/foundation.dart';
 ///   report.screenshot('Tap record button', '/path/to/screenshot.png');
 ///   print(report.summary());
 class E2eTestReport {
-  final List<_StepResult> _steps = [];
+  final List<StepResult> _steps = [];
 
   /// Record a step that passed.
   void pass(String stepName) {
-    _steps.add(_StepResult(
-      name: stepName,
-      passed: true,
-    ));
+    _steps.add(StepResult(name: stepName, passed: true));
   }
 
   /// Record a step that failed, with a human-readable [reason].
   void fail(String stepName, String reason) {
-    _steps.add(_StepResult(
-      name: stepName,
-      passed: false,
-      failureReason: reason,
-    ));
+    _steps.add(
+      StepResult(name: stepName, passed: false, failureReason: reason),
+    );
   }
 
   /// Attach a screenshot path to the most recent step with [stepName], or
@@ -39,7 +34,7 @@ class E2eTestReport {
     final existing = _steps.lastWhere(
       (s) => s.name == stepName,
       orElse: () {
-        final s = _StepResult(name: stepName, passed: true);
+        final s = StepResult(name: stepName, passed: true);
         _steps.add(s);
         return s;
       },
@@ -54,7 +49,7 @@ class E2eTestReport {
   String get result => allPassed ? 'PASS' : 'FAIL';
 
   /// List of failed steps.
-  List<_StepResult> get failures =>
+  List<StepResult> get failures =>
       _steps.where((s) => !s.passed).toList(growable: false);
 
   /// Returns a human-readable summary of the test run.
@@ -64,9 +59,11 @@ class E2eTestReport {
       ..writeln('  E2E Test Report')
       ..writeln('═══════════════════════════════════════════')
       ..writeln('Result: $result')
-      ..writeln('Steps:  ${_steps.length} total, '
-          '${_steps.where((s) => s.passed).length} passed, '
-          '${failures.length} failed')
+      ..writeln(
+        'Steps:  ${_steps.length} total, '
+        '${_steps.where((s) => s.passed).length} passed, '
+        '${failures.length} failed',
+      )
       ..writeln('───────────────────────────────────────────');
 
     for (final step in _steps) {
@@ -90,7 +87,8 @@ class E2eTestReport {
   /// writable by the app process. On other platforms it defaults to
   /// `build/e2e_report.txt`.
   Future<void> writeToFile([String? outputPath]) async {
-    final path = outputPath ??
+    final path =
+        outputPath ??
         (Platform.isAndroid
             ? '${Directory.systemTemp.path}/e2e_report.txt'
             : 'build/e2e_report.txt');
@@ -101,12 +99,8 @@ class E2eTestReport {
   }
 }
 
-class _StepResult {
-  _StepResult({
-    required this.name,
-    required this.passed,
-    this.failureReason,
-  });
+class StepResult {
+  StepResult({required this.name, required this.passed, this.failureReason});
 
   final String name;
   final bool passed;

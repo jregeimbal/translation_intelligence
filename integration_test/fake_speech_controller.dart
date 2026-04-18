@@ -17,14 +17,14 @@ import 'package:translation_intelligence/services/speech_translation_provider.da
 /// access while allowing tests to programmatically inject speech results.
 class FakeSpeechController extends ChangeNotifier implements SpeechController {
   FakeSpeechController({bool speechEnabled = true})
-      : _speechEnabled = speechEnabled;
+    : _speechEnabled = speechEnabled;
 
   final List<ChatMessage> _chatMessages = [];
   bool _isListening = false;
   final bool _speechEnabled;
   bool _audioPlaybackEnabled = false;
   bool _hideTranslatedOriginalText = false;
-  String _speechError = '';
+  final String _speechError = '';
   String _lastWords = '';
   final double _amplitude = 0.0;
   String _targetLanguage = 'en';
@@ -250,13 +250,13 @@ class FakeSpeechController extends ChangeNotifier implements SpeechController {
   }
 
   @override
-  void setAudioPlaybackEnabled(bool enabled) {
+  void setAudioPlaybackEnabled({required bool enabled}) {
     _audioPlaybackEnabled = enabled;
     notifyListeners();
   }
 
   @override
-  void setHideTranslatedOriginalText(bool enabled) {
+  void setHideTranslatedOriginalText({required bool enabled}) {
     _hideTranslatedOriginalText = enabled;
     notifyListeners();
   }
