@@ -47,3 +47,6 @@ app.*.map.json
 .env
 node_modules/
 key.properties
+
+# Patrol generated test bundle
+integration_test/test_bundle.dart

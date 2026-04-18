@@ -26,7 +26,7 @@ class E2eTestApp extends StatelessWidget {
   /// Create a fresh test app with new controllers for each test.
   factory E2eTestApp.create() {
     SharedPreferences.setMockInitialValues({
-      'hasCompletedFirstLaunchWalkthrough': true,
+      'pref.hasCompletedFirstLaunchWalkthrough': true,
     });
     return E2eTestApp._(
       controller: FakeSpeechController(speechEnabled: true),

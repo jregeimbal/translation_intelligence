@@ -84,10 +84,17 @@ class E2eTestReport {
     return buf.toString();
   }
 
-  /// Writes the summary to a file at [outputPath] (defaults to
-  /// `build/e2e_report.txt`).
-  Future<void> writeToFile([String outputPath = 'build/e2e_report.txt']) async {
-    final file = File(outputPath);
+  /// Writes the summary to a file at [outputPath].
+  ///
+  /// On Android the default writes to the system temp directory which is
+  /// writable by the app process. On other platforms it defaults to
+  /// `build/e2e_report.txt`.
+  Future<void> writeToFile([String? outputPath]) async {
+    final path = outputPath ??
+        (Platform.isAndroid
+            ? '${Directory.systemTemp.path}/e2e_report.txt'
+            : 'build/e2e_report.txt');
+    final file = File(path);
     await file.parent.create(recursive: true);
     await file.writeAsString(summary());
     debugPrint('E2E report written to ${file.absolute.path}');

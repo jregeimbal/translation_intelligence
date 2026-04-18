@@ -11,7 +11,10 @@
 /// Run with:
 ///   patrol test --target integration_test/e2e_test.dart
 ///
-/// Or via Flutter directly:
+/// On a connected Android device or emulator:
+///   patrol test --target integration_test/e2e_test.dart --device emulator-5554
+///
+/// Via Flutter directly (widget-test mode only, no native automation):
 ///   flutter test integration_test/e2e_test.dart
 library;
 
@@ -29,7 +32,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({
-      'hasCompletedFirstLaunchWalkthrough': true,
+      'pref.hasCompletedFirstLaunchWalkthrough': true,
     });
     report = E2eTestReport();
   });
@@ -73,8 +76,13 @@ void main() {
         // The SpeechFab uses a FloatingActionButton with a tooltip 'Listen'.
         final micButton = find.byTooltip('Listen');
         expect(micButton, findsOneWidget);
+
         await $.tester.tap(micButton);
-        await $.pumpAndSettle();
+        // Pump a few frames to let the async startListening() complete.
+        // pumpAndSettle may time out due to the processing spinner animation.
+        await $.pump(const Duration(milliseconds: 100));
+        await $.pump(const Duration(milliseconds: 100));
+        await $.pump(const Duration(milliseconds: 100));
 
         // Controller should now be in listening state.
         expect(app.controller.isListening, isTrue);
@@ -154,7 +162,9 @@ void main() {
         // Tap mic again to start a new recording.
         final micButton = find.byTooltip('Listen');
         await $.tester.tap(micButton);
-        await $.pumpAndSettle();
+        await $.pump(const Duration(milliseconds: 100));
+        await $.pump(const Duration(milliseconds: 100));
+        await $.pump(const Duration(milliseconds: 100));
         expect(app.controller.isListening, isTrue);
 
         await app.controller.stopListening();
@@ -206,7 +216,9 @@ void main() {
         final micButton = find.byTooltip('Listen');
         expect(micButton, findsOneWidget);
         await $.tester.tap(micButton);
-        await $.pumpAndSettle();
+        await $.pump(const Duration(milliseconds: 100));
+        await $.pump(const Duration(milliseconds: 100));
+        await $.pump(const Duration(milliseconds: 100));
         expect(app.controller.isListening, isTrue);
 
         // The FAB should now show a stop icon; tap it again.

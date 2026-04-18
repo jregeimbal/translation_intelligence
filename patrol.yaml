@@ -1,5 +1,0 @@
-app_name: OmniaLingo
-android:
-  package_name: com.jax3.omnialingo
-ios:
-  bundle_id: com.jax3.omnialingo
