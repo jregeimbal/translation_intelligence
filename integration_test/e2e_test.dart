@@ -34,6 +34,10 @@ void main() {
     report = E2eTestReport();
   });
 
+  tearDown(() async {
+    await report.writeToFile();
+  });
+
   // ─────────────────────────────────────────────────────────────────────────
   // Scenario 1 – Record → original text and translation displayed
   // ─────────────────────────────────────────────────────────────────────────

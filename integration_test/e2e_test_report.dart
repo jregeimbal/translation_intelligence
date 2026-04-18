@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 ///
 /// Usage:
 ///   final report = E2eTestReport();
-///   report.step('Tap record button');
 ///   // ... perform action & assertion ...
 ///   report.pass('Tap record button');
 ///   // or:
