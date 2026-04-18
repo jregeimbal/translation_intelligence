@@ -16,6 +16,8 @@ class _FakeMicActivationSoundPlayer implements MicActivationSoundPlayer {
 }
 
 class _FakeSpeechPipeline extends SpeechPipeline {
+
+  _FakeSpeechPipeline() : super(deepgramApiKey: 'test-deepgram');
   final StreamController<SpeechRecognitionResult> resultController =
       StreamController<SpeechRecognitionResult>.broadcast();
   final StreamController<double> amplitudeController =
@@ -23,8 +25,6 @@ class _FakeSpeechPipeline extends SpeechPipeline {
 
   int synthesizeCallCount = 0;
   String? lastTranslateSourceLanguage;
-
-  _FakeSpeechPipeline() : super(deepgramApiKey: 'test-deepgram');
 
   @override
   Future<bool> isSpeechApiKeyValid() async => true;

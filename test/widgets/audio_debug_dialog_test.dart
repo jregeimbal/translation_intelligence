@@ -12,13 +12,17 @@ import '../stubs/two_way_chat_controller_stub.dart';
 
 Finder _textMatching(RegExp pattern) {
   return find.byWidgetPredicate(
-    (widget) => widget is Text && widget.data != null && pattern.hasMatch(widget.data!),
+    (widget) =>
+        widget is Text && widget.data != null && pattern.hasMatch(widget.data!),
   );
 }
 
 Finder _rowLabel(String label) {
   return find.byWidgetPredicate(
-    (widget) => widget is Text && widget.data != null && widget.data!.startsWith('$label:'),
+    (widget) =>
+        widget is Text &&
+        widget.data != null &&
+        widget.data!.startsWith('$label:'),
   );
 }
 
@@ -41,7 +45,7 @@ void main() {
         activeSessionStartedAt: DateTime.now().subtract(
           const Duration(minutes: 2, seconds: 30),
         ),
-       );
+      );
 
       twoWayController = TestTwoWayChatController(
         isListening: true,
@@ -54,8 +58,8 @@ void main() {
         activeSessionStartedAt: DateTime.now().subtract(
           const Duration(minutes: 1, seconds: 30),
         ),
-       );
-     });
+      );
+    });
 
     group('Group Chat Mode', () {
       testWidgets('TC-001: Comprehensive group chat mode test', (tester) async {
@@ -106,23 +110,24 @@ void main() {
           findsOneWidget,
         );
         expect(
-          find.text(_row(l10n.debugActiveSampleRate, l10n.sampleRateHertz(16000))),
+          find.text(
+            _row(l10n.debugActiveSampleRate, l10n.sampleRateHertz(16000)),
+          ),
           findsOneWidget,
         );
         expect(
           find.text(_row(l10n.debugListeningDeviceId, 'device-123')),
           findsOneWidget,
         );
-        expect(
-          find.text(_row(l10n.debugAmplitude, '0.523')),
-          findsOneWidget,
-        );
+        expect(find.text(_row(l10n.debugAmplitude, '0.523')), findsOneWidget);
         expect(
           find.textContaining('${l10n.debugSessionElapsed}: 02:3'),
           findsOneWidget,
         );
         expect(
-          _textMatching(RegExp('^${RegExp.escape(l10n.debugSessionStartedAt)}: .+')),
+          _textMatching(
+            RegExp('^${RegExp.escape(l10n.debugSessionStartedAt)}: .+'),
+          ),
           findsOneWidget,
         );
         expect(
@@ -174,7 +179,9 @@ void main() {
     });
 
     group('Two-Way Chat Mode', () {
-      testWidgets('TC-017: Comprehensive two-way chat mode test', (tester) async {
+      testWidgets('TC-017: Comprehensive two-way chat mode test', (
+        tester,
+      ) async {
         await pumpTestApp(
           tester,
           AudioDebugDialog(
@@ -221,17 +228,16 @@ void main() {
           findsOneWidget,
         );
         expect(
-          find.text(_row(l10n.debugActiveSampleRate, l10n.sampleRateHertz(44100))),
+          find.text(
+            _row(l10n.debugActiveSampleRate, l10n.sampleRateHertz(44100)),
+          ),
           findsOneWidget,
         );
         expect(
           find.text(_row(l10n.debugListeningDeviceId, 'device-456')),
           findsOneWidget,
         );
-        expect(
-          find.text(_row(l10n.debugAmplitude, '0.750')),
-          findsOneWidget,
-        );
+        expect(find.text(_row(l10n.debugAmplitude, '0.750')), findsOneWidget);
         expect(
           find.textContaining('${l10n.debugSessionElapsed}: 01:3'),
           findsOneWidget,
@@ -316,7 +322,9 @@ void main() {
         expect(find.text(_row(l10n.debugAmplitude, '0.000')), findsOneWidget);
       });
 
-      testWidgets('TC-035: Very short elapsed time displays correctly', (tester) async {
+      testWidgets('TC-035: Very short elapsed time displays correctly', (
+        tester,
+      ) async {
         final shortSessionController = TestSpeechController(
           activeSessionStartedAt: DateTime.now().subtract(
             const Duration(seconds: 30),
@@ -343,7 +351,9 @@ void main() {
         );
       });
 
-      testWidgets('TC-036: Long elapsed time displays correctly', (tester) async {
+      testWidgets('TC-036: Long elapsed time displays correctly', (
+        tester,
+      ) async {
         final longSessionController = TestSpeechController(
           activeSessionStartedAt: DateTime.now().subtract(
             const Duration(hours: 2, minutes: 30),
@@ -389,7 +399,10 @@ void main() {
 
         final context = tester.element(find.byType(AudioDebugDialog));
         final l10n = AppLocalizations.of(context)!;
-        expect(find.text(_row(l10n.debugListeningDeviceId, '')), findsOneWidget);
+        expect(
+          find.text(_row(l10n.debugListeningDeviceId, '')),
+          findsOneWidget,
+        );
       });
 
       testWidgets('TC-038: Dialog has fixed width of 520px', (tester) async {
@@ -413,7 +426,9 @@ void main() {
         );
       });
 
-      testWidgets('TC-039: Content is scrollable when rows exceed viewport', (tester) async {
+      testWidgets('TC-039: Content is scrollable when rows exceed viewport', (
+        tester,
+      ) async {
         await pumpTestApp(
           tester,
           AudioDebugDialog(
@@ -429,7 +444,9 @@ void main() {
         expect(find.byType(SingleChildScrollView), findsOneWidget);
       });
 
-      testWidgets('TC-040: Group mode with listening=false shows no', (tester) async {
+      testWidgets('TC-040: Group mode with listening=false shows no', (
+        tester,
+      ) async {
         final stoppedController = TestSpeechController(isListening: false);
 
         await pumpTestApp(
@@ -446,11 +463,18 @@ void main() {
 
         final context = tester.element(find.byType(AudioDebugDialog));
         final l10n = AppLocalizations.of(context)!;
-        expect(find.text(_row(l10n.debugListeningActive, l10n.no)), findsOneWidget);
+        expect(
+          find.text(_row(l10n.debugListeningActive, l10n.no)),
+          findsOneWidget,
+        );
       });
 
-      testWidgets('TC-041: Two-way mode with listening=false shows no', (tester) async {
-        final stoppedTwoWayController = TestTwoWayChatController(isListening: false);
+      testWidgets('TC-041: Two-way mode with listening=false shows no', (
+        tester,
+      ) async {
+        final stoppedTwoWayController = TestTwoWayChatController(
+          isListening: false,
+        );
 
         await pumpTestApp(
           tester,
@@ -466,34 +490,42 @@ void main() {
 
         final context = tester.element(find.byType(AudioDebugDialog));
         final l10n = AppLocalizations.of(context)!;
-        expect(find.text(_row(l10n.debugListeningActive, l10n.no)), findsOneWidget);
+        expect(
+          find.text(_row(l10n.debugListeningActive, l10n.no)),
+          findsOneWidget,
+        );
       });
     });
 
     group('StreamBuilder Behavior', () {
-      testWidgets('TC-042: StreamBuilder rebuilds widget periodically (250ms interval)', (tester) async {
-        await pumpTestApp(
-          tester,
-          AudioDebugDialog(
-            controller: groupController,
-            twoWayController: twoWayController,
-            outputProvider: SpeechOutputProvider.google,
-            sttProvider: SpeechSttProvider.deepgram,
-            translationProvider: SpeechTranslationProvider.google,
-            isGroupSection: true,
-          ),
-        );
+      testWidgets(
+        'TC-042: StreamBuilder rebuilds widget periodically (250ms interval)',
+        (tester) async {
+          await pumpTestApp(
+            tester,
+            AudioDebugDialog(
+              controller: groupController,
+              twoWayController: twoWayController,
+              outputProvider: SpeechOutputProvider.google,
+              sttProvider: SpeechSttProvider.deepgram,
+              translationProvider: SpeechTranslationProvider.google,
+              isGroupSection: true,
+            ),
+          );
 
-        final context = tester.element(find.byType(AudioDebugDialog));
-        final l10n = AppLocalizations.of(context)!;
-        expect(find.text(l10n.debugAudioStream), findsOneWidget);
+          final context = tester.element(find.byType(AudioDebugDialog));
+          final l10n = AppLocalizations.of(context)!;
+          expect(find.text(l10n.debugAudioStream), findsOneWidget);
 
-        await tester.pump(const Duration(milliseconds: 250));
+          await tester.pump(const Duration(milliseconds: 250));
 
-        expect(find.text(l10n.debugAudioStream), findsOneWidget);
-      });
+          expect(find.text(l10n.debugAudioStream), findsOneWidget);
+        },
+      );
 
-      testWidgets('TC-043: Widget updates display values on stream events', (tester) async {
+      testWidgets('TC-043: Widget updates display values on stream events', (
+        tester,
+      ) async {
         await pumpTestApp(
           tester,
           AudioDebugDialog(
@@ -509,7 +541,9 @@ void main() {
         final context = tester.element(find.byType(AudioDebugDialog));
         final l10n = AppLocalizations.of(context)!;
         expect(
-          find.text(_row(l10n.debugActiveSampleRate, l10n.sampleRateHertz(16000))),
+          find.text(
+            _row(l10n.debugActiveSampleRate, l10n.sampleRateHertz(16000)),
+          ),
           findsOneWidget,
         );
 
@@ -520,7 +554,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 250));
 
         expect(
-          find.text(_row(l10n.debugActiveSampleRate, l10n.sampleRateHertz(44100))),
+          find.text(
+            _row(l10n.debugActiveSampleRate, l10n.sampleRateHertz(44100)),
+          ),
           findsOneWidget,
         );
         expect(
@@ -583,7 +619,7 @@ void main() {
         SpeechOutputProvider.google,
         SpeechSttProvider.deepgram,
         SpeechTranslationProvider.google,
-        true,
+        isGroupSection: true,
       );
       await tester.pumpAndSettle();
 

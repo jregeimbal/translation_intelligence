@@ -28,17 +28,17 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
     String? activeSessionResolvedLanguageCode,
     String? activeSessionListeningDeviceId,
     DateTime? activeSessionStartedAt,
-   }) : _isListening = isListening,
-        _speechEnabled = speechEnabled,
-        _audioPlaybackEnabled = audioPlaybackEnabled,
-        _amplitude = amplitude,
-        _targetLanguage = targetLanguage,
-        _activeSessionSampleRate = activeSessionSampleRate,
-        _activeSessionSttProvider = activeSessionSttProvider,
-        _activeSessionSourceLanguage = activeSessionSourceLanguage,
-        _activeSessionResolvedLanguageCode = activeSessionResolvedLanguageCode,
-        _activeSessionListeningDeviceId = activeSessionListeningDeviceId,
-        _activeSessionStartedAt = activeSessionStartedAt;
+  }) : _isListening = isListening,
+       _speechEnabled = speechEnabled,
+       _audioPlaybackEnabled = audioPlaybackEnabled,
+       _amplitude = amplitude,
+       _targetLanguage = targetLanguage,
+       _activeSessionSampleRate = activeSessionSampleRate,
+       _activeSessionSttProvider = activeSessionSttProvider,
+       _activeSessionSourceLanguage = activeSessionSourceLanguage,
+       _activeSessionResolvedLanguageCode = activeSessionResolvedLanguageCode,
+       _activeSessionListeningDeviceId = activeSessionListeningDeviceId,
+       _activeSessionStartedAt = activeSessionStartedAt;
 
   final List<ChatMessage> _chatMessages = [];
   bool _isListening;
@@ -187,25 +187,23 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
       _suggestedResponsesController.stream;
 
   @override
-    int? get activeSessionSampleRate => _activeSessionSampleRate;
+  int? get activeSessionSampleRate => _activeSessionSampleRate;
 
   @override
-    SpeechSttProvider? get activeSessionSttProvider =>
-      _activeSessionSttProvider;
+  SpeechSttProvider? get activeSessionSttProvider => _activeSessionSttProvider;
 
   @override
-    String? get activeSessionSourceLanguage => _activeSessionSourceLanguage;
+  String? get activeSessionSourceLanguage => _activeSessionSourceLanguage;
 
   @override
-    String? get activeSessionResolvedLanguageCode =>
+  String? get activeSessionResolvedLanguageCode =>
       _activeSessionResolvedLanguageCode;
 
   @override
-    String? get activeSessionListeningDeviceId =>
-      _activeSessionListeningDeviceId;
+  String? get activeSessionListeningDeviceId => _activeSessionListeningDeviceId;
 
   @override
-    DateTime? get activeSessionStartedAt => _activeSessionStartedAt;
+  DateTime? get activeSessionStartedAt => _activeSessionStartedAt;
 
   @override
   List<PlaybackDevice> get playbackDevices =>
@@ -303,13 +301,13 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
   }
 
   @override
-  void setAudioPlaybackEnabled(bool enabled) {
+  void setAudioPlaybackEnabled({required bool enabled}) {
     _audioPlaybackEnabled = enabled;
     notifyListeners();
   }
 
   @override
-  void setHideTranslatedOriginalText(bool enabled) {
+  void setHideTranslatedOriginalText({required bool enabled}) {
     _hideTranslatedOriginalText = enabled;
     notifyListeners();
   }
@@ -371,7 +369,6 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
     return true;
   }
 
-
   void setActiveSessionData({
     int? sampleRate,
     SpeechSttProvider? sttProvider,
@@ -379,7 +376,7 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
     String? resolvedLanguageCode,
     String? listeningDeviceId,
     DateTime? startedAt,
-   }) {
+  }) {
     _activeSessionSampleRate = sampleRate;
     _activeSessionSttProvider = sttProvider;
     _activeSessionSourceLanguage = sourceLanguage;
@@ -387,8 +384,8 @@ class TestSpeechController extends ChangeNotifier implements SpeechController {
     _activeSessionListeningDeviceId = listeningDeviceId;
     _activeSessionStartedAt = startedAt;
     notifyListeners();
-   }
-  
+  }
+
   @override
   void dispose() {
     super.dispose();

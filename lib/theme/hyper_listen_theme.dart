@@ -89,14 +89,6 @@ class HyperListenTheme {
 
 @immutable
 class HyperListenTextRoles extends ThemeExtension<HyperListenTextRoles> {
-  final TextStyle appSubtitle;
-  final TextStyle statusMessage;
-  final TextStyle helperText;
-  final TextStyle speakerChip;
-  final TextStyle timestamp;
-  final TextStyle bubbleBody;
-  final TextStyle bubbleTranslation;
-  final TextStyle errorText;
 
   const HyperListenTextRoles({
     required this.appSubtitle,
@@ -134,6 +126,14 @@ class HyperListenTextRoles extends ThemeExtension<HyperListenTextRoles> {
       errorText: textTheme.bodyMedium!.copyWith(color: colorScheme.error),
     );
   }
+  final TextStyle appSubtitle;
+  final TextStyle statusMessage;
+  final TextStyle helperText;
+  final TextStyle speakerChip;
+  final TextStyle timestamp;
+  final TextStyle bubbleBody;
+  final TextStyle bubbleTranslation;
+  final TextStyle errorText;
 
   @override
   HyperListenTextRoles copyWith({
@@ -185,12 +185,6 @@ class HyperListenTextRoles extends ThemeExtension<HyperListenTextRoles> {
 
 @immutable
 class HyperListenTokens extends ThemeExtension<HyperListenTokens> {
-  final Color appGradientTop;
-  final Color appGradientBottom;
-  final Color glassSurface;
-  final Color footerSurface;
-  final Color bubbleShadow;
-  final List<Color> speakerColors;
 
   const HyperListenTokens({
     required this.appGradientTop,
@@ -227,6 +221,12 @@ class HyperListenTokens extends ThemeExtension<HyperListenTokens> {
       ],
     );
   }
+  final Color appGradientTop;
+  final Color appGradientBottom;
+  final Color glassSurface;
+  final Color footerSurface;
+  final Color bubbleShadow;
+  final List<Color> speakerColors;
 
   @override
   HyperListenTokens copyWith({

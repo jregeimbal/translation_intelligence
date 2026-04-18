@@ -32,7 +32,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
   Future<void> _toggleAudioPlayback(bool audioPlaybackEnabled) async {
     final controller = context.read<SpeechController>();
     if (audioPlaybackEnabled) {
-      controller.setAudioPlaybackEnabled(false);
+      controller.setAudioPlaybackEnabled(enabled: false);
       return;
     }
 
@@ -60,7 +60,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
       if (!mounted) return;
     }
 
-    controller.setAudioPlaybackEnabled(true);
+    controller.setAudioPlaybackEnabled(enabled: true);
   }
 
   @override
@@ -191,7 +191,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
                           context
                               .read<SpeechController>()
                               .setHideTranslatedOriginalText(
-                                !hideTranslatedOriginalText,
+                                enabled: !hideTranslatedOriginalText,
                               );
                         }
                       : null,

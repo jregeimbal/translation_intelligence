@@ -1,7 +1,4 @@
 class ChatMessageGroup {
-  final String id;
-  final String original;
-  final String? translation;
 
   const ChatMessageGroup({
     required this.id,
@@ -16,6 +13,9 @@ class ChatMessageGroup {
       translation: json['translation'] as String?,
     );
   }
+  final String id;
+  final String original;
+  final String? translation;
 
   Map<String, dynamic> toJson() {
     return {'id': id, 'original': original, 'translation': translation};
@@ -23,18 +23,6 @@ class ChatMessageGroup {
 }
 
 class ChatMessage {
-  static int _nextMessageId = 0;
-
-  final String id;
-  String original;
-  bool isFinal;
-  String? translation;
-  final DateTime timestamp;
-  final List<ChatMessageGroup> groups;
-  final String? sourceLanguageCode;
-  final String? targetLanguageCode;
-
-  final int? speaker;
 
   ChatMessage(
     this.original, {
@@ -48,14 +36,6 @@ class ChatMessage {
   }) : id = id ?? 'msg_${_nextMessageId++}',
        timestamp = timestamp ?? DateTime.now(),
        groups = List<ChatMessageGroup>.unmodifiable(groups ?? const []);
-
-  @override
-  String toString() {
-    if (speaker != null) {
-      return 'Speaker ${speaker! + 1}: $original';
-    }
-    return original;
-  }
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
@@ -73,6 +53,26 @@ class ChatMessage {
           .map(ChatMessageGroup.fromJson)
           .toList(growable: false),
     )..translation = json['translation'] as String?;
+  }
+  static int _nextMessageId = 0;
+
+  final String id;
+  String original;
+  bool isFinal;
+  String? translation;
+  final DateTime timestamp;
+  final List<ChatMessageGroup> groups;
+  final String? sourceLanguageCode;
+  final String? targetLanguageCode;
+
+  final int? speaker;
+
+  @override
+  String toString() {
+    if (speaker != null) {
+      return 'Speaker ${speaker! + 1}: $original';
+    }
+    return original;
   }
 
   Map<String, dynamic> toJson() {

@@ -4,12 +4,6 @@ import 'hyper_linguist_theme.dart';
 import 'hyper_listen_theme.dart';
 
 class AppThemeTokens {
-  final Color appGradientTop;
-  final Color appGradientBottom;
-  final Color glassSurface;
-  final Color footerSurface;
-  final Color bubbleShadow;
-  final List<Color> speakerColors;
 
   const AppThemeTokens({
     required this.appGradientTop,
@@ -19,17 +13,15 @@ class AppThemeTokens {
     required this.bubbleShadow,
     required this.speakerColors,
   });
+  final Color appGradientTop;
+  final Color appGradientBottom;
+  final Color glassSurface;
+  final Color footerSurface;
+  final Color bubbleShadow;
+  final List<Color> speakerColors;
 }
 
 class AppThemeTextRoles {
-  final TextStyle appSubtitle;
-  final TextStyle statusMessage;
-  final TextStyle helperText;
-  final TextStyle speakerChip;
-  final TextStyle timestamp;
-  final TextStyle bubbleBody;
-  final TextStyle bubbleTranslation;
-  final TextStyle errorText;
 
   const AppThemeTextRoles({
     required this.appSubtitle,
@@ -41,6 +33,14 @@ class AppThemeTextRoles {
     required this.bubbleTranslation,
     required this.errorText,
   });
+  final TextStyle appSubtitle;
+  final TextStyle statusMessage;
+  final TextStyle helperText;
+  final TextStyle speakerChip;
+  final TextStyle timestamp;
+  final TextStyle bubbleBody;
+  final TextStyle bubbleTranslation;
+  final TextStyle errorText;
 }
 
 AppThemeTokens resolveAppThemeTokens(ThemeData theme) {

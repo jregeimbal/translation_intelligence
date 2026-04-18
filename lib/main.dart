@@ -18,6 +18,7 @@ import 'models/suggested_response.dart';
 import 'models/two_way_message.dart';
 import 'services/backend_api_client.dart';
 import 'services/app_preferences.dart';
+import 'services/app_settings.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/app_localizations_ext.dart';
 import 'services/deepgram_recognition_catalog.dart';
@@ -31,13 +32,16 @@ import 'theme/app_theme_resolver.dart';
 import 'theme/hyper_linguist_theme.dart';
 import 'theme/hyper_listen_theme.dart';
 import 'widgets/audio_debug_dialog.dart';
-import 'widgets/chat_message.dart';
+import 'widgets/debounced_message_dispatcher.dart';
 import 'widgets/first_launch_walkthrough_dialog.dart';
 import 'widgets/footer.dart';
-import 'widgets/group_language_bar.dart';
+import 'widgets/group_chat_body.dart';
+import 'widgets/home_page_app_bar.dart';
+import 'widgets/home_page_bottom_bar.dart';
+import 'widgets/initialization_error_view.dart';
 import 'widgets/provider_settings_dialog.dart';
 import 'widgets/speech_connection_debug_dialog.dart';
-import 'widgets/two_way_chat.dart';
+import 'widgets/two_way_chat_body.dart';
 
 const Duration _suggestedResponseSnackBarDuration = Duration(seconds: 10);
 
@@ -75,7 +79,7 @@ void main() async {
   );
 
   await dotenv.load(
-    mergeWith: {if (apiBaseUrl.isNotEmpty) "API_BASE_URL": apiBaseUrl},
+    mergeWith: {if (apiBaseUrl.isNotEmpty) 'API_BASE_URL': apiBaseUrl},
     overrideWithFiles: [if (noDotenvOverride == false) '.env'],
   );
   if (noDotenvOverride == true) {
@@ -175,45 +179,19 @@ class _MyAppState extends State<MyApp> {
 }
 
 class MyHomePage extends StatefulWidget {
-  final ThemeMode themeMode;
-  final ValueChanged<ThemeMode> onThemeModeChanged;
-  final HomePageInitializer? initializer;
-
   const MyHomePage({
     super.key,
     required this.themeMode,
     required this.onThemeModeChanged,
     this.initializer,
   });
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final HomePageInitializer? initializer;
 
   @override
   // ignore: library_private_types_in_public_api
   _MyHomePageState createState() => _MyHomePageState();
-}
-
-class DebouncedMessageDispatcher {
-  DebouncedMessageDispatcher({required this.delay, required this.onDispatch});
-
-  final Duration delay;
-  final void Function(String message) onDispatch;
-
-  Timer? _timer;
-  String? _pendingMessage;
-
-  void schedule(String message) {
-    _pendingMessage = message;
-    _timer?.cancel();
-    _timer = Timer(delay, () {
-      final pending = _pendingMessage;
-      if (pending == null || pending.isEmpty) return;
-      _pendingMessage = null;
-      onDispatch(pending);
-    });
-  }
-
-  void dispose() {
-    _timer?.cancel();
-  }
 }
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -221,6 +199,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late SpeechController _controller;
   late TwoWayChatController _twoWayController;
   late BackendApiClient _backendApiClient;
+  final AppSettings _settings = AppSettings();
   StreamSubscription<String>? _listeningDeviceUpdateSub;
   StreamSubscription<SuggestedResponseEvent>? _suggestedResponseSub;
   Timer? _suggestedResponseTimer;
@@ -230,29 +209,14 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _backendClientReady = false;
   String _initializationError = '';
   int _selectedSection = 0;
-  SpeechOutputProvider _outputProvider = SpeechOutputProvider.google;
-  SpeechSttProvider _sttProvider = SpeechSttProvider.deepgram;
-  SpeechTranslationProvider _translationProvider =
-      SpeechTranslationProvider.google;
-  String _deepgramRecognitionModel =
-      DeepgramRecognitionCatalog.defaultRecognitionModel;
-  String _deepgramRecognitionLanguage =
-      DeepgramRecognitionCatalog.defaultRecognitionLanguage;
-  String _speechToTextRecognitionLocale =
-      SpeechToTextService.defaultRecognitionLanguage;
-  String _targetLanguage = 'en';
   Map<String, String> _speechToTextRecognitionLocales = const {
     'Multi (Auto)': SpeechToTextService.defaultRecognitionLanguage,
   };
   List<InputDevice> _listeningDevices = const [];
   List<PlaybackDevice> _playbackDevices = const [];
-  String? _listeningDeviceId;
-  String? _playbackDeviceId;
   SuggestedResponseEvent? _activeSuggestedResponse;
   int _suggestedResponsePresentationKey = 0;
   AppPreferencesSnapshot? _lastPersistedPreferences;
-  bool _hasSeenAudioPlaybackBluetoothNotice = false;
-  bool _hasCompletedFirstLaunchWalkthrough = false;
   bool _walkthroughShownThisSession = false;
 
   bool get _isGroupSection => _selectedSection == 0;
@@ -297,10 +261,18 @@ class _MyHomePageState extends State<MyHomePage> {
         ? snapshot.targetLanguage
         : 'en';
 
-    _deepgramRecognitionModel = model;
-    _deepgramRecognitionLanguage = sourceLanguage;
-    _speechToTextRecognitionLocale = snapshot.speechToTextRecognitionLocale;
-    _targetLanguage = targetLanguage;
+    _settings.setDeepgramRecognitionModel(model);
+    _settings.setDeepgramRecognitionLanguage(sourceLanguage);
+    _settings.setSpeechToTextRecognitionLocale(
+      snapshot.speechToTextRecognitionLocale,
+    );
+    _settings.setTargetLanguage(targetLanguage);
+    _settings.setHasSeenAudioPlaybackBluetoothNotice(
+      value: snapshot.hasSeenAudioPlaybackBluetoothNotice,
+    );
+    _settings.setHasCompletedFirstLaunchWalkthrough(
+      value: snapshot.hasCompletedFirstLaunchWalkthrough,
+    );
     _lastPersistedPreferences = AppPreferencesSnapshot(
       deepgramRecognitionModel: model,
       deepgramRecognitionLanguage: sourceLanguage,
@@ -313,10 +285,6 @@ class _MyHomePageState extends State<MyHomePage> {
       hasCompletedFirstLaunchWalkthrough:
           snapshot.hasCompletedFirstLaunchWalkthrough,
     );
-    _hasSeenAudioPlaybackBluetoothNotice =
-        snapshot.hasSeenAudioPlaybackBluetoothNotice;
-    _hasCompletedFirstLaunchWalkthrough =
-        snapshot.hasCompletedFirstLaunchWalkthrough;
   }
 
   void _persistControllerPreferences() {
@@ -329,8 +297,10 @@ class _MyHomePageState extends State<MyHomePage> {
       targetLanguage: _controller.targetLanguage,
       hideTranslatedOriginalText: _controller.hideTranslatedOriginalText,
       audioPlaybackEnabled: _controller.audioPlaybackEnabled,
-      hasSeenAudioPlaybackBluetoothNotice: _hasSeenAudioPlaybackBluetoothNotice,
-      hasCompletedFirstLaunchWalkthrough: _hasCompletedFirstLaunchWalkthrough,
+      hasSeenAudioPlaybackBluetoothNotice:
+          _settings.hasSeenAudioPlaybackBluetoothNotice,
+      hasCompletedFirstLaunchWalkthrough:
+          _settings.hasCompletedFirstLaunchWalkthrough,
     );
 
     final previous = _lastPersistedPreferences;
@@ -368,18 +338,20 @@ class _MyHomePageState extends State<MyHomePage> {
     unawaited(_appPreferences.setTargetLanguage(snapshot.targetLanguage));
     unawaited(
       _appPreferences.setHideTranslatedOriginalText(
-        snapshot.hideTranslatedOriginalText,
+        value: snapshot.hideTranslatedOriginalText,
       ),
     );
     unawaited(
-      _appPreferences.setAudioPlaybackEnabled(snapshot.audioPlaybackEnabled),
+      _appPreferences.setAudioPlaybackEnabled(
+        value: snapshot.audioPlaybackEnabled,
+      ),
     );
   }
 
   Future<void> _completeFirstLaunchWalkthrough() async {
-    if (_hasCompletedFirstLaunchWalkthrough) return;
+    if (_settings.hasCompletedFirstLaunchWalkthrough) return;
 
-    _hasCompletedFirstLaunchWalkthrough = true;
+    _settings.setHasCompletedFirstLaunchWalkthrough(value: true);
     final previous = _lastPersistedPreferences;
     if (previous != null) {
       _lastPersistedPreferences = AppPreferencesSnapshot(
@@ -395,15 +367,13 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
 
-    await _appPreferences.setHasCompletedFirstLaunchWalkthrough(true);
+    await _appPreferences.setHasCompletedFirstLaunchWalkthrough(value: true);
   }
 
   Future<void> _markAudioPlaybackBluetoothNoticeSeen() async {
-    if (_hasSeenAudioPlaybackBluetoothNotice) return;
+    if (_settings.hasSeenAudioPlaybackBluetoothNotice) return;
 
-    setState(() {
-      _hasSeenAudioPlaybackBluetoothNotice = true;
-    });
+    _settings.setHasSeenAudioPlaybackBluetoothNotice(value: true);
 
     final previous = _lastPersistedPreferences;
     if (previous != null) {
@@ -420,7 +390,7 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
 
-    await _appPreferences.setHasSeenAudioPlaybackBluetoothNotice(true);
+    await _appPreferences.setHasSeenAudioPlaybackBluetoothNotice(value: true);
   }
 
   Future<void> _showWalkthrough({required bool markCompleted}) async {
@@ -438,7 +408,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (!mounted ||
         _initializing ||
         _initializationError.isNotEmpty ||
-        _hasCompletedFirstLaunchWalkthrough ||
+        _settings.hasCompletedFirstLaunchWalkthrough ||
         _walkthroughShownThisSession) {
       return;
     }
@@ -458,10 +428,10 @@ class _MyHomePageState extends State<MyHomePage> {
       context,
       _controller,
       _twoWayController,
-      _outputProvider,
-      _sttProvider,
-      _translationProvider,
-      _isGroupSection,
+      _settings.outputProvider,
+      _settings.sttProvider,
+      _settings.translationProvider,
+      isGroupSection: _isGroupSection,
     );
   }
 
@@ -561,32 +531,38 @@ class _MyHomePageState extends State<MyHomePage> {
     );
 
     final controller = SpeechController(backendApiClient: backendApiClient);
-    controller.setSttProvider(_sttProvider);
-    controller.setTranslationProvider(_translationProvider);
-    controller.setDeepgramRecognitionModel(_deepgramRecognitionModel);
-    controller.setDeepgramRecognitionLanguage(_deepgramRecognitionLanguage);
-    controller.setSpeechToTextRecognitionLocale(_speechToTextRecognitionLocale);
-    controller.setTargetLanguage(_targetLanguage);
+    controller.setSttProvider(_settings.sttProvider);
+    controller.setTranslationProvider(_settings.translationProvider);
+    controller.setDeepgramRecognitionModel(_settings.deepgramRecognitionModel);
+    controller.setDeepgramRecognitionLanguage(
+      _settings.deepgramRecognitionLanguage,
+    );
+    controller.setSpeechToTextRecognitionLocale(
+      _settings.speechToTextRecognitionLocale,
+    );
+    controller.setTargetLanguage(_settings.targetLanguage);
     if (_lastPersistedPreferences != null) {
       controller.setHideTranslatedOriginalText(
-        _lastPersistedPreferences!.hideTranslatedOriginalText,
+        enabled: _lastPersistedPreferences!.hideTranslatedOriginalText,
       );
       controller.setAudioPlaybackEnabled(
-        _lastPersistedPreferences!.audioPlaybackEnabled,
+        enabled: _lastPersistedPreferences!.audioPlaybackEnabled,
       );
     }
 
     final twoWayController = TwoWayChatController(
       backendApiClient: backendApiClient,
     );
-    twoWayController.setSttProvider(_sttProvider);
-    twoWayController.setTranslationProvider(_translationProvider);
-    twoWayController.setDeepgramRecognitionModel(_deepgramRecognitionModel);
+    twoWayController.setSttProvider(_settings.sttProvider);
+    twoWayController.setTranslationProvider(_settings.translationProvider);
+    twoWayController.setDeepgramRecognitionModel(
+      _settings.deepgramRecognitionModel,
+    );
     twoWayController.setDeepgramRecognitionLanguage(
-      _deepgramRecognitionLanguage,
+      _settings.deepgramRecognitionLanguage,
     );
     twoWayController.setSpeechToTextRecognitionLocale(
-      _speechToTextRecognitionLocale,
+      _settings.speechToTextRecognitionLocale,
     );
 
     await controller.init();
@@ -637,14 +613,9 @@ class _MyHomePageState extends State<MyHomePage> {
     _bindSuggestedResponseNotifications();
     setState(() {
       _listeningDevices = _controller.listeningDevices;
-      _listeningDeviceId = _controller.listeningDeviceId;
       _playbackDevices = _controller.playbackDevices;
-      _playbackDeviceId = _controller.playbackDeviceId;
       _speechToTextRecognitionLocales =
           _controller.speechToTextRecognitionLocales;
-      _speechToTextRecognitionLocale =
-          _controller.speechToTextRecognitionLocale;
-      _targetLanguage = _controller.targetLanguage;
       _initializing = false;
     });
 
@@ -654,16 +625,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _setOutputProvider(SpeechOutputProvider provider) {
-    if (_outputProvider == provider || _initializing) return;
-    setState(() {
-      _outputProvider = provider;
-      _controller.setOutputProvider(provider);
-      _twoWayController.setOutputProvider(provider);
-    });
+    if (_settings.outputProvider == provider || _initializing) return;
+    _settings.setOutputProvider(provider);
+    _controller.setOutputProvider(provider);
+    _twoWayController.setOutputProvider(provider);
   }
 
   Future<void> _setSttProvider(SpeechSttProvider provider) async {
-    if (_sttProvider == provider || _initializing) return;
+    if (_settings.sttProvider == provider || _initializing) return;
 
     if (_controller.isListening) {
       await _controller.stopListening();
@@ -673,33 +642,29 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     if (!mounted) return;
-    setState(() {
-      _sttProvider = provider;
-      _controller.setSttProvider(provider);
-      _twoWayController.setSttProvider(provider);
-    });
+    _settings.setSttProvider(provider);
+    _controller.setSttProvider(provider);
+    _twoWayController.setSttProvider(provider);
   }
 
   void _setTranslationProvider(SpeechTranslationProvider provider) {
-    if (_translationProvider == provider || _initializing) return;
-    setState(() {
-      _translationProvider = provider;
-      _controller.setTranslationProvider(provider);
-      _twoWayController.setTranslationProvider(provider);
-    });
+    if (_settings.translationProvider == provider || _initializing) return;
+    _settings.setTranslationProvider(provider);
+    _controller.setTranslationProvider(provider);
+    _twoWayController.setTranslationProvider(provider);
   }
 
   void _setDeepgramRecognitionModel(String model) {
-    if (_deepgramRecognitionModel == model || _initializing) return;
-    setState(() {
-      _deepgramRecognitionModel = model;
-      _controller.setDeepgramRecognitionModel(model);
-      _twoWayController.setDeepgramRecognitionModel(model);
-    });
+    if (_settings.deepgramRecognitionModel == model || _initializing) return;
+    _settings.setDeepgramRecognitionModel(model);
+    _controller.setDeepgramRecognitionModel(model);
+    _twoWayController.setDeepgramRecognitionModel(model);
   }
 
   Future<void> _setDeepgramRecognitionLanguage(String language) async {
-    if (_deepgramRecognitionLanguage == language || _initializing) return;
+    if (_settings.deepgramRecognitionLanguage == language || _initializing) {
+      return;
+    }
 
     final restartListening = _controller.isListening;
     if (restartListening) {
@@ -707,11 +672,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     if (!mounted) return;
 
-    setState(() {
-      _deepgramRecognitionLanguage = language;
-      _controller.setDeepgramRecognitionLanguage(language);
-      _twoWayController.setDeepgramRecognitionLanguage(language);
-    });
+    _settings.setDeepgramRecognitionLanguage(language);
+    _controller.setDeepgramRecognitionLanguage(language);
+    _twoWayController.setDeepgramRecognitionLanguage(language);
 
     if (restartListening) {
       await _startGroupListeningWithDebugDialog();
@@ -719,7 +682,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _setSpeechToTextRecognitionLocale(String locale) async {
-    if (_speechToTextRecognitionLocale == locale || _initializing) return;
+    if (_settings.speechToTextRecognitionLocale == locale || _initializing) {
+      return;
+    }
 
     final restartListening = _controller.isListening;
     if (restartListening) {
@@ -727,11 +692,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     if (!mounted) return;
 
-    setState(() {
-      _speechToTextRecognitionLocale = locale;
-      _controller.setSpeechToTextRecognitionLocale(locale);
-      _twoWayController.setSpeechToTextRecognitionLocale(locale);
-    });
+    _settings.setSpeechToTextRecognitionLocale(locale);
+    _controller.setSpeechToTextRecognitionLocale(locale);
+    _twoWayController.setSpeechToTextRecognitionLocale(locale);
 
     if (restartListening) {
       await _startGroupListeningWithDebugDialog();
@@ -739,16 +702,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _setListeningDeviceId(String? deviceId) {
-    if (_listeningDeviceId == deviceId || _initializing) return;
-    setState(() {
-      _listeningDeviceId = deviceId;
-      _controller.setListeningDeviceId(deviceId);
-      _twoWayController.setListeningDeviceId(deviceId);
-    });
+    if (_settings.listeningDeviceId == deviceId || _initializing) return;
+    _settings.setListeningDeviceId(deviceId);
+    _controller.setListeningDeviceId(deviceId);
+    _twoWayController.setListeningDeviceId(deviceId);
   }
 
   Future<void> _setPlaybackDeviceId(String? deviceId) async {
-    if (_playbackDeviceId == deviceId || _initializing) return;
+    if (_settings.playbackDeviceId == deviceId || _initializing) return;
 
     final applied = await _controller.setPlaybackDeviceId(deviceId);
     await _twoWayController.setPlaybackDeviceId(deviceId);
@@ -756,7 +717,6 @@ class _MyHomePageState extends State<MyHomePage> {
     if (!mounted) return;
     setState(() {
       _playbackDevices = _controller.playbackDevices;
-      _playbackDeviceId = _controller.playbackDeviceId;
     });
 
     if (!applied && deviceId != null) {
@@ -780,13 +740,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (!mounted) return;
     setState(() {
       _listeningDevices = _controller.listeningDevices;
-      _listeningDeviceId = _controller.listeningDeviceId;
       _playbackDevices = _controller.playbackDevices;
-      _playbackDeviceId = _controller.playbackDeviceId;
       _speechToTextRecognitionLocales =
           _controller.speechToTextRecognitionLocales;
-      _speechToTextRecognitionLocale =
-          _controller.speechToTextRecognitionLocale;
     });
 
     final selection = await Navigator.of(context)
@@ -795,22 +751,23 @@ class _MyHomePageState extends State<MyHomePage> {
             fullscreenDialog: true,
             builder: (context) {
               return ProviderSettingsDialog(
-                initialSttProvider: _sttProvider,
-                initialTranslationProvider: _translationProvider,
-                initialOutputProvider: _outputProvider,
-                initialTargetLanguage: _targetLanguage,
+                initialSttProvider: _settings.sttProvider,
+                initialTranslationProvider: _settings.translationProvider,
+                initialOutputProvider: _settings.outputProvider,
+                initialTargetLanguage: _settings.targetLanguage,
                 targetLanguages: SpeechController.supportedLanguages,
-                initialDeepgramRecognitionModel: _deepgramRecognitionModel,
+                initialDeepgramRecognitionModel:
+                    _settings.deepgramRecognitionModel,
                 initialDeepgramRecognitionLanguage:
-                    _deepgramRecognitionLanguage,
+                    _settings.deepgramRecognitionLanguage,
                 initialSpeechToTextRecognitionLocale:
-                    _speechToTextRecognitionLocale,
+                    _settings.speechToTextRecognitionLocale,
                 initialSpeechToTextRecognitionLocales:
                     _speechToTextRecognitionLocales,
                 initialListeningDevices: _listeningDevices,
-                initialListeningDeviceId: _listeningDeviceId,
+                initialListeningDeviceId: _settings.listeningDeviceId,
                 initialPlaybackDevices: _playbackDevices,
-                initialPlaybackDeviceId: _playbackDeviceId,
+                initialPlaybackDeviceId: _settings.playbackDeviceId,
                 initialThemeMode: widget.themeMode,
               );
             },
@@ -833,42 +790,36 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     if (!mounted) return;
 
-    if (selection.sttProvider != _sttProvider) {
+    _settings.applySelection(selection);
+
+    if (selection.sttProvider != _settings.sttProvider) {
       await _setSttProvider(selection.sttProvider);
-    }
-    if (!mounted) return;
-    if (selection.translationProvider != _translationProvider) {
+    } else if (selection.translationProvider != _settings.translationProvider) {
       _setTranslationProvider(selection.translationProvider);
-    }
-    if (selection.outputProvider != _outputProvider) {
+    } else if (selection.outputProvider != _settings.outputProvider) {
       _setOutputProvider(selection.outputProvider);
-    }
-    if (selection.targetLanguage != _targetLanguage) {
-      setState(() {
-        _targetLanguage = selection.targetLanguage;
-        _controller.setTargetLanguage(selection.targetLanguage);
-      });
-    }
-    if (selection.deepgramRecognitionModel != _deepgramRecognitionModel) {
+    } else if (selection.targetLanguage != _settings.targetLanguage) {
+      _settings.setTargetLanguage(selection.targetLanguage);
+      _controller.setTargetLanguage(selection.targetLanguage);
+    } else if (selection.deepgramRecognitionModel !=
+        _settings.deepgramRecognitionModel) {
       _setDeepgramRecognitionModel(selection.deepgramRecognitionModel);
-    }
-    if (selection.deepgramRecognitionLanguage != _deepgramRecognitionLanguage) {
+    } else if (selection.deepgramRecognitionLanguage !=
+        _settings.deepgramRecognitionLanguage) {
       await _setDeepgramRecognitionLanguage(
         selection.deepgramRecognitionLanguage,
       );
-    }
-    if (selection.speechToTextRecognitionLocale !=
-        _speechToTextRecognitionLocale) {
+    } else if (selection.speechToTextRecognitionLocale !=
+        _settings.speechToTextRecognitionLocale) {
       await _setSpeechToTextRecognitionLocale(
         selection.speechToTextRecognitionLocale,
       );
-    }
-    if (selection.listeningDeviceId != _listeningDeviceId) {
+    } else if (selection.listeningDeviceId != _settings.listeningDeviceId) {
       _setListeningDeviceId(selection.listeningDeviceId);
-    }
-    if (selection.playbackDeviceId != _playbackDeviceId) {
+    } else if (selection.playbackDeviceId != _settings.playbackDeviceId) {
       await _setPlaybackDeviceId(selection.playbackDeviceId);
     }
+
     if (selection.themeMode != widget.themeMode) {
       widget.onThemeModeChanged(selection.themeMode);
     }
@@ -940,13 +891,11 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     if (!mounted) return;
 
-    setState(() {
-      _deepgramRecognitionLanguage = target;
-      _targetLanguage = source;
-      _controller.setDeepgramRecognitionLanguage(target);
-      _twoWayController.setDeepgramRecognitionLanguage(target);
-      _controller.setTargetLanguage(source);
-    });
+    _settings.setDeepgramRecognitionLanguage(target);
+    _settings.setTargetLanguage(source);
+    _controller.setDeepgramRecognitionLanguage(target);
+    _twoWayController.setDeepgramRecognitionLanguage(target);
+    _controller.setTargetLanguage(source);
 
     if (restartListening) {
       await _startGroupListeningWithDebugDialog();
@@ -986,37 +935,18 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textRoles = resolveAppThemeTextRoles(theme);
-    final tokens = resolveAppThemeTokens(theme);
+    final tokens = resolveAppThemeTokens(Theme.of(context));
+
+    if (_initializationError.isNotEmpty) {
+      return InitializationErrorView(
+        errorMessage: _initializationError,
+        onRetry: _initializeControllers,
+      );
+    }
+
     final activeSuggestedResponse = _isGroupSection
         ? _activeSuggestedResponse
         : null;
-
-    if (_initializationError.isNotEmpty) {
-      return Material(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  context.l10n.initializationFailed(_initializationError),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: _initializeControllers,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: Text(context.l10n.retry),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
 
     return Container(
       decoration: BoxDecoration(
@@ -1029,68 +959,11 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         extendBody: true,
-        appBar: AppBar(
-          titleSpacing: 16,
-          title: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    'assets/icon_omnialingo.png',
-                    filterQuality: FilterQuality.high,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.l10n.appTitle,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    context.l10n.translationAssistant,
-                    style: textRoles.appSubtitle,
-                  ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            if (!_initializing)
-              IconButton(
-                icon: const Icon(Icons.help_outline_rounded),
-                tooltip: context.l10n.walkthroughHelp,
-                onPressed: _showHelpWalkthrough,
-              ),
-            if (kDebugMode)
-              IconButton(
-                icon: const Icon(Icons.bug_report_outlined),
-                tooltip: context.l10n.debugAudioStream,
-                onPressed: _showDebugAudioDialog,
-              ),
-            if (!_initializing)
-              IconButton(
-                icon: const Icon(Icons.settings_outlined),
-                tooltip: context.l10n.settingsTitle,
-                onPressed: _showProviderSettingsDialog,
-              ),
-            const SizedBox(width: 8),
-          ],
+        appBar: HomePageAppBar(
+          initializing: _initializing,
+          onHelpPressed: _showHelpWalkthrough,
+          onDebugPressed: _showDebugAudioDialog,
+          onSettingsPressed: _showProviderSettingsDialog,
         ),
         body: SafeArea(
           child: AnimatedSwitcher(
@@ -1101,252 +974,50 @@ class _MyHomePageState extends State<MyHomePage> {
                           key: ValueKey('group_loading'),
                           child: CircularProgressIndicator(),
                         )
-                      : ChangeNotifierProvider<SpeechController>.value(
-                          value: _controller,
-                          child: Padding(
-                            key: const ValueKey('group_chat'),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10.0,
-                              vertical: 12,
-                            ),
-                            child: Column(
-                              children: [
-                                GroupLanguageBar(
-                                  sourceLanguages:
-                                      _controller.deepgramRecognitionLanguages,
-                                  targetLanguages:
-                                      SpeechController.supportedLanguages,
-                                  sourceCode:
-                                      _controller.deepgramRecognitionLanguage,
-                                  targetCode: _controller.targetLanguage,
-                                  canSwap: _canSwapGroupLanguages(
-                                    _controller.deepgramRecognitionLanguages,
-                                  ),
-                                  onSourceSelected:
-                                      _setDeepgramRecognitionLanguage,
-                                  onTargetSelected: (value) {
-                                    setState(() {
-                                      _targetLanguage = value;
-                                      _controller.setTargetLanguage(value);
-                                    });
-                                  },
-                                  onSwap: () => _swapGroupLanguages(
-                                    _controller.deepgramRecognitionLanguages,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                const Expanded(child: ChatMessageList()),
-                              ],
-                            ),
+                      : GroupChatBody(
+                          controller: _controller,
+                          canSwapGroupLanguages: _canSwapGroupLanguages,
+                          onSourceSelected: _setDeepgramRecognitionLanguage,
+                          onTargetSelected: (value) {
+                            _settings.setTargetLanguage(value);
+                            _controller.setTargetLanguage(value);
+                          },
+                          onSwap: () => _swapGroupLanguages(
+                            _controller.deepgramRecognitionLanguages,
                           ),
                         ))
-                : Center(
-                    key: const ValueKey('two_way_placeholder'),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10.0,
-                        vertical: 12,
-                      ),
-                      child: _initializing
-                          ? const Center(child: CircularProgressIndicator())
-                          : ChangeNotifierProvider<TwoWayChatController>.value(
-                              value: _twoWayController,
-                              child: const TwoWayChatView(),
-                            ),
-                    ),
+                : TwoWayChatBody(
+                    initializing: _initializing,
+                    twoWayController: _twoWayController,
                   ),
           ),
         ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child: activeSuggestedResponse == null
-                      ? const SizedBox.shrink()
-                      : Padding(
-                          key: ValueKey<int>(_suggestedResponsePresentationKey),
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _SuggestedResponsePanel(
-                            event: activeSuggestedResponse,
-                            title: context.l10n.suggestedResponseTitle,
-                            closeTooltip: context.l10n.close,
-                            onClose: _clearSuggestedResponse,
-                            timeout: _suggestedResponseSnackBarDuration,
-                          ),
-                        ),
-                ),
-                if (!_initializing && _isGroupSection) ...[
-                  ChangeNotifierProvider<SpeechController>.value(
-                    value: _controller,
-                    child: SpeechFooter(
-                      hasSeenAudioPlaybackBluetoothNotice:
-                          _hasSeenAudioPlaybackBluetoothNotice,
-                      onAudioPlaybackBluetoothNoticeSeen:
-                          _markAudioPlaybackBluetoothNoticeSeen,
-                    ),
+        bottomNavigationBar: HomePageBottomBar(
+          activeSuggestedResponse: activeSuggestedResponse,
+          suggestedResponseKey: _suggestedResponsePresentationKey,
+          onCloseSuggestedResponse: _clearSuggestedResponse,
+          showFooter: !_initializing && _isGroupSection,
+          footerChild: !_initializing && _isGroupSection
+              ? ChangeNotifierProvider<SpeechController>.value(
+                  value: _controller,
+                  child: SpeechFooter(
+                    hasSeenAudioPlaybackBluetoothNotice:
+                        _settings.hasSeenAudioPlaybackBluetoothNotice,
+                    onAudioPlaybackBluetoothNoticeSeen:
+                        _markAudioPlaybackBluetoothNoticeSeen,
                   ),
-                  const SizedBox(height: 8),
-                ],
-                NavigationBar(
-                  selectedIndex: _selectedSection,
-                  onDestinationSelected: _onSectionSelected,
-                  destinations: [
-                    NavigationDestination(
-                      icon: const Icon(Icons.group_rounded),
-                      label: context.l10n.groupLabel,
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.compare_arrows_rounded),
-                      label: context.l10n.twoWayLabel,
-                    ),
-                  ],
-                ),
-              ],
+                )
+              : null,
+          selectedIndex: _selectedSection,
+          onDestinationSelected: _onSectionSelected,
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.group_rounded),
+              label: context.l10n.groupLabel,
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SuggestedResponsePanel extends StatelessWidget {
-  const _SuggestedResponsePanel({
-    required this.event,
-    required this.title,
-    required this.closeTooltip,
-    required this.onClose,
-    required this.timeout,
-  });
-
-  final SuggestedResponseEvent event;
-  final String title;
-  final String closeTooltip;
-  final VoidCallback onClose;
-  final Duration timeout;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final sourceLanguageLabel = localizedAppLanguageName(
-      context,
-      event.response.sourceLanguageCode,
-    );
-    final targetLanguageLabel = localizedAppLanguageName(
-      context,
-      event.response.targetLanguageCode,
-    );
-
-    return Material(
-      key: const Key('suggested-response-panel'),
-      color: colorScheme.inverseSurface,
-      elevation: 6,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: colorScheme.onInverseSurface,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 1, end: 0),
-                  duration: timeout,
-                  builder: (context, remaining, child) {
-                    return SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Positioned.fill(
-                            child: CircularProgressIndicator(
-                              key: const Key(
-                                'suggested-response-timeout-progress',
-                              ),
-                              value: remaining,
-                              strokeWidth: 2,
-                              backgroundColor: colorScheme.onInverseSurface
-                                  .withValues(alpha: 0.18),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                colorScheme.onInverseSurface.withValues(
-                                  alpha: 0.82,
-                                ),
-                              ),
-                            ),
-                          ),
-                          child!,
-                        ],
-                      ),
-                    );
-                  },
-                  child: IconButton(
-                    tooltip: closeTooltip,
-                    onPressed: onClose,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints.tightFor(
-                      width: 28,
-                      height: 28,
-                    ),
-                    iconSize: 20,
-                    splashRadius: 16,
-                    visualDensity: VisualDensity.standard,
-                    icon: Icon(
-                      Icons.close,
-                      color: colorScheme.onInverseSurface,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              context.l10n.suggestedResponseOriginalLabel(sourceLanguageLabel),
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: colorScheme.onInverseSurface.withValues(alpha: 0.82),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              event.response.originalText,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onInverseSurface,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              context.l10n.suggestedResponseTranslatedLabel(
-                targetLanguageLabel,
-              ),
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: colorScheme.onInverseSurface.withValues(alpha: 0.82),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              event.response.translatedText,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onInverseSurface,
-              ),
+            NavigationDestination(
+              icon: const Icon(Icons.compare_arrows_rounded),
+              label: context.l10n.twoWayLabel,
             ),
           ],
         ),

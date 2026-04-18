@@ -1,13 +1,13 @@
 class PlaybackDevice {
-  final String id;
-  final String name;
-  final String type;
 
   const PlaybackDevice({
     required this.id,
     required this.name,
     required this.type,
   });
+  final String id;
+  final String name;
+  final String type;
 
   String get displayName => name.isNotEmpty ? name : type;
 

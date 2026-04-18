@@ -5,17 +5,6 @@ import '../services/speech_stt_provider.dart';
 import '../services/speech_translation_provider.dart';
 
 class ProviderSettingsSelection {
-  final SpeechSttProvider sttProvider;
-  final SpeechTranslationProvider translationProvider;
-  final SpeechOutputProvider outputProvider;
-  final String targetLanguage;
-  final String deepgramRecognitionModel;
-  final String deepgramRecognitionLanguage;
-  final String speechToTextRecognitionLocale;
-  final Map<String, String> speechToTextRecognitionLocales;
-  final String? listeningDeviceId;
-  final String? playbackDeviceId;
-  final ThemeMode themeMode;
 
   const ProviderSettingsSelection({
     required this.sttProvider,
@@ -30,4 +19,15 @@ class ProviderSettingsSelection {
     required this.playbackDeviceId,
     required this.themeMode,
   });
+  final SpeechSttProvider sttProvider;
+  final SpeechTranslationProvider translationProvider;
+  final SpeechOutputProvider outputProvider;
+  final String targetLanguage;
+  final String deepgramRecognitionModel;
+  final String deepgramRecognitionLanguage;
+  final String speechToTextRecognitionLocale;
+  final Map<String, String> speechToTextRecognitionLocales;
+  final String? listeningDeviceId;
+  final String? playbackDeviceId;
+  final ThemeMode themeMode;
 }

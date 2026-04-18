@@ -437,13 +437,6 @@ class _ChatMessageListState extends State<ChatMessageList> {
 }
 
 class _ChatMessageContent extends StatelessWidget {
-  static const Duration _originalToggleDuration = Duration(milliseconds: 220);
-
-  final ChatMessage message;
-  final bool isPrimaryStyled;
-  final Color textColor;
-  final AppThemeTextRoles textRoles;
-  final bool showOriginal;
 
   const _ChatMessageContent({
     required this.message,
@@ -452,6 +445,13 @@ class _ChatMessageContent extends StatelessWidget {
     required this.textRoles,
     required this.showOriginal,
   });
+  static const Duration _originalToggleDuration = Duration(milliseconds: 220);
+
+  final ChatMessage message;
+  final bool isPrimaryStyled;
+  final Color textColor;
+  final AppThemeTextRoles textRoles;
+  final bool showOriginal;
 
   @override
   Widget build(BuildContext context) {
@@ -595,10 +595,6 @@ class _ChatMessageContent extends StatelessWidget {
 }
 
 class _AnimatedRecognitionMessageText extends StatefulWidget {
-  final String text;
-  final bool isFinal;
-  final TextStyle? style;
-  final TextAlign? textAlign;
 
   const _AnimatedRecognitionMessageText({
     super.key,
@@ -607,6 +603,10 @@ class _AnimatedRecognitionMessageText extends StatefulWidget {
     required this.style,
     this.textAlign,
   });
+  final String text;
+  final bool isFinal;
+  final TextStyle? style;
+  final TextAlign? textAlign;
 
   @override
   State<_AnimatedRecognitionMessageText> createState() =>
@@ -614,15 +614,15 @@ class _AnimatedRecognitionMessageText extends StatefulWidget {
 }
 
 class _AnimatedPartialMessageText extends StatefulWidget {
-  final String text;
-  final TextStyle? style;
-  final TextAlign? textAlign;
 
   const _AnimatedPartialMessageText({
     required this.text,
     required this.style,
     this.textAlign,
   });
+  final String text;
+  final TextStyle? style;
+  final TextAlign? textAlign;
 
   @override
   State<_AnimatedPartialMessageText> createState() =>
@@ -786,9 +786,9 @@ class _AnimatedPartialMessageTextState
 }
 
 class _SlidingTextGradientTransform extends GradientTransform {
-  final double progress;
 
   const _SlidingTextGradientTransform({required this.progress});
+  final double progress;
 
   @override
   Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
@@ -797,13 +797,6 @@ class _SlidingTextGradientTransform extends GradientTransform {
 }
 
 class _InlineGroupedRecognitionText extends StatelessWidget {
-  final String messageId;
-  final List<ChatMessageGroup> groups;
-  final bool isFinal;
-  final String? Function(ChatMessageGroup group) textForGroup;
-  final String keySuffix;
-  final bool alignRight;
-  final TextStyle? style;
 
   const _InlineGroupedRecognitionText({
     required this.messageId,
@@ -814,6 +807,13 @@ class _InlineGroupedRecognitionText extends StatelessWidget {
     required this.alignRight,
     required this.style,
   });
+  final String messageId;
+  final List<ChatMessageGroup> groups;
+  final bool isFinal;
+  final String? Function(ChatMessageGroup group) textForGroup;
+  final String keySuffix;
+  final bool alignRight;
+  final TextStyle? style;
 
   bool _hasTerminalPunctuation(String text) {
     return RegExp(r'[.!?]$').hasMatch(text.trimRight());

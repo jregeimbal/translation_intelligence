@@ -2,14 +2,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 class FirebaseAuthSession {
-  final FirebaseOptions _options;
-  FirebaseAuth? _firebaseAuth;
 
   FirebaseAuthSession({
     required FirebaseOptions options,
     FirebaseAuth? firebaseAuth,
   }) : _options = options,
        _firebaseAuth = firebaseAuth;
+  final FirebaseOptions _options;
+  FirebaseAuth? _firebaseAuth;
 
   Future<void> initialize() async {
     if (_firebaseAuth == null) {

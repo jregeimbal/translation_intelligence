@@ -32,6 +32,24 @@ const String _sessionResumeFailureMessage =
 /// Notifies listeners when relevant properties change so individual widgets
 /// can rebuild independently.
 class SpeechController extends ChangeNotifier {
+  SpeechController({
+    String deepgramApiKey = '',
+    BackendApiClient? backendApiClient,
+    SpeechPipeline? speechPipeline,
+    MicActivationSoundPlayer? micActivationSoundPlayer,
+    Duration finalResultGroupingWindow = const Duration(seconds: 2),
+    Duration audioPlaybackCompletionTimeout = const Duration(seconds: 30),
+  }) : _speechPipeline =
+           speechPipeline ??
+           SpeechPipeline(
+             deepgramApiKey: deepgramApiKey,
+             backendApiClient: backendApiClient,
+           ),
+       _backendApiClient = backendApiClient,
+       _micActivationSoundPlayer =
+           micActivationSoundPlayer ?? DefaultMicActivationSoundPlayer(),
+       _finalResultGroupingWindow = finalResultGroupingWindow,
+       _audioPlaybackCompletionTimeout = audioPlaybackCompletionTimeout;
   final SpeechPipeline _speechPipeline;
   final BackendApiClient? _backendApiClient;
   final MicActivationSoundPlayer _micActivationSoundPlayer;
@@ -74,25 +92,6 @@ class SpeechController extends ChangeNotifier {
   /// ID of speaker whose messages should be right-aligned in the UI.
   /// Null means no preference (all left).
   int? preferredSpeaker;
-
-  SpeechController({
-    String deepgramApiKey = '',
-    BackendApiClient? backendApiClient,
-    SpeechPipeline? speechPipeline,
-    MicActivationSoundPlayer? micActivationSoundPlayer,
-    Duration finalResultGroupingWindow = const Duration(seconds: 2),
-    Duration audioPlaybackCompletionTimeout = const Duration(seconds: 30),
-  }) : _speechPipeline =
-           speechPipeline ??
-           SpeechPipeline(
-             deepgramApiKey: deepgramApiKey,
-             backendApiClient: backendApiClient,
-           ),
-       _backendApiClient = backendApiClient,
-       _micActivationSoundPlayer =
-           micActivationSoundPlayer ?? DefaultMicActivationSoundPlayer(),
-       _finalResultGroupingWindow = finalResultGroupingWindow,
-       _audioPlaybackCompletionTimeout = audioPlaybackCompletionTimeout;
 
   set finalResultGroupingWindow(Duration value) {
     if (value != _finalResultGroupingWindow) {
@@ -293,13 +292,13 @@ class SpeechController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setAudioPlaybackEnabled(bool enabled) {
+  void setAudioPlaybackEnabled({required bool enabled}) {
     if (_audioPlaybackEnabled == enabled) return;
     _audioPlaybackEnabled = enabled;
     notifyListeners();
   }
 
-  void setHideTranslatedOriginalText(bool enabled) {
+  void setHideTranslatedOriginalText({required bool enabled}) {
     if (_hideTranslatedOriginalText == enabled) return;
     _hideTranslatedOriginalText = enabled;
     notifyListeners();

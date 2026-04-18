@@ -18,6 +18,19 @@ const String _twoWaySessionResumeFailureMessage =
     'Listening stopped because the connection could not be resumed. Tap Listen to try again.';
 
 class TwoWayChatController extends ChangeNotifier {
+  TwoWayChatController({
+    String deepgramApiKey = '',
+    BackendApiClient? backendApiClient,
+    SpeechPipeline? speechPipeline,
+    MicActivationSoundPlayer? micActivationSoundPlayer,
+  }) : _speechPipeline =
+           speechPipeline ??
+           SpeechPipeline(
+             deepgramApiKey: deepgramApiKey,
+             backendApiClient: backendApiClient,
+           ),
+       _micActivationSoundPlayer =
+           micActivationSoundPlayer ?? DefaultMicActivationSoundPlayer();
   final SpeechPipeline _speechPipeline;
   final MicActivationSoundPlayer _micActivationSoundPlayer;
   final AudioRecorder _recorder = AudioRecorder();
@@ -45,19 +58,6 @@ class TwoWayChatController extends ChangeNotifier {
   String _guestLanguage = 'es';
 
   final List<TwoWayMessage> _messages = [];
-  TwoWayChatController({
-    String deepgramApiKey = '',
-    BackendApiClient? backendApiClient,
-    SpeechPipeline? speechPipeline,
-    MicActivationSoundPlayer? micActivationSoundPlayer,
-  }) : _speechPipeline =
-           speechPipeline ??
-           SpeechPipeline(
-             deepgramApiKey: deepgramApiKey,
-             backendApiClient: backendApiClient,
-           ),
-       _micActivationSoundPlayer =
-           micActivationSoundPlayer ?? DefaultMicActivationSoundPlayer();
 
   bool get speechEnabled => _speechEnabled;
   bool get isListening => _isListening;

@@ -5,14 +5,6 @@ import '../theme/app_theme_resolver.dart';
 import 'searchable_selection_field.dart';
 
 class GroupLanguageBar extends StatelessWidget {
-  final Map<String, String> sourceLanguages;
-  final List<String> targetLanguages;
-  final String sourceCode;
-  final String targetCode;
-  final bool canSwap;
-  final Future<void> Function(String value) onSourceSelected;
-  final void Function(String value) onTargetSelected;
-  final Future<void> Function()? onSwap;
 
   const GroupLanguageBar({
     super.key,
@@ -25,6 +17,14 @@ class GroupLanguageBar extends StatelessWidget {
     required this.onTargetSelected,
     this.onSwap,
   });
+  final Map<String, String> sourceLanguages;
+  final List<String> targetLanguages;
+  final String sourceCode;
+  final String targetCode;
+  final bool canSwap;
+  final Future<void> Function(String value) onSourceSelected;
+  final void Function(String value) onTargetSelected;
+  final Future<void> Function()? onSwap;
 
   @override
   Widget build(BuildContext context) {
