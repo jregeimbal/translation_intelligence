@@ -1,0 +1,6 @@
+app_name: OmniaLingo
+test_directory: integration_test
+android:
+  package_name: com.jax3.omnialingo
+ios:
+  bundle_id: com.jax3.omnialingo
