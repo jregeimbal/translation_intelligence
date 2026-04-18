@@ -41,10 +41,12 @@ void main() {
   patrolTest(
     'User records speech and sees original text with translation',
     ($) async {
+      final app = E2eTestApp.create();
+
       // ── Step 1: Launch the app ──────────────────────────────────────────
       const stepLaunch = 'Launch the app and see the group chat screen';
       try {
-        await $.pumpWidget(const E2eTestApp());
+        await $.pumpWidget(app);
         await $.pumpAndSettle();
 
         // Verify we see the initial "Tap the mic to start listening…" prompt.
@@ -71,7 +73,7 @@ void main() {
         await $.pumpAndSettle();
 
         // Controller should now be in listening state.
-        expect(E2eTestApp.controller.isListening, isTrue);
+        expect(app.controller.isListening, isTrue);
         report.pass(stepTapMic);
       } catch (e) {
         report.fail(stepTapMic, '$e');
@@ -86,11 +88,11 @@ void main() {
           'User says "hola, como estás?" — original and translation appear';
       try {
         // Stop listening first (the real app would stop after final result).
-        await E2eTestApp.controller.stopListening();
+        await app.controller.stopListening();
         await $.pump();
 
         // Inject the simulated recognition result.
-        E2eTestApp.simulateRecognition(
+        app.simulateRecognition(
           original: 'hola, como estás?',
           translation: 'Hello, how are you?',
           speaker: 0,
@@ -149,12 +151,12 @@ void main() {
         final micButton = find.byTooltip('Listen');
         await $.tester.tap(micButton);
         await $.pumpAndSettle();
-        expect(E2eTestApp.controller.isListening, isTrue);
+        expect(app.controller.isListening, isTrue);
 
-        await E2eTestApp.controller.stopListening();
+        await app.controller.stopListening();
         await $.pump();
 
-        E2eTestApp.simulateRecognition(
+        app.simulateRecognition(
           original: 'buenos días',
           translation: 'Good morning',
           speaker: 1,
@@ -190,9 +192,10 @@ void main() {
   patrolTest(
     'Record button toggles between listening and idle',
     ($) async {
+      final app = E2eTestApp.create();
       const stepStartStop = 'Mic button toggles start/stop listening';
       try {
-        await $.pumpWidget(const E2eTestApp());
+        await $.pumpWidget(app);
         await $.pumpAndSettle();
 
         // Tap to start listening.
@@ -200,13 +203,13 @@ void main() {
         expect(micButton, findsOneWidget);
         await $.tester.tap(micButton);
         await $.pumpAndSettle();
-        expect(E2eTestApp.controller.isListening, isTrue);
+        expect(app.controller.isListening, isTrue);
 
         // The FAB should now show a stop icon; tap it again.
         // (SpeechFab swaps its onPressed to stopListening when listening.)
         await $.tester.tap(find.byType(FloatingActionButton));
         await $.pumpAndSettle();
-        expect(E2eTestApp.controller.isListening, isFalse);
+        expect(app.controller.isListening, isFalse);
 
         report.pass(stepStartStop);
       } catch (e) {
@@ -229,12 +232,13 @@ void main() {
   patrolTest(
     'Multiple speakers produce separate chat rows with translations',
     ($) async {
+      final app = E2eTestApp.create();
       const stepMultiSpeaker = 'Messages from different speakers appear';
       try {
-        await $.pumpWidget(const E2eTestApp());
+        await $.pumpWidget(app);
         await $.pumpAndSettle();
 
-        E2eTestApp.simulateRecognition(
+        app.simulateRecognition(
           original: '¿Dónde está la biblioteca?',
           translation: 'Where is the library?',
           speaker: 0,
@@ -243,7 +247,7 @@ void main() {
         );
         await $.pumpAndSettle();
 
-        E2eTestApp.simulateRecognition(
+        app.simulateRecognition(
           original: 'Es al lado del parque.',
           translation: 'It is next to the park.',
           speaker: 1,
