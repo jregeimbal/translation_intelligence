@@ -50,6 +50,7 @@ class WalkthroughTestApp extends StatelessWidget {
     );
 
     return MaterialApp(
+      locale: const Locale('en'),
       onGenerateTitle: (context) =>
           AppLocalizations.of(context)?.appTitle ?? 'OmniaLingo',
       theme: ThemeData.light(useMaterial3: true),
