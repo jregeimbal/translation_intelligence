@@ -68,6 +68,7 @@ class E2eTestApp extends StatelessWidget {
           AppLocalizations.of(context)?.appTitle ?? 'OmniaLingo',
       theme: ThemeData.light(useMaterial3: true),
       darkTheme: ThemeData.dark(useMaterial3: true),
+      locale: const Locale('en'),
       localizationsDelegates: const [
         LocaleNamesLocalizationsDelegate(),
         ...AppLocalizations.localizationsDelegates,
