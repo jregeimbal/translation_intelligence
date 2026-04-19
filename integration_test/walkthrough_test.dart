@@ -27,7 +27,7 @@ import 'screenshot_helper.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class WalkthroughTestApp extends StatelessWidget {
-  WalkthroughTestApp._({
+  const WalkthroughTestApp._({
     required this.controller,
     required this.twoWayController,
   });
