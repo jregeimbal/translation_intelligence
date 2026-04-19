@@ -29,6 +29,7 @@ import 'screenshot_helper.dart';
 
 void main() {
   late E2eTestReport report;
+  String? currentTestName;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({
@@ -38,6 +39,9 @@ void main() {
   });
 
   tearDown(() async {
+    if (currentTestName != null) {
+      report.setTestName(currentTestName!);
+    }
     await report.writeToFile();
   });
 
@@ -48,6 +52,7 @@ void main() {
   patrolTest(
     'User records speech and sees original text with translation',
     ($) async {
+    currentTestName = 'User records speech and sees original text with translation';
       final app = E2eTestApp.create();
 
       // ── Step 1: Launch the app ──────────────────────────────────────────
@@ -206,6 +211,7 @@ void main() {
   patrolTest(
     'Record button toggles between listening and idle',
     ($) async {
+    currentTestName = 'Record button toggles between listening and idle';
       final app = E2eTestApp.create();
       const stepStartStop = 'Mic button toggles start/stop listening';
       try {
@@ -248,6 +254,7 @@ void main() {
   patrolTest(
     'Multiple speakers produce separate chat rows with translations',
     ($) async {
+    currentTestName = 'Multiple speakers produce separate chat rows with translations';
       final app = E2eTestApp.create();
       const stepMultiSpeaker = 'Messages from different speakers appear';
       try {

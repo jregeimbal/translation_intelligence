@@ -15,6 +15,43 @@ import 'package:flutter/foundation.dart';
 ///   print(report.summary());
 class E2eTestReport {
   final List<StepResult> _steps = [];
+  String? _testName;
+
+  /// Set the test name for use in report filenames.
+  void setTestName(String testName) {
+    _testName = testName;
+  }
+
+  /// Returns the output path for the E2E test report.
+  ///
+  /// If [_testName] is set, generates a unique filename with test name and
+  /// timestamp to prevent overwrites. Otherwise uses the default path.
+  String _reportOutputPath([String? outputPath]) {
+    String finalPath = outputPath ??
+        (Platform.isAndroid
+            ? '${Directory.systemTemp.path}/e2e_report.txt'
+            : 'build/e2e_report.txt');
+
+    if (!Platform.isAndroid && outputPath == null && _testName != null) {
+      final timestamp = DateTime.now()
+          .toIso8601String()
+          .replaceAll(RegExp(r'[:.]'), '-')
+          .substring(0, 19);
+      String safeTestName(String testName) {
+        var name = testName;
+        final lastSlash = testName.lastIndexOf(RegExp(r'[\/"]'));
+        if (lastSlash != -1) {
+          name = testName.substring(lastSlash + 1);
+        }
+        return name;
+      }
+      final testNameSafe = safeTestName(_testName!)
+          .replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+      finalPath = 'build/e2e_report_${testNameSafe}_${timestamp}.txt';
+    }
+
+    return finalPath;
+  }
 
   /// Record a step that passed.
   void pass(String stepName) {
@@ -86,12 +123,11 @@ class E2eTestReport {
   /// On Android the default writes to the system temp directory which is
   /// writable by the app process. On other platforms it defaults to
   /// `build/e2e_report.txt`.
+  ///
+  /// If [_testName] is set, the filename includes the test name and timestamp
+  /// to prevent overwriting: `e2e_report_<testname>_<timestamp>.txt`
   Future<void> writeToFile([String? outputPath]) async {
-    final path =
-        outputPath ??
-        (Platform.isAndroid
-            ? '${Directory.systemTemp.path}/e2e_report.txt'
-            : 'build/e2e_report.txt');
+    final path = _reportOutputPath(outputPath);
     final file = File(path);
     await file.parent.create(recursive: true);
     await file.writeAsString(summary());
