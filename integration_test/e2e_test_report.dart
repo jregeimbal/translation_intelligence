@@ -47,7 +47,7 @@ class E2eTestReport {
       }
       final testNameSafe = safeTestName(_testName!)
           .replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
-      finalPath = 'build/e2e_report_${testNameSafe}_${timestamp}.txt';
+      finalPath = 'build/e2e_report_${testNameSafe}_$timestamp.txt';
     }
 
     return finalPath;
