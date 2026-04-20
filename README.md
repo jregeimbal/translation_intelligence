@@ -164,6 +164,83 @@ and prints output in this format:
 Total coverage: 87.42% (312/357 lines)
 ```
 
+## Integration tests (Patrol)
+
+The `integration_test/` directory contains end-to-end tests built with
+[Patrol](https://patrol.leancode.co). They exercise the full app UI using
+fake controllers that replace real microphone, network, and Firebase access,
+so no backend or cloud credentials are needed.
+
+### Prerequisites
+
+Install the Patrol CLI:
+
+```bash
+flutter pub global activate patrol_cli
+```
+
+Ensure an Android emulator is running (or a physical device is connected):
+
+```bash
+flutter emulators --launch <emulator_name>
+```
+
+On Linux CI runners, enable KVM for hardware acceleration before launching the
+emulator.
+
+### Running
+
+Run all integration tests on the connected device:
+
+```bash
+export ANDROID_HOME=~/Library/Android/sdk   # macOS default; adjust for your OS
+export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$HOME/.pub-cache/bin:$PATH"
+patrol test
+```
+
+Target a specific device:
+
+```bash
+patrol test --device emulator-5554
+```
+
+### What the tests cover
+
+| Scenario | Description |
+|---|---|
+| Record → translate | Tap mic, inject speech, verify original and translated text appear in a chat bubble |
+| Toggle listening | Tap mic to start listening, tap again to stop, verify controller state transitions |
+| Multiple speakers | Inject messages from different speakers and verify separate chat rows |
+| First-launch walkthrough | Verify the dialog appears on first launch, page navigation (Next/Back), Skip and Close dismissals, page dot indicators, and that it is skipped when already completed |
+
+### Project structure
+
+| File | Purpose |
+|---|---|
+| `integration_test/e2e_test.dart` | Main test file with record/translate, toggle, and multi-speaker scenarios |
+| `integration_test/walkthrough_test.dart` | First-launch walkthrough dialog e2e tests |
+| `integration_test/e2e_test_app.dart` | Test app wrapper that injects fake controllers (record/translate tests) |
+| `integration_test/e2e_test_report.dart` | Step-level pass/fail reporter with screenshot support |
+| `integration_test/screenshot_helper.dart` | Screenshot capture helper (gracefully skips when unsupported) |
+| `integration_test/fake_speech_controller.dart` | Fake `SpeechController` for test isolation |
+| `integration_test/fake_two_way_chat_controller.dart` | Fake `TwoWayChatController` for test isolation |
+| `android/app/src/androidTest/` | Android instrumentation runner for Patrol |
+| `test_driver/integration_test.dart` | Standard Flutter integration test driver |
+
+### Configuration
+
+Patrol reads its configuration from the `patrol:` block in `pubspec.yaml`:
+
+```yaml
+patrol:
+  app_name: OmniaLingo
+  test_directory: integration_test
+  android:
+    package_name: com.jax3.omnialingo
+  ios:
+    bundle_id: com.jax3.omnialingo
+```
+
 If backend initialization fails, the app shows a startup error instead of
 shipping or asking for cloud credentials locally.
 

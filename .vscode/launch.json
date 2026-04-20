@@ -5,6 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Run/Debug Tests",
+            "request": "launch",
+            "type": "dart",
+            "templateFor": "",
+            "toolArgs": [
+                "test/"
+            ],
+            "noDebug": true
+        },
+        {
             "name": "Server (debug)",
             "type": "dart",
             "request": "launch",
