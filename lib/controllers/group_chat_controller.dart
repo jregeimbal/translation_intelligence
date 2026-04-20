@@ -20,19 +20,19 @@ import '../services/speech_output_provider.dart';
 import '../services/speech_stt_provider.dart';
 import '../services/speech_translation_provider.dart';
 
-final logger = Logger('SpeechController'); // Create a logger with a name
+final logger = Logger('GroupChatController'); // Create a logger with a name
 const String _sessionResumeFailureMessage =
     'Listening stopped because the connection could not be resumed. Tap the mic to try again.';
 
 /// Manages a live recognition session and exposes application-wide
-/// state.  Receives raw audio from the microphone via `record` and sends it to
-/// speech recognition for transcription.  Translation/tts logic is unchanged from the
-/// previous version of the demo.
+/// state for group chat conversations.  Receives raw audio from the microphone
+/// via `record` and sends it to speech recognition for transcription.
+/// Translation/tts logic is unchanged from the previous version of the demo.
 ///
 /// Notifies listeners when relevant properties change so individual widgets
 /// can rebuild independently.
-class SpeechController extends ChangeNotifier {
-  SpeechController({
+class GroupChatController extends ChangeNotifier {
+  GroupChatController({
     String deepgramApiKey = '',
     BackendApiClient? backendApiClient,
     SpeechPipeline? speechPipeline,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 
-import '../controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import '../theme/app_theme_resolver.dart';
 
 /// A small bar displayed above the chat that provides controls which
@@ -19,7 +19,7 @@ class ChatControlBar extends StatefulWidget {
 class _ChatControlBarState extends State<ChatControlBar> {
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<SpeechController>();
+    final controller = context.watch<GroupChatController>();
     final hasMessages = controller.chatMessages.isNotEmpty;
     if (!hasMessages) return const SizedBox.shrink();
 
@@ -77,7 +77,7 @@ class _ChatControlBarState extends State<ChatControlBar> {
                   ),
                 ],
                 onSelected: context
-                    .read<SpeechController>()
+                    .read<GroupChatController>()
                     .setPreferredSpeaker,
               ),
             ),

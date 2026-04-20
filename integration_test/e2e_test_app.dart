@@ -6,7 +6,7 @@ import 'package:translation_intelligence/main.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 
-import 'fake_speech_controller.dart';
+import 'fake_group_chat_controller.dart';
 import 'fake_two_way_chat_controller.dart';
 
 /// Wraps the real [MyHomePage] with pre-configured stub controllers so that no
@@ -25,13 +25,13 @@ class E2eTestApp extends StatelessWidget {
       'pref.hasCompletedFirstLaunchWalkthrough': true,
     });
     return E2eTestApp._(
-      controller: FakeSpeechController(speechEnabled: true),
+      controller: FakeGroupChatController(speechEnabled: true),
       twoWayController: FakeTwoWayChatController(),
     );
   }
 
   /// The fake speech controller used by this test instance.
-  final FakeSpeechController controller;
+  final FakeGroupChatController controller;
 
   /// The fake two-way controller used by this test instance.
   final FakeTwoWayChatController twoWayController;

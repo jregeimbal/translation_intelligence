@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../controllers/speech_controller.dart';
+import '../controllers/group_chat_controller.dart';
 import '../controllers/two_way_chat_controller.dart';
 import '../l10n/app_localizations_ext.dart';
 import '../services/speech_output_provider.dart';
@@ -29,7 +29,7 @@ class AudioDebugDialog extends StatelessWidget {
 
   static Future<void> showInDialog(
     BuildContext context,
-    SpeechController controller,
+    GroupChatController controller,
     TwoWayChatController twoWayController,
     SpeechOutputProvider outputProvider,
     SpeechSttProvider sttProvider,
@@ -49,7 +49,7 @@ class AudioDebugDialog extends StatelessWidget {
     );
   }
 
-  final SpeechController controller;
+  final GroupChatController controller;
   final TwoWayChatController twoWayController;
   final SpeechOutputProvider outputProvider;
   final SpeechSttProvider sttProvider;
@@ -258,7 +258,7 @@ class AudioDebugDialog extends StatelessWidget {
   }
 
   bool _getIsActiveListening(
-    SpeechController controller,
+    GroupChatController controller,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
@@ -268,7 +268,7 @@ class AudioDebugDialog extends StatelessWidget {
   }
 
   SpeechSttProvider? _getActiveSessionSttProvider(
-    SpeechController controller,
+    GroupChatController controller,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
@@ -278,7 +278,7 @@ class AudioDebugDialog extends StatelessWidget {
   }
 
   String? _getActiveSessionSourceLanguage(
-    SpeechController controller,
+    GroupChatController controller,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
@@ -288,7 +288,7 @@ class AudioDebugDialog extends StatelessWidget {
   }
 
   String? _getActiveSessionResolvedLanguageCode(
-    SpeechController controller,
+    GroupChatController controller,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
@@ -298,7 +298,7 @@ class AudioDebugDialog extends StatelessWidget {
   }
 
   int? _getActiveSessionSampleRate(
-    SpeechController controller,
+    GroupChatController controller,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
@@ -308,7 +308,7 @@ class AudioDebugDialog extends StatelessWidget {
   }
 
   String? _getActiveSessionListeningDeviceId(
-    SpeechController controller,
+    GroupChatController controller,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
@@ -318,7 +318,7 @@ class AudioDebugDialog extends StatelessWidget {
   }
 
   DateTime? _getActiveSessionStartedAt(
-    SpeechController controller,
+    GroupChatController controller,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {
@@ -328,7 +328,7 @@ class AudioDebugDialog extends StatelessWidget {
   }
 
   double _getActiveAmplitude(
-    SpeechController controller,
+    GroupChatController controller,
     TwoWayChatController twoWayController,
     bool isGroupSection,
   ) {

@@ -2,24 +2,24 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/widgets/chat_message.dart';
 
-import '../stubs/speech_controller_stub.dart';
+import '../stubs/group_chat_controller_stub.dart';
 import 'test_app.dart';
 
 void main() {
   group('ChatMessageList', () {
     testWidgets('shows listening placeholder when empty', (tester) async {
-      final controller = TestSpeechController(
+      final controller = TestGroupChatController(
         isListening: true,
         speechEnabled: true,
       );
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -38,7 +38,7 @@ void main() {
     testWidgets('optimistically renders buffered text before first commit', (
       tester,
     ) async {
-      final controller = TestSpeechController(
+      final controller = TestGroupChatController(
         isListening: true,
         speechEnabled: true,
       );
@@ -49,7 +49,7 @@ void main() {
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -97,14 +97,14 @@ void main() {
     });
 
     testWidgets('shows idle prompt when empty and idle', (tester) async {
-      final controller = TestSpeechController(
+      final controller = TestGroupChatController(
         isListening: false,
         speechEnabled: true,
       );
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -121,14 +121,14 @@ void main() {
     testWidgets('shows unavailable prompt when speech is disabled', (
       tester,
     ) async {
-      final controller = TestSpeechController(
+      final controller = TestGroupChatController(
         isListening: false,
         speechEnabled: false,
       );
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -138,7 +138,7 @@ void main() {
     });
 
     testWidgets('renders speaker bubble with translation', (tester) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       final message = ChatMessage('Hola', speaker: 0, isFinal: true)
         ..translation = 'Hello';
       controller.preferredSpeaker = 0;
@@ -146,7 +146,7 @@ void main() {
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -165,14 +165,14 @@ void main() {
     testWidgets('replays a translated message when replay button is tapped', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       final message = ChatMessage('Hola', speaker: 0, isFinal: true)
         ..translation = 'Hello';
       controller.addMessage(message);
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -190,12 +190,12 @@ void main() {
     testWidgets('final message without translation keeps original visible', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       controller.addMessage(ChatMessage('No translation yet', isFinal: true));
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -209,7 +209,7 @@ void main() {
     testWidgets(
       'final messages toggle original visibility when bubble is tapped',
       (tester) async {
-        final controller = TestSpeechController();
+        final controller = TestGroupChatController();
         controller.preferredSpeaker = 0;
         final message = ChatMessage('Hola', speaker: 0, isFinal: true)
           ..translation = 'Hello';
@@ -217,7 +217,7 @@ void main() {
 
         await pumpTestApp(
           tester,
-          ChangeNotifierProvider<SpeechController>.value(
+          ChangeNotifierProvider<GroupChatController>.value(
             value: controller,
             child: const ChatMessageList(),
           ),
@@ -252,7 +252,7 @@ void main() {
     testWidgets('global hide-original toggle shows all originals when off', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       controller.setHideTranslatedOriginalText(enabled: false);
       final message = ChatMessage('Hola', speaker: 0, isFinal: true)
         ..translation = 'Hello';
@@ -260,7 +260,7 @@ void main() {
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -275,14 +275,14 @@ void main() {
     testWidgets('hover hint toggles between show and hide original labels', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       final message = ChatMessage('Hola', speaker: 0, isFinal: true)
         ..translation = 'Hello';
       controller.addMessage(message);
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -316,13 +316,13 @@ void main() {
     testWidgets('original text animates out when translation finalizes', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       final message = ChatMessage('Hola', speaker: 0, isFinal: false);
       controller.addMessage(message);
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -350,7 +350,7 @@ void main() {
     testWidgets('right-aligns primary speaker header and body text', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       controller.preferredSpeaker = 0;
       controller.addMessage(
         ChatMessage('Primary line', speaker: 0, isFinal: false),
@@ -358,7 +358,7 @@ void main() {
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -393,7 +393,7 @@ void main() {
     testWidgets('left-aligns non-primary speaker header and body text', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       controller.preferredSpeaker = 1;
       controller.addMessage(
         ChatMessage('Guest line', speaker: 0, isFinal: false),
@@ -401,7 +401,7 @@ void main() {
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -435,7 +435,7 @@ void main() {
     testWidgets(
       'renders grouped segments inline with punctuation-aware separators',
       (tester) async {
-        final controller = TestSpeechController();
+        final controller = TestGroupChatController();
         controller.addMessage(
           ChatMessage(
             'Hello. General there',
@@ -451,7 +451,7 @@ void main() {
 
         await pumpTestApp(
           tester,
-          ChangeNotifierProvider<SpeechController>.value(
+          ChangeNotifierProvider<GroupChatController>.value(
             value: controller,
             child: const ChatMessageList(),
           ),
@@ -468,12 +468,12 @@ void main() {
     testWidgets('renders gradient animation for partial messages', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       controller.addMessage(ChatMessage('Streaming update', isFinal: false));
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -497,13 +497,13 @@ void main() {
     testWidgets('partial opacity remains reduced until message becomes final', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       final message = ChatMessage('Stabilized preview', isFinal: false);
       controller.addMessage(message);
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -548,7 +548,7 @@ void main() {
     testWidgets('renders grouped translation partials with gradient text', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       controller.addMessage(
         ChatMessage(
           'hello there now',
@@ -568,7 +568,7 @@ void main() {
 
       await pumpTestApp(
         tester,
-        ChangeNotifierProvider<SpeechController>.value(
+        ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const ChatMessageList(),
         ),
@@ -590,7 +590,7 @@ void main() {
     testWidgets('shows jump button when scrolled away and jumps to latest', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       final messages = List.generate(
         30,
         (index) => ChatMessage('Message $index', isFinal: true),
@@ -603,7 +603,7 @@ void main() {
         tester,
         SizedBox(
           height: 220,
-          child: ChangeNotifierProvider<SpeechController>.value(
+          child: ChangeNotifierProvider<GroupChatController>.value(
             value: controller,
             child: const ChatMessageList(),
           ),
@@ -634,7 +634,7 @@ void main() {
     testWidgets('auto-scrolls when translation updates existing message', (
       tester,
     ) async {
-      final controller = TestSpeechController();
+      final controller = TestGroupChatController();
       final messages = List.generate(
         24,
         (index) => ChatMessage('Message $index', isFinal: true),
@@ -648,7 +648,7 @@ void main() {
         tester,
         SizedBox(
           height: 220,
-          child: ChangeNotifierProvider<SpeechController>.value(
+          child: ChangeNotifierProvider<GroupChatController>.value(
             value: controller,
             child: const ChatMessageList(),
           ),
@@ -679,7 +679,7 @@ void main() {
     testWidgets(
       'keeps following latest on layout changes until user scrolls away',
       (tester) async {
-        final controller = TestSpeechController();
+        final controller = TestGroupChatController();
         final messages = List.generate(
           30,
           (index) => ChatMessage('Message $index', isFinal: true),
@@ -692,7 +692,7 @@ void main() {
           tester,
           SizedBox(
             height: 220,
-            child: ChangeNotifierProvider<SpeechController>.value(
+            child: ChangeNotifierProvider<GroupChatController>.value(
               value: controller,
               child: const ChatMessageList(),
             ),

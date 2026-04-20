@@ -15,7 +15,7 @@ OmniaLingo is a cross-platform Flutter application with a companion Dart backend
 
 ## 3. Folder Structure
 - `lib/`: Flutter app source
-  - `controllers/`: app state and orchestration (`SpeechController`, `TwoWayChatController`)
+  - `controllers/`: app state and orchestration (`GroupChatController`, `TwoWayChatController`)
   - `services/`: backend client, auth session, speech pipeline, preferences, catalogs
   - `models/`: chat, speech, playback, and suggestion models
   - `widgets/`: UI for chat, controls, dialogs, and mode-specific screens
@@ -35,7 +35,7 @@ OmniaLingo is a cross-platform Flutter application with a companion Dart backend
 
 ## 4. Core Behaviors
 - The app is backend-first: production translation, TTS, suggestions, and live STT are expected to go through `BackendApiClient`, not direct bundled cloud credentials.
-- `SpeechController` is the main state machine for the group-chat flow; preserve its `ChangeNotifier` pattern and listener updates when changing speech/session behavior.
+- `GroupChatController` is the main state machine for the group-chat flow; preserve its `ChangeNotifier` pattern and listener updates when changing speech/session behavior.
 - `TwoWayChatController` owns the split-screen two-way conversation flow; keep group-chat and two-way logic separate.
 - The backend uses Firebase Anonymous Auth tokens for most HTTP endpoints; `/v1/stt/live` is the exception and expects auth in the first WebSocket message instead of a bearer header.
 - Server responses should keep using the established middleware stack for request IDs, structured JSON logging, error mapping, CORS, and rate limiting.

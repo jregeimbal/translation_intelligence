@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/theme/app_theme_resolver.dart';
@@ -155,7 +155,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<SpeechController>();
+    final controller = context.watch<GroupChatController>();
     final theme = Theme.of(context);
     final textRoles = resolveAppThemeTextRoles(theme);
     final tokens = resolveAppThemeTokens(theme);
@@ -459,7 +459,7 @@ class _ChatMessageContent extends StatelessWidget {
     final translationStyle = textRoles.bubbleTranslation.copyWith(
       color: textColor.withValues(alpha: 0.9),
     );
-    final controller = context.read<SpeechController>();
+    final controller = context.read<GroupChatController>();
     final l10n = context.l10n;
     final contentAlignment = isPrimaryStyled
         ? Alignment.centerRight

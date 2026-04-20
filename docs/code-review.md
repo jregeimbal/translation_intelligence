@@ -26,7 +26,7 @@
 
 ### 4. Silent Error Swallowing (24 instances)
 The codebase has **24 occurrences** of `catch (_) {}` or empty catch blocks across the app. This makes debugging nearly impossible when things fail silently in production. At minimum, log to a diagnostic channel or use `FlutterError.onError` / a logging service:
-- `lib/controllers/speech_controller.dart`: lines 334, 804, 817, 820, 874
+- `lib/controllers/group_chat_controller.dart`: lines 334, 804, 817, 820, 874
 - `lib/services/backend_api_client.dart`: lines 55, 105, 164, 224, 594, 598
 - `lib/services/speech_pipeline.dart`: lines 412, 439, 449, 492
 - `lib/controllers/two_way_chat_controller.dart`: lines 220, 228, 231, 345, 371
@@ -60,13 +60,13 @@ linter:
 ```
 
 ### 10. Test Coverage Gaps
-- **No tests for `SpeechController`** (1247 lines) — the core state machine
+- **No tests for `GroupChatController`** (1247 lines) — the core state machine
 - **No tests for `main.dart`** (1356 lines) — the largest file
 - **No tests for `TwoWayChatController`** recognition/translation flow
 - **No widget tests** for `SpeechFab`, `GroupLanguageBar`, `TwoWayChatView`
 - **No integration tests** — only unit/widget tests exist
 
-### 11. `SpeechController` is 1247 Lines
+### 11. `GroupChatController` is 1247 Lines
 This single state machine handles audio recording, STT sessions, message queuing, final-result grouping, translation/TTS pipeline, suggested responses, and device management. Consider extracting:
 - Message queuing/grouping logic into a `MessageQueue` class
 - Translation/TTS orchestration into a `TranslationPipeline` service
@@ -108,7 +108,7 @@ The server's logging config checks if a message starts with `{` and ends with `}
 `TranslateRequest`, `TtsRequest`, and other models validate non-empty but not maximum length. Very long texts could cause API quota issues or response size problems.
 
 ### 21. `WidgetsFlutterBinding.ensureInitialized()` Called Mid-Flight
-Called inside `SpeechController.startListening()` and `TwoWayChatController.startListening()`. This should only ever be called once at app startup, not inside methods that can be invoked later.
+Called inside `GroupChatController.startListening()` and `TwoWayChatController.startListening()`. This should only ever be called once at app startup, not inside methods that can be invoked later.
 
 ### 22. No Tests for WebSocket Auth Flow
 The server has no tests for failed authentication, expired tokens, or malformed tokens in the WebSocket path.

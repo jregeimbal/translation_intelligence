@@ -9,7 +9,7 @@ import 'package:translation_intelligence/models/two_way_message.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 import 'package:translation_intelligence/services/app_preferences.dart';
 
-import '../stubs/speech_controller_stub.dart';
+import '../stubs/group_chat_controller_stub.dart';
 import 'test_app.dart';
 
 class FakeTwoWayChatController extends ChangeNotifier
@@ -107,7 +107,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final controller = TestSpeechController();
+    final controller = TestGroupChatController();
     final twoWayController = FakeTwoWayChatController();
     final secondAttempt = Completer<HomePageInitializationBundle>();
     var initializerCalls = 0;
@@ -169,7 +169,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final controller = TestSpeechController();
+    final controller = TestGroupChatController();
     await controller.startListening();
     final twoWayController = FakeTwoWayChatController();
     final backendApiClient = BackendApiClient(
@@ -209,7 +209,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final controller = TestSpeechController();
+    final controller = TestGroupChatController();
     controller.setDeepgramRecognitionLanguage('multi');
     await controller.startListening();
     final twoWayController = FakeTwoWayChatController();

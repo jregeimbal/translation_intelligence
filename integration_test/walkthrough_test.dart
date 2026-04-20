@@ -18,7 +18,7 @@ import 'package:translation_intelligence/main.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 
 import 'e2e_test_report.dart';
-import 'fake_speech_controller.dart';
+import 'fake_group_chat_controller.dart';
 import 'fake_two_way_chat_controller.dart';
 import 'screenshot_helper.dart';
 
@@ -34,12 +34,12 @@ class WalkthroughTestApp extends StatelessWidget {
 
   factory WalkthroughTestApp.create() {
     return WalkthroughTestApp._(
-      controller: FakeSpeechController(speechEnabled: true),
+      controller: FakeGroupChatController(speechEnabled: true),
       twoWayController: FakeTwoWayChatController(),
     );
   }
 
-  final FakeSpeechController controller;
+  final FakeGroupChatController controller;
   final FakeTwoWayChatController twoWayController;
 
   @override
@@ -449,7 +449,7 @@ void main() {
                 baseUrl: 'https://e2e-test.invalid',
                 authTokenProvider: () async => 'e2e-test-token',
               ),
-              controller: FakeSpeechController(speechEnabled: true),
+              controller: FakeGroupChatController(speechEnabled: true),
               twoWayController: FakeTwoWayChatController(),
             ),
           ),
