@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/models/speech_recognition_models.dart';
@@ -13,21 +13,51 @@ import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_to_text_service.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
 
-/// A fake [SpeechController] for Patrol e2e tests. Avoids real mic/network
-/// access while allowing tests to programmatically inject speech results.
-class FakeSpeechController extends ChangeNotifier implements SpeechController {
-  FakeSpeechController({bool speechEnabled = true})
-    : _speechEnabled = speechEnabled;
+/// Lightweight stub of GroupChatController for widget tests. Avoids plugins
+/// and network calls while allowing manual control of state.
+class TestGroupChatController extends ChangeNotifier
+    implements GroupChatController {
+  TestGroupChatController({
+    bool isListening = false,
+    bool speechEnabled = true,
+    bool audioPlaybackEnabled = false,
+    double amplitude = 0.0,
+    String targetLanguage = 'en',
+    int? activeSessionSampleRate,
+    SpeechSttProvider? activeSessionSttProvider,
+    String? activeSessionSourceLanguage,
+    String? activeSessionResolvedLanguageCode,
+    String? activeSessionListeningDeviceId,
+    DateTime? activeSessionStartedAt,
+  }) : _isListening = isListening,
+       _speechEnabled = speechEnabled,
+       _audioPlaybackEnabled = audioPlaybackEnabled,
+       _amplitude = amplitude,
+       _targetLanguage = targetLanguage,
+       _activeSessionSampleRate = activeSessionSampleRate,
+       _activeSessionSttProvider = activeSessionSttProvider,
+       _activeSessionSourceLanguage = activeSessionSourceLanguage,
+       _activeSessionResolvedLanguageCode = activeSessionResolvedLanguageCode,
+       _activeSessionListeningDeviceId = activeSessionListeningDeviceId,
+       _activeSessionStartedAt = activeSessionStartedAt;
 
   final List<ChatMessage> _chatMessages = [];
-  bool _isListening = false;
+  bool _isListening;
   final bool _speechEnabled;
-  bool _audioPlaybackEnabled = false;
-  bool _hideTranslatedOriginalText = false;
+  bool _audioPlaybackEnabled;
+  bool _hideTranslatedOriginalText = true;
   final String _speechError = '';
   String _lastWords = '';
-  final double _amplitude = 0.0;
-  String _targetLanguage = 'en';
+  final double _amplitude;
+  int? _activeSessionSampleRate;
+  SpeechSttProvider? _activeSessionSttProvider;
+  String? _activeSessionSourceLanguage;
+  String? _activeSessionResolvedLanguageCode;
+  String? _activeSessionListeningDeviceId;
+  DateTime? _activeSessionStartedAt;
+  @override
+  int? preferredSpeaker;
+  String _targetLanguage;
   SpeechOutputProvider _outputProvider = SpeechOutputProvider.google;
   SpeechSttProvider _sttProvider = SpeechSttProvider.deepgram;
   SpeechTranslationProvider _translationProvider =
@@ -46,17 +76,15 @@ class FakeSpeechController extends ChangeNotifier implements SpeechController {
   String? _listeningDeviceId;
   List<PlaybackDevice> _playbackDevices = const [];
   String? _playbackDeviceId;
+  int startListeningCallCount = 0;
+  int stopListeningCallCount = 0;
+  int replayTranslationCallCount = 0;
+  String? lastReplayedTranslation;
   final StreamController<String> _listeningDeviceUpdatesController =
       StreamController<String>.broadcast();
   final StreamController<SuggestedResponseEvent> _suggestedResponsesController =
       StreamController<SuggestedResponseEvent>.broadcast();
 
-  @override
-  int? preferredSpeaker;
-
-  /// Inject a recognized [ChatMessage] into the fake controller. This will make
-  /// it appear in the chat list exactly as if the backend had returned a
-  /// translation result.
   void addMessage(ChatMessage msg) {
     _chatMessages.add(msg);
     notifyListeners();
@@ -68,10 +96,21 @@ class FakeSpeechController extends ChangeNotifier implements SpeechController {
     notifyListeners();
   }
 
-  // ── SpeechController contract ──────────────────────────────────────────
+  void emitListeningDeviceUpdate(String message) {
+    if (!_listeningDeviceUpdatesController.isClosed) {
+      _listeningDeviceUpdatesController.add(message);
+    }
+  }
 
+  void emitSuggestedResponse(SuggestedResponseEvent event) {
+    if (!_suggestedResponsesController.isClosed) {
+      _suggestedResponsesController.add(event);
+    }
+  }
+
+  // GroupChatController contract ----------------------------------------------
   @override
-  set finalResultGroupingWindow(Duration value) {}
+  set finalResultGroupingWindow(Duration value) => const Duration(seconds: 1);
 
   @override
   double get amplitude => _amplitude;
@@ -149,22 +188,23 @@ class FakeSpeechController extends ChangeNotifier implements SpeechController {
       _suggestedResponsesController.stream;
 
   @override
-  int? get activeSessionSampleRate => null;
+  int? get activeSessionSampleRate => _activeSessionSampleRate;
 
   @override
-  SpeechSttProvider? get activeSessionSttProvider => null;
+  SpeechSttProvider? get activeSessionSttProvider => _activeSessionSttProvider;
 
   @override
-  String? get activeSessionSourceLanguage => null;
+  String? get activeSessionSourceLanguage => _activeSessionSourceLanguage;
 
   @override
-  String? get activeSessionResolvedLanguageCode => null;
+  String? get activeSessionResolvedLanguageCode =>
+      _activeSessionResolvedLanguageCode;
 
   @override
-  String? get activeSessionListeningDeviceId => null;
+  String? get activeSessionListeningDeviceId => _activeSessionListeningDeviceId;
 
   @override
-  DateTime? get activeSessionStartedAt => null;
+  DateTime? get activeSessionStartedAt => _activeSessionStartedAt;
 
   @override
   List<PlaybackDevice> get playbackDevices =>
@@ -191,7 +231,7 @@ class FakeSpeechController extends ChangeNotifier implements SpeechController {
 
   @override
   bool get hasSupportedTargetLanguage {
-    return SpeechController.supportedLanguages.contains(_targetLanguage);
+    return GroupChatController.supportedLanguages.contains(_targetLanguage);
   }
 
   @override
@@ -205,19 +245,31 @@ class FakeSpeechController extends ChangeNotifier implements SpeechController {
 
   @override
   Future<void> startListening() async {
+    startListeningCallCount += 1;
     _isListening = true;
     notifyListeners();
   }
 
   @override
   Future<void> stopListening() async {
+    stopListeningCallCount += 1;
     _isListening = false;
     _lastWords = '';
     notifyListeners();
   }
 
   @override
-  Future<void> replayTranslation(ChatMessage message) async {}
+  Future<void> replayTranslation(ChatMessage message) async {
+    replayTranslationCallCount += 1;
+    lastReplayedTranslation = message.translation?.trim().isNotEmpty == true
+        ? message.translation!.trim()
+        : message.groups
+              .map((group) => group.translation?.trim())
+              .whereType<String>()
+              .where((translation) => translation.isNotEmpty)
+              .join(' ')
+              .trim();
+  }
 
   @override
   void setPreferredSpeaker(int? speaker) {
@@ -316,6 +368,23 @@ class FakeSpeechController extends ChangeNotifier implements SpeechController {
     _playbackDeviceId = deviceId;
     notifyListeners();
     return true;
+  }
+
+  void setActiveSessionData({
+    int? sampleRate,
+    SpeechSttProvider? sttProvider,
+    String? sourceLanguage,
+    String? resolvedLanguageCode,
+    String? listeningDeviceId,
+    DateTime? startedAt,
+  }) {
+    _activeSessionSampleRate = sampleRate;
+    _activeSessionSttProvider = sttProvider;
+    _activeSessionSourceLanguage = sourceLanguage;
+    _activeSessionResolvedLanguageCode = resolvedLanguageCode;
+    _activeSessionListeningDeviceId = listeningDeviceId;
+    _activeSessionStartedAt = startedAt;
+    notifyListeners();
   }
 
   @override

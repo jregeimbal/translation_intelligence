@@ -222,7 +222,7 @@ patrol test --device emulator-5554
 | `integration_test/e2e_test_app.dart` | Test app wrapper that injects fake controllers (record/translate tests) |
 | `integration_test/e2e_test_report.dart` | Step-level pass/fail reporter with screenshot support |
 | `integration_test/screenshot_helper.dart` | Screenshot capture helper (gracefully skips when unsupported) |
-| `integration_test/fake_speech_controller.dart` | Fake `SpeechController` for test isolation |
+| `integration_test/fake_group_chat_controller.dart` | Fake `GroupChatController` for test isolation |
 | `integration_test/fake_two_way_chat_controller.dart` | Fake `TwoWayChatController` for test isolation |
 | `android/app/src/androidTest/` | Android instrumentation runner for Patrol |
 | `test_driver/integration_test.dart` | Standard Flutter integration test driver |
@@ -288,7 +288,7 @@ If omitted, the app uses `HyperListenTheme`.
 
 ## Notes
 
-* The code is structured around `SpeechController`, which manages live
+* The code is structured around `GroupChatController`, which manages live
   recognition, translation, and TTS flows and notifies widgets of updates.
   Recognized messages are split by speaker and labeled accordingly in the UI.
 * The app also includes `TwoWayChatController`, which powers the split-panel

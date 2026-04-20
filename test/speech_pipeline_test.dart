@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
@@ -113,13 +113,13 @@ void main() {
         .setMockMethodCallHandler(recordChannel, null);
   });
 
-  group('SpeechController', () {
-    late SpeechController controller;
+  group('GroupChatController', () {
+    late GroupChatController controller;
 
     setUp(() {
       hasPermission = true;
       mockInputDevices = const [];
-      controller = SpeechController(
+      controller = GroupChatController(
         backendApiClient: BackendApiClient(
           baseUrl: 'https://api.example.com',
           authTokenProvider: () async => 'token',
@@ -145,9 +145,9 @@ void main() {
     });
 
     test('supportedLanguages contains expected baseline entries', () {
-      expect(SpeechController.supportedLanguages, contains('en'));
-      expect(SpeechController.supportedLanguages, contains('es'));
-      expect(SpeechController.supportedLanguages, contains('zh-CN'));
+      expect(GroupChatController.supportedLanguages, contains('en'));
+      expect(GroupChatController.supportedLanguages, contains('es'));
+      expect(GroupChatController.supportedLanguages, contains('zh-CN'));
     });
 
     test('setTargetLanguage updates and notifies only on changes', () {
@@ -241,7 +241,7 @@ void main() {
 
     test('init sets speechError when API key validation fails', () async {
       final fakePipeline = _FakeSpeechPipeline()..apiKeyValid = false;
-      final localController = SpeechController(
+      final localController = GroupChatController(
         backendApiClient: BackendApiClient(
           baseUrl: 'https://api.example.com',
           authTokenProvider: () async => 'token',
@@ -267,7 +267,7 @@ void main() {
             amplitudeStream: amplitudes.stream,
             stop: () async {},
           );
-        final localController = SpeechController(
+        final localController = GroupChatController(
           backendApiClient: BackendApiClient(
             baseUrl: 'https://api.example.com',
             authTokenProvider: () async => 'token',
@@ -298,7 +298,7 @@ void main() {
       'startListening uses multi source for non-deepgram STT provider',
       () async {
         final fakePipeline = _FakeSpeechPipeline();
-        final localController = SpeechController(
+        final localController = GroupChatController(
           backendApiClient: BackendApiClient(
             baseUrl: 'https://api.example.com',
             authTokenProvider: () async => 'token',
@@ -327,7 +327,7 @@ void main() {
           amplitudeStream: amplitudes.stream,
           stop: () async {},
         );
-      final localController = SpeechController(
+      final localController = GroupChatController(
         backendApiClient: BackendApiClient(
           baseUrl: 'https://api.example.com',
           authTokenProvider: () async => 'token',
@@ -364,7 +364,7 @@ void main() {
             PlaybackDevice(id: 'speaker', name: 'Phone', type: 'Built-in'),
           ]
           ..currentPlaybackRouteId = 'speaker';
-        final localController = SpeechController(
+        final localController = GroupChatController(
           backendApiClient: BackendApiClient(
             baseUrl: 'https://api.example.com',
             authTokenProvider: () async => 'token',
@@ -415,7 +415,7 @@ void main() {
             PlaybackDevice(id: 'speaker', name: 'Phone', type: 'Built-in'),
           ]
           ..currentPlaybackRouteId = 'speaker';
-        final localController = SpeechController(
+        final localController = GroupChatController(
           backendApiClient: BackendApiClient(
             baseUrl: 'https://api.example.com',
             authTokenProvider: () async => 'token',

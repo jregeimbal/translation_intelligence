@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 
 import 'speech_connection_debug_dialog.dart';
@@ -23,7 +23,7 @@ class _SpeechFabState extends State<SpeechFab> {
   Widget _buildCircularWaveform(
     ThemeData theme,
     Color ringColor,
-    SpeechController controller,
+    GroupChatController controller,
   ) {
     final amp = controller.amplitude.clamp(0.0, 1.0);
     final trackColor = ringColor.withValues(alpha: 0.22);
@@ -45,7 +45,7 @@ class _SpeechFabState extends State<SpeechFab> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<SpeechController>();
+    final controller = context.watch<GroupChatController>();
     final enabled = controller.speechEnabled;
     final isNotListening = !controller.isListening;
     final theme = Theme.of(context);
@@ -82,7 +82,7 @@ class _SpeechFabState extends State<SpeechFab> {
                 ? () async {
                     setState(() => _processing = true);
                     try {
-                      await context.read<SpeechController>().startListening();
+                      await context.read<GroupChatController>().startListening();
                     } catch (error) {
                       if (!context.mounted) {
                         return;
@@ -101,7 +101,7 @@ class _SpeechFabState extends State<SpeechFab> {
                       }
                     }
                   }
-                : context.read<SpeechController>().stopListening)
+                : context.read<GroupChatController>().stopListening)
           : null,
       tooltip: enabled ? context.l10n.listen : context.l10n.speechUnavailable,
       child: child,

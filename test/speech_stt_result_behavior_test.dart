@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import 'package:translation_intelligence/services/mic_activation_sound_player.dart';
 import 'package:translation_intelligence/services/speech_pipeline.dart';
 
@@ -76,11 +76,11 @@ class _FakeSpeechPipeline extends SpeechPipeline {
   }
 }
 
-SpeechController _buildController(
+GroupChatController _buildController(
   _FakeSpeechPipeline pipeline, {
   Duration finalResultGroupingWindow = Duration.zero,
 }) {
-  return SpeechController(
+  return GroupChatController(
     deepgramApiKey: 'test-deepgram',
     speechPipeline: pipeline,
     micActivationSoundPlayer: _FakeMicActivationSoundPlayer(),
@@ -126,9 +126,9 @@ void main() {
         .setMockMethodCallHandler(wakelockChannel, null);
   });
 
-  group('SpeechController STT result behavior', () {
+  group('GroupChatController STT result behavior', () {
     late _FakeSpeechPipeline pipeline;
-    late SpeechController controller;
+    late GroupChatController controller;
 
     setUp(() {
       pipeline = _FakeSpeechPipeline();

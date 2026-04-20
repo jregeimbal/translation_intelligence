@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import 'package:translation_intelligence/controllers/two_way_chat_controller.dart';
 import 'package:translation_intelligence/models/playback_device.dart';
 import 'package:translation_intelligence/models/two_way_message.dart';
@@ -105,10 +105,10 @@ void main() {
         .setMockMethodCallHandler(wakelockChannel, null);
   });
 
-  test('SpeechController plays activation cue after listening starts', () async {
+  test('GroupChatController plays activation cue after listening starts', () async {
     final pipeline = _FakeRecognitionSpeechPipeline();
     final soundPlayer = _FakeMicActivationSoundPlayer();
-    final controller = SpeechController(
+    final controller = GroupChatController(
       speechPipeline: pipeline,
       micActivationSoundPlayer: soundPlayer,
     );

@@ -6,7 +6,7 @@ import 'package:translation_intelligence/widgets/audio_debug_dialog.dart';
 import 'package:translation_intelligence/services/speech_output_provider.dart';
 import 'package:translation_intelligence/services/speech_stt_provider.dart';
 import 'package:translation_intelligence/services/speech_translation_provider.dart';
-import '../stubs/speech_controller_stub.dart';
+import '../stubs/group_chat_controller_stub.dart';
 import 'test_app.dart';
 import '../stubs/two_way_chat_controller_stub.dart';
 
@@ -30,11 +30,11 @@ String _row(String label, String value) => '$label: $value';
 
 void main() {
   group('AudioDebugDialog', () {
-    late TestSpeechController groupController;
+    late TestGroupChatController groupController;
     late TestTwoWayChatController twoWayController;
 
     setUp(() {
-      groupController = TestSpeechController(
+      groupController = TestGroupChatController(
         isListening: true,
         amplitude: 0.523,
         activeSessionSampleRate: 16000,
@@ -256,7 +256,7 @@ void main() {
 
     group('Edge Cases', () {
       testWidgets('TC-033: Null values display n/a', (tester) async {
-        final nullController = TestSpeechController();
+        final nullController = TestGroupChatController();
         final nullTwoWayController = TestTwoWayChatController();
 
         await pumpTestApp(
@@ -303,7 +303,7 @@ void main() {
       });
 
       testWidgets('TC-034: Zero amplitude displays as 0.000', (tester) async {
-        final zeroAmplitudeController = TestSpeechController(amplitude: 0.0);
+        final zeroAmplitudeController = TestGroupChatController(amplitude: 0.0);
 
         await pumpTestApp(
           tester,
@@ -325,7 +325,7 @@ void main() {
       testWidgets('TC-035: Very short elapsed time displays correctly', (
         tester,
       ) async {
-        final shortSessionController = TestSpeechController(
+        final shortSessionController = TestGroupChatController(
           activeSessionStartedAt: DateTime.now().subtract(
             const Duration(seconds: 30),
           ),
@@ -354,7 +354,7 @@ void main() {
       testWidgets('TC-036: Long elapsed time displays correctly', (
         tester,
       ) async {
-        final longSessionController = TestSpeechController(
+        final longSessionController = TestGroupChatController(
           activeSessionStartedAt: DateTime.now().subtract(
             const Duration(hours: 2, minutes: 30),
           ),
@@ -381,7 +381,7 @@ void main() {
       });
 
       testWidgets('TC-037: Empty device id stays empty', (tester) async {
-        final emptyDeviceController = TestSpeechController(
+        final emptyDeviceController = TestGroupChatController(
           activeSessionListeningDeviceId: '',
         );
 
@@ -447,7 +447,7 @@ void main() {
       testWidgets('TC-040: Group mode with listening=false shows no', (
         tester,
       ) async {
-        final stoppedController = TestSpeechController(isListening: false);
+        final stoppedController = TestGroupChatController(isListening: false);
 
         await pumpTestApp(
           tester,

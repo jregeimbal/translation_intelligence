@@ -9,7 +9,7 @@ import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 
-import 'controllers/speech_controller.dart';
+import 'controllers/group_chat_controller.dart';
 import 'controllers/two_way_chat_controller.dart';
 import 'firebase_options.dart';
 import 'models/provider_settings_selection.dart';
@@ -112,7 +112,7 @@ class HomePageInitializationBundle {
   });
 
   final BackendApiClient backendApiClient;
-  final SpeechController controller;
+  final GroupChatController controller;
   final TwoWayChatController twoWayController;
 
   void dispose() {
@@ -196,7 +196,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final AppPreferences _appPreferences = AppPreferences();
-  late SpeechController _controller;
+  late GroupChatController _controller;
   late TwoWayChatController _twoWayController;
   late BackendApiClient _backendApiClient;
   final AppSettings _settings = AppSettings();
@@ -257,7 +257,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ? snapshot.deepgramRecognitionLanguage
         : DeepgramRecognitionCatalog.defaultRecognitionLanguageForModel(model);
     final targetLanguage =
-        SpeechController.supportedLanguages.contains(snapshot.targetLanguage)
+        GroupChatController.supportedLanguages.contains(snapshot.targetLanguage)
         ? snapshot.targetLanguage
         : 'en';
 
@@ -530,7 +530,7 @@ class _MyHomePageState extends State<MyHomePage> {
       authTokenProvider: authSession.getIdToken,
     );
 
-    final controller = SpeechController(backendApiClient: backendApiClient);
+    final controller = GroupChatController(backendApiClient: backendApiClient);
     controller.setSttProvider(_settings.sttProvider);
     controller.setTranslationProvider(_settings.translationProvider);
     controller.setDeepgramRecognitionModel(_settings.deepgramRecognitionModel);
@@ -755,7 +755,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 initialTranslationProvider: _settings.translationProvider,
                 initialOutputProvider: _settings.outputProvider,
                 initialTargetLanguage: _settings.targetLanguage,
-                targetLanguages: SpeechController.supportedLanguages,
+                targetLanguages: GroupChatController.supportedLanguages,
                 initialDeepgramRecognitionModel:
                     _settings.deepgramRecognitionModel,
                 initialDeepgramRecognitionLanguage:
@@ -874,7 +874,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return false;
     }
 
-    final targetLanguages = SpeechController.supportedLanguages.toSet();
+    final targetLanguages = GroupChatController.supportedLanguages.toSet();
     final sourceValues = sourceLanguages.values.toSet();
 
     final supportsCurrentDirection =
@@ -1006,7 +1006,7 @@ class _MyHomePageState extends State<MyHomePage> {
           onCloseSuggestedResponse: _clearSuggestedResponse,
           showFooter: !_initializing && _isGroupSection,
           footerChild: !_initializing && _isGroupSection
-              ? ChangeNotifierProvider<SpeechController>.value(
+              ? ChangeNotifierProvider<GroupChatController>.value(
                   value: _controller,
                   child: SpeechFooter(
                     hasSeenAudioPlaybackBluetoothNotice:

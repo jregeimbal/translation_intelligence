@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import 'chat_message.dart';
 import 'group_language_bar.dart';
 
@@ -16,7 +16,7 @@ class GroupChatBody extends StatelessWidget {
     required this.onSwap,
   });
 
-  final SpeechController controller;
+  final GroupChatController controller;
   final bool Function(Map<String, String>) canSwapGroupLanguages;
   final Future<void> Function(String value) onSourceSelected;
   final void Function(String value) onTargetSelected;
@@ -24,7 +24,7 @@ class GroupChatBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<SpeechController>.value(
+    return ChangeNotifierProvider<GroupChatController>.value(
       value: controller,
       child: Padding(
         key: const ValueKey('group_chat'),
@@ -33,7 +33,7 @@ class GroupChatBody extends StatelessWidget {
           children: [
             GroupLanguageBar(
               sourceLanguages: controller.deepgramRecognitionLanguages,
-              targetLanguages: SpeechController.supportedLanguages,
+              targetLanguages: GroupChatController.supportedLanguages,
               sourceCode: controller.deepgramRecognitionLanguage,
               targetCode: controller.targetLanguage,
               canSwap: canSwapGroupLanguages(

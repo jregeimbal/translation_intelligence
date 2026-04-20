@@ -8,25 +8,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import 'package:translation_intelligence/models/chat_message.dart';
 import 'package:translation_intelligence/widgets/footer.dart';
 
-import '../stubs/speech_controller_stub.dart';
+import '../stubs/group_chat_controller_stub.dart';
 import 'test_app.dart';
 
 void main() {
   testWidgets('SpeechFooter shows speakers and hide-original toggle', (
     tester,
   ) async {
-    final controller = TestSpeechController();
+    final controller = TestGroupChatController();
     controller.addMessage(ChatMessage('Hello', speaker: 0));
 
     await pumpTestApp(
       tester,
       SizedBox(
         width: 1000,
-        child: ChangeNotifierProvider<SpeechController>.value(
+        child: ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: const SpeechFooter(),
         ),
@@ -68,14 +68,14 @@ void main() {
   testWidgets('SpeechFooter shows bluetooth notice on first audio enable', (
     tester,
   ) async {
-    final controller = TestSpeechController(audioPlaybackEnabled: false);
+    final controller = TestGroupChatController(audioPlaybackEnabled: false);
     var noticeSeenCallCount = 0;
 
     await pumpTestApp(
       tester,
       SizedBox(
         width: 1000,
-        child: ChangeNotifierProvider<SpeechController>.value(
+        child: ChangeNotifierProvider<GroupChatController>.value(
           value: controller,
           child: SpeechFooter(
             hasSeenAudioPlaybackBluetoothNotice: false,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:translation_intelligence/controllers/speech_controller.dart';
+import 'package:translation_intelligence/controllers/group_chat_controller.dart';
 import 'package:translation_intelligence/l10n/app_localizations_ext.dart';
 import 'package:translation_intelligence/theme/app_theme_resolver.dart';
 
@@ -30,7 +30,7 @@ class SpeechFooter extends StatefulWidget {
 
 class _SpeechFooterState extends State<SpeechFooter> {
   Future<void> _toggleAudioPlayback(bool audioPlaybackEnabled) async {
-    final controller = context.read<SpeechController>();
+    final controller = context.read<GroupChatController>();
     if (audioPlaybackEnabled) {
       controller.setAudioPlaybackEnabled(enabled: false);
       return;
@@ -65,25 +65,25 @@ class _SpeechFooterState extends State<SpeechFooter> {
 
   @override
   Widget build(BuildContext context) {
-    final speechEnabled = context.select<SpeechController, bool>(
+    final speechEnabled = context.select<GroupChatController, bool>(
       (controller) => controller.speechEnabled,
     );
-    final speechError = context.select<SpeechController, String>(
+    final speechError = context.select<GroupChatController, String>(
       (controller) => controller.speechError,
     );
-    final hasMessages = context.select<SpeechController, bool>(
+    final hasMessages = context.select<GroupChatController, bool>(
       (controller) => controller.chatMessages.isNotEmpty,
     );
-    final speakers = context.select<SpeechController, List<int>>(
+    final speakers = context.select<GroupChatController, List<int>>(
       (controller) => List<int>.unmodifiable(controller.speakers),
     );
-    final preferred = context.select<SpeechController, int?>(
+    final preferred = context.select<GroupChatController, int?>(
       (controller) => controller.preferredSpeaker,
     );
-    final hideTranslatedOriginalText = context.select<SpeechController, bool>(
+    final hideTranslatedOriginalText = context.select<GroupChatController, bool>(
       (controller) => controller.hideTranslatedOriginalText,
     );
-    final audioPlaybackEnabled = context.select<SpeechController, bool>(
+    final audioPlaybackEnabled = context.select<GroupChatController, bool>(
       (controller) => controller.audioPlaybackEnabled,
     );
     final theme = Theme.of(context);
@@ -148,7 +148,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
                         ),
                       ],
                       onSelected: (value) {
-                        context.read<SpeechController>().setPreferredSpeaker(
+                        context.read<GroupChatController>().setPreferredSpeaker(
                           value,
                         );
                       },
@@ -181,7 +181,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
                   icon: const Icon(Icons.refresh_rounded),
                   tooltip: l10n.clearChat,
                   onPressed: hasMessages
-                      ? context.read<SpeechController>().clearMessages
+                      ? context.read<GroupChatController>().clearMessages
                       : null,
                 ),
                 const SizedBox(width: 8),
@@ -189,7 +189,7 @@ class _SpeechFooterState extends State<SpeechFooter> {
                   onPressed: hasMessages
                       ? () {
                           context
-                              .read<SpeechController>()
+                              .read<GroupChatController>()
                               .setHideTranslatedOriginalText(
                                 enabled: !hideTranslatedOriginalText,
                               );

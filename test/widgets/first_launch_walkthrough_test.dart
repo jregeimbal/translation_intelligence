@@ -7,7 +7,7 @@ import 'package:translation_intelligence/models/two_way_message.dart';
 import 'package:translation_intelligence/services/app_preferences.dart';
 import 'package:translation_intelligence/services/backend_api_client.dart';
 
-import '../stubs/speech_controller_stub.dart';
+import '../stubs/group_chat_controller_stub.dart';
 import 'test_app.dart';
 
 class _FakeTwoWayChatController extends ChangeNotifier
@@ -63,7 +63,7 @@ void main() {
         baseUrl: 'https://example.com',
         authTokenProvider: () async => 'token',
       ),
-      controller: TestSpeechController(),
+      controller: TestGroupChatController(),
       twoWayController: _FakeTwoWayChatController(),
     );
   }

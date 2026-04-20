@@ -9,7 +9,7 @@ import 'package:translation_intelligence/services/speech_translation_provider.da
 import 'package:translation_intelligence/widgets/provider_settings_dialog.dart';
 import 'package:translation_intelligence/widgets/searchable_selection_field.dart';
 
-import '../stubs/speech_controller_stub.dart';
+import '../stubs/group_chat_controller_stub.dart';
 import 'test_app.dart';
 
 void main() {
@@ -264,8 +264,8 @@ void main() {
     },
   );
 
-  test('TestSpeechController emits listening device update messages', () async {
-    final controller = TestSpeechController();
+  test('TestGroupChatController emits listening device update messages', () async {
+    final controller = TestGroupChatController();
     final received = <String>[];
     final sub = controller.listeningDeviceUpdates.listen(received.add);
 
