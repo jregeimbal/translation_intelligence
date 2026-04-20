@@ -119,32 +119,47 @@ class _FirstLaunchWalkthroughDialogState
               const SizedBox(height: 20),
               Row(
                 children: [
-                  for (var index = 0; index < steps.length; index++) ...[
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      width: index == _currentPage ? 24 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: index == _currentPage
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(999),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (
+                            var index = 0;
+                            index < steps.length;
+                            index++
+                          ) ...[
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: index == _currentPage ? 24 : 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: index == _currentPage
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.outlineVariant,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                            if (index != steps.length - 1)
+                              const SizedBox(width: 8),
+                          ],
+                        ],
                       ),
                     ),
-                    if (index != steps.length - 1) const SizedBox(width: 8),
-                  ],
-                  const Spacer(),
+                  ),
+                  const SizedBox(width: 8),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: Text(l10n.walkthroughSkip),
                   ),
-                  const SizedBox(width: 8),
-                  if (_currentPage > 0)
+                  if (_currentPage > 0) ...[
+                    const SizedBox(width: 8),
                     OutlinedButton(
                       onPressed: () => _animateToPage(_currentPage - 1),
                       child: Text(l10n.walkthroughBack),
                     ),
-                  if (_currentPage > 0) const SizedBox(width: 8),
+                  ],
+                  const SizedBox(width: 8),
                   FilledButton(
                     onPressed: isLastPage
                         ? () => Navigator.of(context).pop()

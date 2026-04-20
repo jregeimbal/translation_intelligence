@@ -790,16 +790,24 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     if (!mounted) return;
 
+    // Check for changes BEFORE applying to settings, so we know what to update
+    final targetLanguageChanged =
+        selection.targetLanguage != _settings.targetLanguage;
+    final sttProviderChanged = selection.sttProvider != _settings.sttProvider;
+    final translationProviderChanged =
+        selection.translationProvider != _settings.translationProvider;
+    final outputProviderChanged =
+        selection.outputProvider != _settings.outputProvider;
+
     _settings.applySelection(selection);
 
-    if (selection.sttProvider != _settings.sttProvider) {
+    if (sttProviderChanged) {
       await _setSttProvider(selection.sttProvider);
-    } else if (selection.translationProvider != _settings.translationProvider) {
+    } else if (translationProviderChanged) {
       _setTranslationProvider(selection.translationProvider);
-    } else if (selection.outputProvider != _settings.outputProvider) {
+    } else if (outputProviderChanged) {
       _setOutputProvider(selection.outputProvider);
-    } else if (selection.targetLanguage != _settings.targetLanguage) {
-      _settings.setTargetLanguage(selection.targetLanguage);
+    } else if (targetLanguageChanged) {
       _controller.setTargetLanguage(selection.targetLanguage);
     } else if (selection.deepgramRecognitionModel !=
         _settings.deepgramRecognitionModel) {

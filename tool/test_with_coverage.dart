@@ -1,11 +1,11 @@
 import 'dart:io';
 
 Future<void> main() async {
-  final testProcess = await Process.start(
-    'flutter',
-    const ['test', '--coverage'],
-    mode: ProcessStartMode.inheritStdio,
-  );
+  final testProcess = await Process.start('flutter', const [
+    'test',
+    '--coverage',
+    'test/',
+  ], mode: ProcessStartMode.inheritStdio);
 
   final testExitCode = await testProcess.exitCode;
 
