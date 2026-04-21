@@ -13,9 +13,9 @@ class FakeTwoWayChatController extends ChangeNotifier
     bool speechEnabled = true,
     String primaryLanguage = 'en',
     String guestLanguage = 'es',
-  })  : _speechEnabled = speechEnabled,
-        _primaryLanguage = primaryLanguage,
-        _guestLanguage = guestLanguage;
+  }) : _speechEnabled = speechEnabled,
+       _primaryLanguage = primaryLanguage,
+       _guestLanguage = guestLanguage;
 
   bool _isListening = false;
   final bool _speechEnabled;
@@ -86,8 +86,7 @@ class FakeTwoWayChatController extends ChangeNotifier
   Map<String, String> get deepgramRecognitionLanguages => {'en': 'en'};
 
   @override
-  Map<String, String> get speechToTextRecognitionLocales =>
-      {'en-US': 'en-US'};
+  Map<String, String> get speechToTextRecognitionLocales => {'en-US': 'en-US'};
 
   @override
   int? get activeSessionSampleRate => null;
@@ -110,6 +109,11 @@ class FakeTwoWayChatController extends ChangeNotifier
   @override
   void clearMessages() {
     _messages.clear();
+    notifyListeners();
+  }
+
+  void addTestMessage(TwoWayMessage message) {
+    _messages.add(message);
     notifyListeners();
   }
 
