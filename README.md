@@ -36,15 +36,19 @@ Deployment helpers:
 
 ### 1. Configure the Flutter app
 
-Create a `.env` file in the repository root:
+Copy `.env.sample` to `.env` in the repository root and fill in your values:
 
 ```bash
-API_BASE_URL=https://your-api.example.com
-APP_THEME=HyperListenTheme
+API_BASE_URL=https://your-api.example.com   # required
+APP_THEME=HyperListenTheme                  # optional, defaults to HyperListenTheme
+DEEPGRAM_API_KEY=your-deepgram-api-key      # required by the server when run locally
+FIREBASE_WEB_API_KEY=your-firebase-web-api-key  # required by the server when run locally
 ```
 
-`API_BASE_URL` is required. `APP_THEME` is optional and defaults to
-`HyperListenTheme`.
+`API_BASE_URL` is required by the Flutter app. The server reads `DEEPGRAM_API_KEY`
+and `FIREBASE_WEB_API_KEY` from this same `.env` file when running locally (it
+falls back to `Platform.environment` so production Cloud Run env vars always
+take precedence). The `.env` file is gitignored — never commit it.
 
 Generate and commit the Firebase client configuration for the same Firebase
 project used by the backend:
@@ -55,33 +59,36 @@ project used by the backend:
 
 ### 2. Configure the backend
 
-Minimum required environment variables:
+**Local development:** `DEEPGRAM_API_KEY` and `FIREBASE_WEB_API_KEY` are read
+from the `.env` file you created in step 1. Add the remaining server-only
+variables to your `.env` or export them in your shell:
 
 ```bash
-export FIREBASE_PROJECT_ID=your_project_id
-export FIREBASE_WEB_API_KEY=your_firebase_web_api_key
-export DEEPGRAM_API_KEY=your_deepgram_key
-export GOOGLE_SERVICE_ACCOUNT_JSON_PATH=/absolute/path/to/service-account.json
+FIREBASE_PROJECT_ID=your_project_id
+GOOGLE_SERVICE_ACCOUNT_JSON_PATH=/path/to/service-account.json  # optional, see below
 ```
 
 Optional server settings:
 
 ```bash
-export ALLOWED_ORIGINS=https://your-app.example.com,http://localhost:3000
-export HTTP_RATE_LIMIT_PER_MINUTE=120
-export WEBSOCKET_SESSION_RATE_LIMIT_PER_MINUTE=30
+ALLOWED_ORIGINS=https://your-app.example.com,http://localhost:3000
+HTTP_RATE_LIMIT_PER_MINUTE=120
+WEBSOCKET_SESSION_RATE_LIMIT_PER_MINUTE=30
 ```
 
-The server also supports inline Google credentials via
-`GOOGLE_SERVICE_ACCOUNT_JSON` instead of
-`GOOGLE_SERVICE_ACCOUNT_JSON_PATH`.
+**Google Cloud credentials:** The server uses Application Default Credentials
+(ADC). When deployed to Cloud Run, it authenticates automatically via the
+attached service account — no key file needed. For local development, either:
 
-The backend must use the same Firebase project as the client app. In practice,
-that means:
+- Set `GOOGLE_SERVICE_ACCOUNT_JSON_PATH` in `.env` pointing to a downloaded
+  service account key (gitignored), or
+- Run `gcloud auth application-default login` to use your personal credentials.
+
+The backend must use the same Firebase project as the client app:
 
 - `FIREBASE_PROJECT_ID` must match the client Firebase project.
-- `FIREBASE_WEB_API_KEY` must be the matching Web API key for that same
-  project.
+- `FIREBASE_WEB_API_KEY` must be the **Web** API key (not Android or iOS) for
+  that project, with no HTTP referrer restrictions.
 
 If those values do not match the client app configuration, backend auth and
 live STT session startup will fail.

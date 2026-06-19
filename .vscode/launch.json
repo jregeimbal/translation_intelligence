@@ -12,6 +12,9 @@
             "toolArgs": [
                 "test/"
             ],
+            "args": [
+                "--dart-define-from-file=test/firebase_test_defines.json"
+            ],
             "noDebug": true
         },
         {
@@ -20,9 +23,7 @@
             "request": "launch",
             "program": "server/bin/server.dart",
             "env": {
-                "DEEPGRAM_API_KEY": "REDACTED_DEEPGRAM_API_KEY",
                 "FIREBASE_PROJECT_ID": "tutti-lingo",
-                "FIREBASE_WEB_API_KEY": "AIzaSyBDCTRkDbXpsnLzfpewRaOEo3-LOgxv-p8",
                 "GOOGLE_SERVICE_ACCOUNT_JSON_PATH": "omnia-lingo-google-cloud-service-account.json",
                 "ALLOWED_ORIGINS": "http://localhost:3000",
                 "SERVER_HOST": "0.0.0.0",
@@ -37,9 +38,9 @@
             "program": "lib/main.dart",
             "flutterMode": "debug",
             "args": [
+                "--dart-define-from-file=.env",
                 "--web-hostname=localhost",
-                "--web-port=3000",
-                "--dart-define", "API_BASE_URL=http://jons-macbook-pro:8080"
+                "--web-port=3000"
             ],
         },
         {
@@ -49,6 +50,7 @@
             "program": "lib/main.dart",
             "flutterMode": "profile",
             "args": [
+                "--dart-define-from-file=.env",
                 "--web-hostname=0.0.0.0",
                 "--web-port=3000",
                 "--dart-define", "API_BASE_URL=http://localhost:8080"
@@ -61,6 +63,7 @@
             "program": "lib/main.dart",
             "flutterMode": "release",
             "args": [
+                "--dart-define-from-file=.env",
                 "--web-hostname=localhost",
                 "--web-port=3000",
                 "--dart-define", "API_BASE_URL=http://localhost:8080"
@@ -73,6 +76,7 @@
             "program": "lib/main.dart",
             "flutterMode": "release",
             "args": [
+                "--dart-define-from-file=.env",
                 "--web-hostname=localhost",
                 "--web-port=3000",
                 "--dart-define", "NO_DOTENV_OVERRIDE=true",

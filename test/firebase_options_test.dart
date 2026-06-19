@@ -2,6 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:translation_intelligence/firebase_options.dart';
 
+const _webApiKey = String.fromEnvironment('FIREBASE_WEB_API_KEY');
+const _androidApiKey = String.fromEnvironment('FIREBASE_ANDROID_API_KEY');
+const _iosApiKey = String.fromEnvironment('FIREBASE_IOS_API_KEY');
+
 void main() {
   group('DefaultFirebaseOptions', () {
     test('has currentPlatform getter', () {
@@ -12,7 +16,7 @@ void main() {
     test('web platform returns correct options', () {
       final webOptions = DefaultFirebaseOptions.web;
 
-      expect(webOptions.apiKey, 'AIzaSyDrDpfy_ZwGXz0my-SxDHj9dwDV3Q_coKc');
+      expect(webOptions.apiKey, _webApiKey);
       expect(webOptions.appId, '1:807627897911:web:0881cbefcc13b9af4813b2');
       expect(webOptions.messagingSenderId, '807627897911');
       expect(webOptions.projectId, 'tutti-lingo');
@@ -24,7 +28,7 @@ void main() {
     test('android platform returns correct options', () {
       final androidOptions = DefaultFirebaseOptions.android;
 
-      expect(androidOptions.apiKey, 'AIzaSyBDCTRkDbXpsnLzfpewRaOEo3-LOgxv-p8');
+      expect(androidOptions.apiKey, _androidApiKey);
       expect(androidOptions.appId, '1:807627897911:android:3b03bc1d57cbfb264813b2');
       expect(androidOptions.messagingSenderId, '807627897911');
       expect(androidOptions.projectId, 'tutti-lingo');
@@ -36,7 +40,7 @@ void main() {
     test('ios platform returns correct options', () {
       final iosOptions = DefaultFirebaseOptions.ios;
 
-      expect(iosOptions.apiKey, 'AIzaSyBlxM7iI7AT6w-wkFq8smY2COViRQ0Y3sQ');
+      expect(iosOptions.apiKey, _iosApiKey);
       expect(iosOptions.appId, '1:807627897911:ios:6a7fc172d14770d94813b2');
       expect(iosOptions.messagingSenderId, '807627897911');
       expect(iosOptions.projectId, 'tutti-lingo');
@@ -49,7 +53,7 @@ void main() {
     test('macos platform returns correct options', () {
       final macosOptions = DefaultFirebaseOptions.macos;
 
-      expect(macosOptions.apiKey, 'AIzaSyBlxM7iI7AT6w-wkFq8smY2COViRQ0Y3sQ');
+      expect(macosOptions.apiKey, _iosApiKey);
       expect(macosOptions.appId, '1:807627897911:ios:6a7fc172d14770d94813b2');
       expect(macosOptions.messagingSenderId, '807627897911');
       expect(macosOptions.projectId, 'tutti-lingo');
@@ -62,7 +66,7 @@ void main() {
     test('windows platform returns correct options', () {
       final windowsOptions = DefaultFirebaseOptions.windows;
 
-      expect(windowsOptions.apiKey, 'AIzaSyDrDpfy_ZwGXz0my-SxDHj9dwDV3Q_coKc');
+      expect(windowsOptions.apiKey, _webApiKey);
       expect(windowsOptions.appId, '1:807627897911:web:5f363a7f798da4ab4813b2');
       expect(windowsOptions.messagingSenderId, '807627897911');
       expect(windowsOptions.projectId, 'tutti-lingo');
@@ -118,7 +122,7 @@ void main() {
       final windowsOptions = DefaultFirebaseOptions.windows;
 
       expect(webOptions.apiKey, windowsOptions.apiKey);
-      expect(webOptions.apiKey, 'AIzaSyDrDpfy_ZwGXz0my-SxDHj9dwDV3Q_coKc');
+      expect(webOptions.apiKey, _webApiKey);
      });
 
     test('ios and macos share same apiKey', () {
@@ -129,7 +133,7 @@ void main() {
       final macosOptions = DefaultFirebaseOptions.macos;
 
       expect(iosOptions.apiKey, macosOptions.apiKey);
-      expect(iosOptions.apiKey, 'AIzaSyBlxM7iI7AT6w-wkFq8smY2COViRQ0Y3sQ');
+      expect(iosOptions.apiKey, _iosApiKey);
      });
    });
 }

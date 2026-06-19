@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'dot_env.dart';
+
 class AppConfig {
   AppConfig({
     required this.host,
@@ -10,7 +12,7 @@ class AppConfig {
     required this.websocketSessionRateLimitPerMinute,
     required this.firebaseProjectId,
     required this.firebaseWebApiKey,
-    required this.googleServiceAccountJson,
+    this.googleServiceAccountJson,
     required this.deepgramApiKey,
     required this.geminiModel,
   });
@@ -22,7 +24,7 @@ class AppConfig {
   final int websocketSessionRateLimitPerMinute;
   final String firebaseProjectId;
   final String firebaseWebApiKey;
-  final String googleServiceAccountJson;
+  final String? googleServiceAccountJson;
   final String deepgramApiKey;
   final String geminiModel;
 
@@ -46,7 +48,6 @@ class AppConfig {
     final deepgramApiKey = _requireEnv('DEEPGRAM_API_KEY');
     final geminiModel = _optionalEnv('GEMINI_MODEL') ?? 'gemini-2.5-flash';
     final googleServiceAccountJson = _readGoogleServiceAccountJson();
-
     final allowedOrigins = allowedOriginsRaw
         .split(',')
         .map((origin) => origin.trim())
@@ -67,12 +68,15 @@ class AppConfig {
     );
   }
 
-  Map<String, dynamic> get googleServiceAccount =>
-      jsonDecode(googleServiceAccountJson) as Map<String, dynamic>;
+  Map<String, dynamic>? get googleServiceAccount {
+    final json = googleServiceAccountJson;
+    if (json == null) return null;
+    return jsonDecode(json) as Map<String, dynamic>;
+  }
 
   String get googleCloudProjectId {
     final serviceAccountProjectId =
-        googleServiceAccount['project_id'] as String?;
+        googleServiceAccount?['project_id'] as String?;
     if (serviceAccountProjectId != null &&
         serviceAccountProjectId.trim().isNotEmpty) {
       return serviceAccountProjectId.trim();
@@ -80,24 +84,26 @@ class AppConfig {
     return firebaseProjectId;
   }
 
-  static String _readGoogleServiceAccountJson() {
-    final inlineJson = Platform.environment['GOOGLE_SERVICE_ACCOUNT_JSON'];
+  static String? _readGoogleServiceAccountJson() {
+    final inlineJson =
+        Platform.environment['GOOGLE_SERVICE_ACCOUNT_JSON'] ??
+        dotEnv['GOOGLE_SERVICE_ACCOUNT_JSON'];
     if (inlineJson != null && inlineJson.trim().isNotEmpty) {
       return inlineJson;
     }
 
-    final jsonPath = Platform.environment['GOOGLE_SERVICE_ACCOUNT_JSON_PATH'];
+    final jsonPath =
+        Platform.environment['GOOGLE_SERVICE_ACCOUNT_JSON_PATH'] ??
+        dotEnv['GOOGLE_SERVICE_ACCOUNT_JSON_PATH'];
     if (jsonPath != null && jsonPath.trim().isNotEmpty) {
       return File(jsonPath).readAsStringSync();
     }
 
-    throw StateError(
-      'Missing GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_SERVICE_ACCOUNT_JSON_PATH',
-    );
+    return null;
   }
 
   static String _requireEnv(String key) {
-    final value = Platform.environment[key];
+    final value = Platform.environment[key] ?? dotEnv[key];
     if (value == null || value.trim().isEmpty) {
       throw StateError('Missing required environment variable $key');
     }
@@ -105,7 +111,7 @@ class AppConfig {
   }
 
   static String? _optionalEnv(String key) {
-    final value = Platform.environment[key];
+    final value = Platform.environment[key] ?? dotEnv[key];
     if (value == null || value.trim().isEmpty) {
       return null;
     }
