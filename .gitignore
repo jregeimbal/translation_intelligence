@@ -47,6 +47,8 @@ app.*.map.json
 .env
 node_modules/
 key.properties
+google-play-service-account.json
+server/omnia-lingo-google-cloud-service-account.json
 
 # Patrol generated test bundle
 integration_test/test_bundle.dart
