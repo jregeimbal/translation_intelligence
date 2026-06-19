@@ -66,13 +66,13 @@ class _FakeSpeechToTextPlatform extends SpeechToTextPlatform
 
   void emitPartial(String text) {
     onTextRecognition?.call(
-      '{"alternates":[{"recognizedWords":"$text","confidence":1.0}],"finalResult":false}',
+      '{"alternates":[{"recognizedWords":"$text","confidence":1.0}],"resultType":0}',
     );
   }
 
   void emitFinal(String text) {
     onTextRecognition?.call(
-      '{"alternates":[{"recognizedWords":"$text","confidence":1.0}],"finalResult":true}',
+      '{"alternates":[{"recognizedWords":"$text","confidence":1.0}],"resultType":2}',
     );
   }
 
