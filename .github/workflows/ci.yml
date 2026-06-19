@@ -158,6 +158,7 @@ jobs:
           dart test
 
   secret-scanning:
+    name: Secret Scanning
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
