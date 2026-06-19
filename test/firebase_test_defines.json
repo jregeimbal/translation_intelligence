@@ -1,0 +1,5 @@
+{
+  "FIREBASE_WEB_API_KEY": "test-web-api-key",
+  "FIREBASE_ANDROID_API_KEY": "test-android-api-key",
+  "FIREBASE_IOS_API_KEY": "test-ios-api-key"
+}

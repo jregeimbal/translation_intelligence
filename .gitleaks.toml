@@ -1,0 +1,68 @@
+title = "gitleaks config"
+
+[[rules]]
+id = "google-service-account"
+description = "Google Cloud service account JSON"
+regex = '''"type":\s*"service_account"'''
+path = '''\.json$'''
+tags = ["google", "service_account"]
+
+[[rules]]
+id = "deepgram-api-key"
+description = "Deepgram API key"
+regex = '''DG[pP][a-zA-Z0-9]{32,}'''
+tags = ["deepgram", "api_key"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API key"
+regex = '''(?i)(api[_\-]?key|apikey)\s*[=:]\s*['\"][a-zA-Z0-9_\-]{16,}['\"]'''
+tags = ["generic", "api_key"]
+
+[[rules]]
+id = "generic-secret"
+description = "Generic secret"
+regex = '''(?i)(secret|token|password|passwd|credential)\s*[=:]\s*['\"][^\s'"]{8,}['\"]'''
+tags = ["generic", "secret"]
+
+[[rules]]
+id = "private-key"
+description = "Private key"
+regex = '''-----BEGIN (RSA |EC |DSA |OPENSSH )?.{35,}?PRIVATE KEY-----'''
+tags = ["private_key"]
+
+[[rules]]
+id = "service-account-json-path"
+description = "Reference to a service account JSON file path"
+regex = '''(?i)(service.?account[_]?json[_]?path|service.?account[_]?file)\s*[=:]\s*['"][^'"]+\.json['"]'''
+tags = ["google", "service_account"]
+
+[allowlist]
+description = "Allowlist"
+paths = [
+  '''.gitleaks.toml''',
+  '''.gitignore''',
+  '''docs/.*\\.md$''',
+  '''test/firebase_options_test\\.dart$''',
+  '''lib/firebase_options\\.dart$''',
+  '''android/app/google-services\\.json$''',
+  '''google-services\\.json$''',
+  '''.env\\.sample$''',
+  '''tool/upload_play_release\\.dart$''',
+  '''server/tutti-lingo-google-cloud-service-account.json''',
+]
+regexTarget = "match"
+regexes = [
+  '''your_firebase_id_token''',
+  '''local-firebase-token''',
+  '''your-deepgram-api-key''',
+  '''your-firebase-web-api-key''',
+  '''mock-refresh-token''',
+  '''mock-id-token''',
+  '''AIzaSy.{30,}oKc''',
+  '''AIzaSy.{30,}3sQ''',
+  '''AIzaSy.{30,}-p8''',
+  '''/secrets/service-account.json''',
+  '''"/absolute/path/to/service-account.json''',
+  '''\${.*:-.*}''',
+]
