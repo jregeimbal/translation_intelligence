@@ -14,12 +14,6 @@ regex = '''DG[pP][a-zA-Z0-9]{32,}'''
 tags = ["deepgram", "api_key"]
 
 [[rules]]
-id = "firebase-web-api-key"
-description = "Firebase / Google API key (AIzaSy)"
-regex = '''AIzaSy[a-zA-Z0-9_-]{33}'''
-tags = ["firebase", "google", "api_key"]
-
-[[rules]]
 id = "generic-api-key"
 description = "Generic API key"
 regex = '''(?i)(api[_\-]?key|apikey)\s*[=:]\s*['\"][a-zA-Z0-9_\-]{16,}['\"]'''
@@ -34,7 +28,7 @@ tags = ["generic", "secret"]
 [[rules]]
 id = "private-key"
 description = "Private key"
-regex = '''-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'''
+regex = '''-----BEGIN (RSA |EC |DSA |OPENSSH )?.{35,}?PRIVATE KEY-----'''
 tags = ["private_key"]
 
 [[rules]]
@@ -55,4 +49,20 @@ paths = [
   '''google-services\\.json$''',
   '''.env\\.sample$''',
   '''tool/upload_play_release\\.dart$''',
+  '''server/tutti-lingo-google-cloud-service-account.json''',
+]
+regexTarget = "match"
+regexes = [
+  '''your_firebase_id_token''',
+  '''local-firebase-token''',
+  '''your-deepgram-api-key''',
+  '''your-firebase-web-api-key''',
+  '''mock-refresh-token''',
+  '''mock-id-token''',
+  '''AIzaSy.{30,}oKc''',
+  '''AIzaSy.{30,}3sQ''',
+  '''AIzaSy.{30,}-p8''',
+  '''/secrets/service-account.json''',
+  '''"/absolute/path/to/service-account.json''',
+  '''\${.*:-.*}''',
 ]
