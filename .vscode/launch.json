@@ -12,6 +12,9 @@
             "toolArgs": [
                 "test/"
             ],
+            "args": [
+                "--dart-define-from-file=test/firebase_test_defines.json"
+            ],
             "noDebug": true
         },
         {
@@ -35,9 +38,9 @@
             "program": "lib/main.dart",
             "flutterMode": "debug",
             "args": [
+                "--dart-define-from-file=.env",
                 "--web-hostname=localhost",
-                "--web-port=3000",
-                "--dart-define", "API_BASE_URL=http://jons-macbook-pro:8080"
+                "--web-port=3000"
             ],
         },
         {
@@ -47,6 +50,7 @@
             "program": "lib/main.dart",
             "flutterMode": "profile",
             "args": [
+                "--dart-define-from-file=.env",
                 "--web-hostname=0.0.0.0",
                 "--web-port=3000",
                 "--dart-define", "API_BASE_URL=http://localhost:8080"
@@ -59,6 +63,7 @@
             "program": "lib/main.dart",
             "flutterMode": "release",
             "args": [
+                "--dart-define-from-file=.env",
                 "--web-hostname=localhost",
                 "--web-port=3000",
                 "--dart-define", "API_BASE_URL=http://localhost:8080"
@@ -71,6 +76,7 @@
             "program": "lib/main.dart",
             "flutterMode": "release",
             "args": [
+                "--dart-define-from-file=.env",
                 "--web-hostname=localhost",
                 "--web-port=3000",
                 "--dart-define", "NO_DOTENV_OVERRIDE=true",
