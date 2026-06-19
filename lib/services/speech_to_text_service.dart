@@ -62,8 +62,8 @@ class SpeechToTextService {
     }
 
     await _speechToText.listen(
-      localeId: languageCode,
       listenOptions: SpeechListenOptions(
+        localeId: languageCode,
         partialResults: true,
         cancelOnError: true,
         listenMode: ListenMode.dictation,
